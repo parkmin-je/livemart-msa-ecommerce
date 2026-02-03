@@ -1,15 +1,15 @@
 ﻿version: '3.8'
 
 services:
-  # MySQL - User Service DB
   mysql-user:
     image: mysql:8.0
-    container_name: mysql-user
+    container_name: livemart-mysql-user
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: userdb
       MYSQL_USER: user
       MYSQL_PASSWORD: user123
+    command: --default-authentication-plugin=mysql_native_password
     ports:
       - "3306:3306"
     volumes:
@@ -17,15 +17,15 @@ services:
     networks:
       - livemart-network
 
-  # MySQL - Product Service DB
   mysql-product:
     image: mysql:8.0
-    container_name: mysql-product
+    container_name: livemart-mysql-product
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: productdb
       MYSQL_USER: product
       MYSQL_PASSWORD: product123
+    command: --default-authentication-plugin=mysql_native_password
     ports:
       - "3307:3306"
     volumes:
@@ -33,15 +33,15 @@ services:
     networks:
       - livemart-network
 
-  # MySQL - Order Service DB
   mysql-order:
     image: mysql:8.0
-    container_name: mysql-order
+    container_name: livemart-mysql-order
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: orderdb
       MYSQL_USER: order
       MYSQL_PASSWORD: order123
+    command: --default-authentication-plugin=mysql_native_password
     ports:
       - "3308:3306"
     volumes:
@@ -49,14 +49,13 @@ services:
     networks:
       - livemart-network
 
-  # PostgreSQL - Inventory Service DB
   postgres-inventory:
-    image: postgres:14-alpine
-    container_name: postgres-inventory
+    image: postgres:15
+    container_name: livemart-postgres-inventory
     environment:
+      POSTGRES_DB: inventorydb
       POSTGRES_USER: inventory
       POSTGRES_PASSWORD: inventory123
-      POSTGRES_DB: inventorydb
     ports:
       - "5432:5432"
     volumes:
@@ -64,14 +63,13 @@ services:
     networks:
       - livemart-network
 
-  # PostgreSQL - Analytics Service DB
   postgres-analytics:
-    image: postgres:14-alpine
-    container_name: postgres-analytics
+    image: postgres:15
+    container_name: livemart-postgres-analytics
     environment:
+      POSTGRES_DB: analyticsdb
       POSTGRES_USER: analytics
       POSTGRES_PASSWORD: analytics123
-      POSTGRES_DB: analyticsdb
     ports:
       - "5433:5432"
     volumes:
@@ -79,22 +77,17 @@ services:
     networks:
       - livemart-network
 
-  # Redis
   redis:
     image: redis:7-alpine
-    container_name: redis
+    container_name: livemart-redis
     ports:
       - "6379:6379"
-    volumes:
-      - redis-data:/data
     networks:
       - livemart-network
-    command: redis-server --appendonly yes
 
-  # Zookeeper
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
-    container_name: zookeeper
+    container_name: livemart-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -103,15 +96,11 @@ services:
     networks:
       - livemart-network
 
-  # Kafka
   kafka:
     image: confluentinc/cp-kafka:7.5.0
-    container_name: kafka
+    container_name: livemart-kafka
     depends_on:
       - zookeeper
-    ports:
-      - "9092:9092"
-      - "9093:9093"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -119,13 +108,15 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+      - "9093:9093"
     networks:
       - livemart-network
 
-  # Elasticsearch
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: elasticsearch
+    container_name: livemart-elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -138,10 +129,9 @@ services:
     networks:
       - livemart-network
 
-  # Kibana
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: kibana
+    container_name: livemart-kibana
     depends_on:
       - elasticsearch
     environment:
@@ -157,7 +147,6 @@ volumes:
   mysql-order-data:
   postgres-inventory-data:
   postgres-analytics-data:
-  redis-data:
   elasticsearch-data:
 
 networks:
