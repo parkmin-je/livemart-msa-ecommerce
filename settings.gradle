@@ -1,0 +1,10 @@
+rootProject.name = 'livemart'
+
+include 'common'
+include 'user-service'
+include 'product-service'
+include 'order-service'
+include 'inventory-service'
+include 'notification-service'
+include 'analytics-service'
+include 'api-gateway'
