@@ -20,7 +20,6 @@ import java.util.Map;
 @Configuration
 public class KafkaConfig {
 
-    // Producer 설정
     @Bean
     public ProducerFactory<String, ProductEvent> productProducerFactory() {
         Map<String, Object> config = new HashMap<>();
@@ -49,17 +48,26 @@ public class KafkaConfig {
         return new KafkaTemplate<>(stockProducerFactory());
     }
 
-    // Consumer 설정
     @Bean
     public ConsumerFactory<String, OrderEvent> orderConsumerFactory() {
-        Map<String, Object> config = new HashMap<>();
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "product-service-group");
-        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        config.put(JsonDeserializer.VALUE_DEFAULT_TYPE, OrderEvent.class.getName());
-        return new DefaultKafkaConsumerFactory<>(config);
+        JsonDeserializer<OrderEvent> deserializer = new JsonDeserializer<>(OrderEvent.class, false);
+        deserializer.addTrustedPackages("*");
+        deserializer.setUseTypeHeaders(false);
+
+        return new DefaultKafkaConsumerFactory<>(
+                consumerConfigs(),
+                new StringDeserializer(),
+                deserializer
+        );
+    }
+
+    @Bean
+    public Map<String, Object> consumerConfigs() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "product-service-group");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        return props;
     }
 
     @Bean
