@@ -1,0 +1,101 @@
+package com.livemart.order.controller;
+
+import com.livemart.order.domain.OrderStatus;
+import com.livemart.order.dto.OrderCreateRequest;
+import com.livemart.order.dto.OrderResponse;
+import com.livemart.order.service.OrderService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@Tag(name = "Order API", description = "주문 관리 API")
+@RestController
+@RequestMapping("/api/orders")
+@RequiredArgsConstructor
+public class OrderController {
+
+    private final OrderService orderService;
+
+    @Operation(summary = "주문 생성", description = "새로운 주문을 생성합니다 (Saga Pattern)")
+    @PostMapping
+    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderCreateRequest request) {
+        OrderResponse response = orderService.createOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Operation(summary = "주문 확인", description = "주문을 확인 상태로 변경합니다 (결제 완료 후)")
+    @PostMapping("/{orderId}/confirm")
+    public ResponseEntity<OrderResponse> confirmOrder(@PathVariable Long orderId) {
+        OrderResponse response = orderService.confirmOrder(orderId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "배송 시작", description = "주문의 배송을 시작합니다")
+    @PostMapping("/{orderId}/ship")
+    public ResponseEntity<OrderResponse> shipOrder(@PathVariable Long orderId) {
+        OrderResponse response = orderService.shipOrder(orderId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "배송 완료", description = "주문의 배송을 완료합니다")
+    @PostMapping("/{orderId}/deliver")
+    public ResponseEntity<OrderResponse> deliverOrder(@PathVariable Long orderId) {
+        OrderResponse response = orderService.deliverOrder(orderId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "주문 취소", description = "주문을 취소합니다 (재고 복구)")
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<OrderResponse> cancelOrder(
+            @PathVariable Long orderId,
+            @RequestParam String reason) {
+        OrderResponse response = orderService.cancelOrder(orderId, reason);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "주문 조회", description = "주문 ID로 주문을 조회합니다")
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderResponse> getOrder(@PathVariable Long orderId) {
+        OrderResponse response = orderService.getOrder(orderId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "주문 번호로 조회", description = "주문 번호로 주문을 조회합니다")
+    @GetMapping("/number/{orderNumber}")
+    public ResponseEntity<OrderResponse> getOrderByNumber(@PathVariable String orderNumber) {
+        OrderResponse response = orderService.getOrderByOrderNumber(orderNumber);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "사용자별 주문 목록", description = "특정 사용자의 주문 목록을 조회합니다")
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<OrderResponse>> getOrdersByUserId(
+            @PathVariable Long userId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<OrderResponse> response = orderService.getOrdersByUserId(userId, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "상태별 주문 목록", description = "주문 상태별로 주문 목록을 조회합니다")
+    @GetMapping("/status/{status}")
+    public ResponseEntity<Page<OrderResponse>> getOrdersByStatus(
+            @PathVariable OrderStatus status,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<OrderResponse> response = orderService.getOrdersByStatus(status, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "헬스체크", description = "서비스 상태를 확인합니다")
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("Order Service is running");
+    }
+}

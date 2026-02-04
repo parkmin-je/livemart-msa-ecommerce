@@ -98,7 +98,7 @@ public class ProductService {
         return ProductResponse.from(product);
     }
 
-    @Cacheable(value = "products", key = "#productId")
+//    @Cacheable(value = "products", key = "#productId")
     public ProductResponse getProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
