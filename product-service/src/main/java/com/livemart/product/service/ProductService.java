@@ -8,6 +8,7 @@ import com.livemart.product.dto.ProductCreateRequest;
 import com.livemart.product.dto.ProductResponse;
 import com.livemart.product.dto.ProductUpdateRequest;
 import com.livemart.product.event.ProductEvent;
+import com.livemart.product.event.StockEvent;
 import com.livemart.product.repository.CategoryRepository;
 import com.livemart.product.repository.ProductRepository;
 import com.livemart.product.repository.ProductSearchRepository;
@@ -33,8 +34,10 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ProductSearchRepository productSearchRepository;
     private final KafkaTemplate<String, ProductEvent> kafkaTemplate;
+    private final KafkaTemplate<String, StockEvent> stockKafkaTemplate;
 
     private static final String PRODUCT_TOPIC = "product-events";
+    private static final String STOCK_TOPIC = "stock-events";
 
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
@@ -98,7 +101,6 @@ public class ProductService {
         return ProductResponse.from(product);
     }
 
-//    @Cacheable(value = "products", key = "#productId")
     public ProductResponse getProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
@@ -149,6 +151,7 @@ public class ProductService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
 
+        int oldStock = product.getStockQuantity();
         product.updateStock(quantity);
 
         // Elasticsearch 동기화
@@ -156,8 +159,23 @@ public class ProductService {
 
         // Kafka 이벤트 발행
         publishProductEvent(product, ProductEvent.EventType.STOCK_CHANGED);
+        publishStockEvent(productId, oldStock, quantity);
 
         log.info("재고 수정 완료: productId={}, newStock={}", productId, quantity);
+    }
+
+    @Transactional
+    public void restoreStock(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("상품을 찾을 수 없습니다."));
+
+        int oldStock = product.getStockQuantity();
+        int newStock = oldStock + quantity;
+        product.updateStock(newStock);
+
+        publishStockEvent(productId, oldStock, newStock);
+
+        log.info("Stock restored: productId={}, +{}, newStock={}", productId, quantity, newStock);
     }
 
     private void syncToElasticsearch(Product product) {
@@ -192,14 +210,16 @@ public class ProductService {
 
         log.info("Kafka 이벤트 발행: eventType={}, productId={}", eventType, product.getId());
     }
-    @Transactional
-    public void restoreStock(Long productId, int quantity) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("상품을 찾을 수 없습니다."));
 
-        int newStock = product.getStockQuantity() + quantity;
-        product.updateStock(newStock);
+    private void publishStockEvent(Long productId, int oldStock, int newStock) {
+        StockEvent event = StockEvent.builder()
+                .productId(productId)
+                .oldStock(oldStock)
+                .newStock(newStock)
+                .occurredAt(LocalDateTime.now())
+                .build();
 
-        log.info("Stock restored: productId={}, +{}, newStock={}", productId, quantity, newStock);
+        stockKafkaTemplate.send(STOCK_TOPIC, productId.toString(), event);
+        log.info("Stock event published: productId={}, old={}, new={}", productId, oldStock, newStock);
     }
 }
