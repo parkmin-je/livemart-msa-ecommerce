@@ -23,6 +23,7 @@ dependencies {
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
     implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.1.0'
     implementation 'io.github.resilience4j:resilience4j-timelimiter:2.1.0'
+    implementation 'org.redisson:redisson-spring-boot-starter:3.27.2'
 
     // MySQL
     runtimeOnly 'com.mysql:mysql-connector-j'
