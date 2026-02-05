@@ -1,82 +1,47 @@
 package com.livemart.order.client;
 
 import com.livemart.order.dto.ProductInfo;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import java.time.Duration;
-import java.util.Map;
+import org.springframework.web.client.RestTemplate;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class ProductServiceClient {
-    private final WebClient.Builder webClientBuilder;
 
-    @CircuitBreaker(name = "productService", fallbackMethod = "getProductFallback")
+    private final RestTemplate restTemplate;
+    private static final String PRODUCT_SERVICE_URL = "http://PRODUCT-SERVICE/api/products";
+
+    // 일반 조회
     public ProductInfo getProduct(Long productId) {
         log.info("Calling Product Service for productId: {}", productId);
-
-        return webClientBuilder.build()
-                .get()
-                .uri("http://localhost:8082/api/products/" + productId)
-                .retrieve()
-                .bodyToMono(ProductInfo.class)
-                .timeout(Duration.ofSeconds(3))
-                .block();
+        String url = PRODUCT_SERVICE_URL + "/" + productId;
+        return restTemplate.getForObject(url, ProductInfo.class);
     }
 
-    @CircuitBreaker(name = "productService", fallbackMethod = "updateStockFallback")
-    public void updateStock(Long productId, int stockQuantity) {
-        log.info("Calling Product Service for productId: {}", productId);
-
-        Map<String, Integer> body = Map.of("stockQuantity", stockQuantity);
-
-        webClientBuilder.build()
-                .patch()
-                .uri("http://localhost:8082/api/products/" + productId + "/stock")
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(Void.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
-
-        log.info("Updating stock for productId: {}, quantity: {}", productId, stockQuantity);
+    // 락을 사용한 조회 (주문 시 사용)
+    public ProductInfo getProductWithLock(Long productId) {
+        log.info("Calling Product Service WITH LOCK for productId: {}", productId);
+        String url = PRODUCT_SERVICE_URL + "/" + productId + "/with-lock";
+        return restTemplate.getForObject(url, ProductInfo.class);
     }
 
-    // 재고 복구 메서드 추가
-    @CircuitBreaker(name = "productService", fallbackMethod = "restoreStockFallback")
+    public void updateStock(Long productId, int newStock) {
+        log.info("Updating stock for productId: {} to {}", productId, newStock);
+        String url = PRODUCT_SERVICE_URL + "/" + productId + "/stock";
+
+        StockUpdateRequest request = new StockUpdateRequest(newStock);
+        restTemplate.patchForObject(url, request, Void.class);
+    }
+
     public void restoreStock(Long productId, int quantity) {
-        log.info("Restoring stock for productId: {}, quantity: {}", productId, quantity);
-
-        Map<String, Integer> body = Map.of("stockQuantity", quantity);
-
-        webClientBuilder.build()
-                .patch()
-                .uri("http://localhost:8082/api/products/" + productId + "/stock/restore")
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(Void.class)
-                .timeout(Duration.ofSeconds(10))
-                .block();
-
-        log.info("Stock restored for productId: {}", productId);
+        log.info("Restoring stock for productId: {} by {}", productId, quantity);
+        ProductInfo product = getProduct(productId);
+        int newStock = product.getStockQuantity() + quantity;
+        updateStock(productId, newStock);
     }
 
-    private ProductInfo getProductFallback(Long productId, Exception e) {
-        log.error("Failed to get product: productId={}", productId, e);
-        throw new RuntimeException("상품 정보를 가져올 수 없습니다.");
-    }
-
-    private void updateStockFallback(Long productId, int stockQuantity, Exception e) {
-        log.error("Failed to update stock for productId: {}", productId, e);
-        throw new RuntimeException("재고 업데이트에 실패했습니다.");
-    }
-
-    private void restoreStockFallback(Long productId, int quantity, Exception e) {
-        log.error("Failed to restore stock for productId: {}", productId, e);
-        throw new RuntimeException("재고 복구에 실패했습니다.");
-    }
+    public record StockUpdateRequest(Integer stockQuantity) {}
 }
