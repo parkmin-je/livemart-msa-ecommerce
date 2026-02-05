@@ -1,5 +1,6 @@
 package com.livemart.product.service;
 
+import com.livemart.product.aspect.DistributedLock;
 import com.livemart.product.document.ProductDocument;
 import com.livemart.product.domain.Category;
 import com.livemart.product.domain.Product;
@@ -15,7 +16,6 @@ import com.livemart.product.repository.ProductSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -145,9 +145,14 @@ public class ProductService {
         log.info("상품 삭제 완료: productId={}", productId);
     }
 
+    @DistributedLock(key = "#productId", waitTime = 10, leaseTime = 5)
+    public void updateStock(Long productId, Integer quantity) {
+        updateStockInternal(productId, quantity);
+    }
+
     @Transactional
     @CacheEvict(value = "products", key = "#productId")
-    public void updateStock(Long productId, Integer quantity) {
+    private void updateStockInternal(Long productId, Integer quantity) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
 

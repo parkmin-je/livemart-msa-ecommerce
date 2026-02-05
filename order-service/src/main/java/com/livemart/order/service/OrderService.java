@@ -1,5 +1,6 @@
 package com.livemart.order.service;
 
+import com.livemart.order.aspect.DistributedLock;
 import com.livemart.order.client.PaymentServiceClient;
 import com.livemart.order.client.ProductServiceClient;
 import com.livemart.order.domain.Order;
@@ -33,6 +34,8 @@ public class OrderService {
     private final PaymentServiceClient paymentServiceClient;
     private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
 
+    @Transactional
+    @DistributedLock(key = "#request.items[0].productId", waitTime = 10, leaseTime = 5)
     public OrderResponse createOrder(OrderCreateRequest request) {
         Long userId = request.getUserId();
         log.info("Creating order for userId: {}", userId);
