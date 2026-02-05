@@ -1,6 +1,5 @@
 package com.livemart.product.service;
 
-import com.livemart.product.aspect.DistributedLock;
 import com.livemart.product.document.ProductDocument;
 import com.livemart.product.domain.Category;
 import com.livemart.product.domain.Product;
@@ -56,11 +55,7 @@ public class ProductService {
                 .build();
 
         Product savedProduct = productRepository.save(product);
-
-        // Elasticsearch 동기화
         syncToElasticsearch(savedProduct);
-
-        // Kafka 이벤트 발행
         publishProductEvent(savedProduct, ProductEvent.EventType.CREATED);
 
         log.info("상품 생성 완료: productId={}, name={}", savedProduct.getId(), savedProduct.getName());
@@ -90,10 +85,7 @@ public class ProductService {
             product.changeCategory(category);
         }
 
-        // Elasticsearch 동기화
         syncToElasticsearch(product);
-
-        // Kafka 이벤트 발행
         publishProductEvent(product, ProductEvent.EventType.UPDATED);
 
         log.info("상품 수정 완료: productId={}", productId);
@@ -135,38 +127,28 @@ public class ProductService {
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
 
         productRepository.delete(product);
-
-        // Elasticsearch에서 삭제
         productSearchRepository.deleteById(String.valueOf(productId));
-
-        // Kafka 이벤트 발행
         publishProductEvent(product, ProductEvent.EventType.DELETED);
 
         log.info("상품 삭제 완료: productId={}", productId);
     }
 
-    @DistributedLock(key = "#productId", waitTime = 10, leaseTime = 5)
-    public void updateStock(Long productId, Integer quantity) {
-        updateStockInternal(productId, quantity);
-    }
-
+    // 비관적 락만 사용 (Order Service에서 이미 분산 락 획득)
     @Transactional
     @CacheEvict(value = "products", key = "#productId")
-    private void updateStockInternal(Long productId, Integer quantity) {
-        Product product = productRepository.findById(productId)
+    public void updateStock(Long productId, Integer quantity) {
+        // 비관적 락으로 조회
+        Product product = productRepository.findByIdWithLock(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
 
         int oldStock = product.getStockQuantity();
         product.updateStock(quantity);
 
-        // Elasticsearch 동기화
         syncToElasticsearch(product);
-
-        // Kafka 이벤트 발행
         publishProductEvent(product, ProductEvent.EventType.STOCK_CHANGED);
         publishStockEvent(productId, oldStock, quantity);
 
-        log.info("재고 수정 완료: productId={}, newStock={}", productId, quantity);
+        log.info("재고 수정 완료: productId={}, oldStock={}, newStock={}", productId, oldStock, quantity);
     }
 
     @Transactional
@@ -181,6 +163,17 @@ public class ProductService {
         publishStockEvent(productId, oldStock, newStock);
 
         log.info("Stock restored: productId={}, +{}, newStock={}", productId, quantity, newStock);
+    }
+
+    // 재고 조회 및 검증 (비관적 락 사용)
+    @Transactional
+    public ProductResponse getProductWithLock(Long productId) {
+        Product product = productRepository.findByIdWithLock(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
+
+        log.info("상품 조회 (락 사용): productId={}, stock={}", productId, product.getStockQuantity());
+
+        return ProductResponse.from(product);
     }
 
     private void syncToElasticsearch(Product product) {

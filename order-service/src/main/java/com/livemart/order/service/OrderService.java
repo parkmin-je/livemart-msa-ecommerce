@@ -43,12 +43,13 @@ public class OrderService {
         Long userId = request.getUserId();
         log.info("Creating order for userId: {}", userId);
 
-        // 1. 상품 정보 조회 및 검증
+        // 1. 상품 정보 조회 및 검증 (락 사용)
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (OrderItemRequest itemRequest : request.getItems()) {
-            ProductInfo product = productServiceClient.getProduct(itemRequest.getProductId());
+            // 락을 사용한 상품 조회
+            ProductInfo product = productServiceClient.getProductWithLock(itemRequest.getProductId());
 
             if (product.getStockQuantity() < itemRequest.getQuantity()) {
                 throw new RuntimeException("재고가 부족합니다: " + product.getName());
