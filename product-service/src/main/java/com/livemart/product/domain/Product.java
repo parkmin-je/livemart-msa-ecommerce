@@ -65,6 +65,9 @@ public class Product {
     }
 
     public void updateStock(Integer quantity) {
+        if (quantity < 0) {
+            throw new IllegalArgumentException("재고는 0 이상이어야 합니다");
+        }
         this.stockQuantity = quantity;
     }
 
