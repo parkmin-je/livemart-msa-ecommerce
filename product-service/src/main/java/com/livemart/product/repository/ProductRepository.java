@@ -1,27 +1,29 @@
 package com.livemart.product.repository;
 
 import com.livemart.product.domain.Product;
-import com.livemart.product.domain.ProductStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import java.util.Optional;
 
-@Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-
-    Page<Product> findByStatus(ProductStatus status, Pageable pageable);
 
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 
     Page<Product> findBySellerId(Long sellerId, Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE p.name LIKE %:keyword% OR p.description LIKE %:keyword%")
+    @Query("SELECT p FROM Product p WHERE " +
+            "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<Product> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
 
-    List<Product> findByIdIn(List<Long> ids);
+    // 비관적 락을 사용한 조회 메서드 추가
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.id = :id")
+    Optional<Product> findByIdWithLock(@Param("id") Long id);
 }
