@@ -33,6 +33,8 @@ public class OrderService {
     private final PaymentServiceClient paymentServiceClient;
     private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
 
+    private static final String ORDER_TOPIC = "order-events";
+
     @DistributedLock(key = "#request.items[0].productId", waitTime = 10, leaseTime = 5)
     public OrderResponse createOrder(OrderCreateRequest request) {
         return createOrderInternal(request);
@@ -48,7 +50,6 @@ public class OrderService {
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (OrderItemRequest itemRequest : request.getItems()) {
-            // 락을 사용한 상품 조회
             ProductInfo product = productServiceClient.getProductWithLock(itemRequest.getProductId());
 
             if (product.getStockQuantity() < itemRequest.getQuantity()) {
@@ -121,7 +122,7 @@ public class OrderService {
         }
 
         // 5. 주문 이벤트 발행
-        publishOrderEvent(order, "ORDER_CREATED");
+        publishOrderEvent(order, OrderEvent.EventType.ORDER_CREATED, null);
 
         return toResponse(order);
     }
@@ -146,7 +147,7 @@ public class OrderService {
         return "ORD-" + timestamp + "-" + random;
     }
 
-    private void publishOrderEvent(Order order, String eventType) {
+    private void publishOrderEvent(Order order, OrderEvent.EventType eventType, String cancelReason) {
         List<OrderEvent.OrderItemInfo> items = order.getItems().stream()
                 .map(item -> OrderEvent.OrderItemInfo.builder()
                         .productId(item.getProductId())
@@ -157,17 +158,18 @@ public class OrderService {
                 .toList();
 
         OrderEvent event = OrderEvent.builder()
-                .eventType(OrderEvent.EventType.valueOf(eventType))
+                .eventType(eventType)
                 .orderNumber(order.getOrderNumber())
                 .userId(order.getUserId())
                 .totalAmount(order.getTotalAmount())
                 .status(order.getStatus())
                 .items(items)
                 .occurredAt(LocalDateTime.now())
+                .cancelReason(cancelReason)
                 .build();
 
-        kafkaTemplate.send("order-events", order.getOrderNumber(), event);
-        log.info("Order event published: {}", eventType);
+        kafkaTemplate.send(ORDER_TOPIC, order.getOrderNumber(), event);
+        log.info("Order event published: eventType={}, orderNumber={}", eventType, order.getOrderNumber());
     }
 
     private OrderResponse toResponse(Order order) {
@@ -227,7 +229,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
         order.confirm();
-        publishOrderEvent(order, "ORDER_CONFIRMED");
+        publishOrderEvent(order, OrderEvent.EventType.ORDER_CONFIRMED, null);
         return toResponse(order);
     }
 
@@ -236,7 +238,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
         order.ship();
-        publishOrderEvent(order, "ORDER_SHIPPED");
+        publishOrderEvent(order, OrderEvent.EventType.ORDER_SHIPPED, null);
         return toResponse(order);
     }
 
@@ -245,39 +247,43 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
         order.deliver();
-        publishOrderEvent(order, "ORDER_DELIVERED");
+        publishOrderEvent(order, OrderEvent.EventType.ORDER_DELIVERED, null);
         return toResponse(order);
     }
 
     @Transactional
     public OrderResponse cancelOrder(Long orderId, String reason) {
-        log.info("Cancelling order: {}", orderId);
+        log.info("Cancelling order: orderId={}, reason={}", orderId, reason);
 
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
 
         if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
-            throw new RuntimeException("취소할 수 없는 주문 상태입니다.");
+            throw new RuntimeException("취소할 수 없는 주문 상태입니다: " + order.getStatus());
+        }
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new RuntimeException("이미 취소된 주문입니다.");
         }
 
         try {
+            // 1. 결제 취소
             if (order.getPaymentTransactionId() != null) {
                 paymentServiceClient.cancelPayment(order.getPaymentTransactionId(), reason);
-                log.info("Payment cancelled: {}", order.getPaymentTransactionId());
+                log.info("Payment cancelled: transactionId={}", order.getPaymentTransactionId());
             }
 
-            for (OrderItem item : order.getItems()) {
-                productServiceClient.restoreStock(item.getProductId(), item.getQuantity());
-                log.info("Stock restored: productId={}, quantity={}", item.getProductId(), item.getQuantity());
-            }
-
+            // 2. 주문 상태 변경
             order.cancel();
-            publishOrderEvent(order, "ORDER_CANCELLED");
 
+            // 3. 취소 이벤트 발행 (재고 복구는 Product Service에서 이벤트 수신 후 처리)
+            publishOrderEvent(order, OrderEvent.EventType.ORDER_CANCELLED, reason);
+
+            log.info("Order cancelled successfully: orderId={}, orderNumber={}", orderId, order.getOrderNumber());
             return toResponse(order);
 
         } catch (Exception e) {
-            log.error("Failed to cancel order: {}", orderId, e);
+            log.error("Failed to cancel order: orderId={}", orderId, e);
             throw new RuntimeException("주문 취소에 실패했습니다: " + e.getMessage());
         }
     }
