@@ -1,0 +1,27 @@
+package com.livemart.product.domain;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "processed_events")
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ProcessedEvent {
+
+    @Id
+    private String eventId;
+
+    @Column(nullable = false)
+    private String eventType;
+
+    @Column(nullable = false)
+    private LocalDateTime processedAt;
+}
