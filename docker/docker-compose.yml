@@ -141,6 +141,39 @@ services:
     networks:
       - livemart-network
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: livemart-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - livemart-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: livemart-grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - livemart-network
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: livemart-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - livemart-network
+
 volumes:
   mysql-user-data:
   mysql-product-data:
@@ -148,6 +181,8 @@ volumes:
   postgres-inventory-data:
   postgres-analytics-data:
   elasticsearch-data:
+  prometheus-data:
+  grafana-data:
 
 networks:
   livemart-network:
