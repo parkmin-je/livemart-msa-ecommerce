@@ -3,14 +3,14 @@ package com.livemart.order.event;
 import com.livemart.order.domain.OrderStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;  // ✅ Getter만 있던 것을 Data로 변경
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Getter
+@Data  // ✅ @Getter 대신 @Data 사용
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -24,6 +24,7 @@ public class OrderEvent {
     private BigDecimal totalAmount;
     private OrderStatus status;
     private LocalDateTime occurredAt;
+    private String cancelReason;  // ✅ getCancelReason() 자동 생성됨
 
     public enum EventType {
         ORDER_CREATED,
@@ -33,7 +34,7 @@ public class OrderEvent {
         ORDER_CANCELLED
     }
 
-    @Getter
+    @Data  // ✅ @Getter 대신 @Data 사용
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
