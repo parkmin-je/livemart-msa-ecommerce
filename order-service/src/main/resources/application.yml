@@ -26,6 +26,12 @@ spring:
       host: localhost
       port: 6379
 
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: false
+
   kafka:
     bootstrap-servers: localhost:9092
     producer:
@@ -102,6 +108,12 @@ spring.cloud:
   openfeign:
     circuitbreaker:
       enabled: true
+
+grpc:
+  client:
+    product-grpc-server:
+      address: static://localhost:9095
+      negotiation-type: plaintext
 
 eureka:
   client:

@@ -29,9 +29,13 @@ subprojects {
         annotationProcessor 'org.projectlombok:lombok'
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-        // Flyway DB Migration
+        // Testcontainers
+        testImplementation 'org.testcontainers:testcontainers:1.19.7'
+        testImplementation 'org.testcontainers:junit-jupiter:1.19.7'
+        testImplementation 'org.testcontainers:mysql:1.19.7'
+        testImplementation 'org.testcontainers:kafka:1.19.7'
+        // Flyway DB Migration (코어만 공통, DB별 dialect는 개별 서비스에서 추가)
         implementation 'org.flywaydb:flyway-core'
-        implementation 'org.flywaydb:flyway-mysql'
         // Actuator + Prometheus
         implementation 'org.springframework.boot:spring-boot-starter-actuator'
         implementation 'io.micrometer:micrometer-registry-prometheus'
