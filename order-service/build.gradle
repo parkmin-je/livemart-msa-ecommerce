@@ -13,6 +13,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 
+    // OpenFeign
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
     // Kafka
     implementation 'org.springframework.kafka:spring-kafka'
 
