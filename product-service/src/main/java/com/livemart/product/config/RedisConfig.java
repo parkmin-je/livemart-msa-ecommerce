@@ -35,8 +35,16 @@ public class RedisConfig {
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(serializer));
 
+        // 캐시별 TTL 세분화
+        RedisCacheConfiguration shortTtl = config.entryTtl(Duration.ofMinutes(5));
+        RedisCacheConfiguration longTtl = config.entryTtl(Duration.ofHours(1));
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
+                .withCacheConfiguration("products", longTtl)
+                .withCacheConfiguration("product-detail", shortTtl)
+                .withCacheConfiguration("categories", longTtl)
+                .withCacheConfiguration("product-search", shortTtl)
                 .build();
     }
 }
