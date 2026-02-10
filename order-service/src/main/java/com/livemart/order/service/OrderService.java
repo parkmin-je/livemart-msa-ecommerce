@@ -1,8 +1,8 @@
 package com.livemart.order.service;
 
 import com.livemart.order.aspect.DistributedLock;
-import com.livemart.order.client.PaymentServiceClient;
-import com.livemart.order.client.ProductServiceClient;
+import com.livemart.order.client.PaymentFeignClient;
+import com.livemart.order.client.ProductFeignClient;
 import com.livemart.order.domain.Order;
 import com.livemart.order.domain.OrderItem;
 import com.livemart.order.domain.OrderStatus;
@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 @Service
@@ -29,8 +30,8 @@ import java.util.Random;
 @Slf4j
 public class OrderService {
     private final OrderRepository orderRepository;
-    private final ProductServiceClient productServiceClient;
-    private final PaymentServiceClient paymentServiceClient;
+    private final ProductFeignClient productFeignClient;
+    private final PaymentFeignClient paymentFeignClient;
     private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
 
     private static final String ORDER_TOPIC = "order-events";
@@ -50,7 +51,7 @@ public class OrderService {
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (OrderItemRequest itemRequest : request.getItems()) {
-            ProductInfo product = productServiceClient.getProductWithLock(itemRequest.getProductId());
+            ProductInfo product = productFeignClient.getProductWithLock(itemRequest.getProductId());
 
             if (product.getStockQuantity() < itemRequest.getQuantity()) {
                 throw new RuntimeException("재고가 부족합니다: " + product.getName());
@@ -92,9 +93,9 @@ public class OrderService {
         // 3. 재고 차감
         try {
             for (OrderItemRequest itemRequest : request.getItems()) {
-                ProductInfo product = productServiceClient.getProduct(itemRequest.getProductId());
+                ProductInfo product = productFeignClient.getProduct(itemRequest.getProductId());
                 int newStock = product.getStockQuantity() - itemRequest.getQuantity();
-                productServiceClient.updateStock(itemRequest.getProductId(), newStock);
+                productFeignClient.updateStock(itemRequest.getProductId(), Map.of("stockQuantity", newStock));
             }
         } catch (Exception e) {
             log.error("Failed to update stock. Rolling back order: {}", orderNumber, e);
@@ -112,7 +113,7 @@ public class OrderService {
                 .build();
 
         try {
-            PaymentResponse paymentResponse = paymentServiceClient.processPayment(paymentRequest);
+            PaymentResponse paymentResponse = paymentFeignClient.processPayment(paymentRequest);
             order.setPaymentTransactionId(paymentResponse.getTransactionId());
             log.info("결제 완료: transactionId={}", paymentResponse.getTransactionId());
         } catch (Exception e) {
@@ -269,7 +270,7 @@ public class OrderService {
         try {
             // 1. 결제 취소
             if (order.getPaymentTransactionId() != null) {
-                paymentServiceClient.cancelPayment(order.getPaymentTransactionId(), reason);
+                paymentFeignClient.cancelPayment(order.getPaymentTransactionId(), Map.of("reason", reason));
                 log.info("Payment cancelled: transactionId={}", order.getPaymentTransactionId());
             }
 
