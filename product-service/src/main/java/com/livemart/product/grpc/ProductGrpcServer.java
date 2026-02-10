@@ -6,7 +6,7 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
@@ -18,7 +18,7 @@ import java.util.Optional;
  * 여기서는 포트폴리오 목적으로 gRPC 패턴을 수동 구현합니다.
  */
 @Slf4j
-@GrpcService
+@Component
 @RequiredArgsConstructor
 public class ProductGrpcServer {
 

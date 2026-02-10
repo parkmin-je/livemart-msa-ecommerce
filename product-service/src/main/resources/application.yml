@@ -3,18 +3,20 @@ spring:
     name: product-service
 
   datasource:
-    url: jdbc:mysql://localhost:3307/productdb?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useUnicode=true
-    username: product
-    password: product123
+    url: jdbc:mysql://localhost:3306/productdb?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useUnicode=true
+    username: root
+    password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
 
   flyway:
     enabled: true
