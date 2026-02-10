@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: livemart-config
+  namespace: livemart
+data:
+  EUREKA_SERVER_URL: "http://eureka-server:8761/eureka/"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+  CONFIG_SERVER_URL: "http://config-server:8888"
+  MYSQL_USER_URL: "jdbc:mysql://mysql-user:3306/userdb"
+  MYSQL_PRODUCT_URL: "jdbc:mysql://mysql-product:3306/productdb"
+  MYSQL_ORDER_URL: "jdbc:mysql://mysql-order:3306/orderdb"
