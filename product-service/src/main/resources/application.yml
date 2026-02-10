@@ -29,6 +29,15 @@ spring:
   elasticsearch:
     uris: http://localhost:9200
 
+  graphql:
+    graphiql:
+      enabled: true
+      path: /graphiql
+    path: /graphql
+    schema:
+      printer:
+        enabled: true
+
   kafka:
     bootstrap-servers: localhost:9092
     producer:
@@ -61,6 +70,10 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /api-docs
+
+grpc:
+  server:
+    port: 9095
 
 eureka:
   client:
