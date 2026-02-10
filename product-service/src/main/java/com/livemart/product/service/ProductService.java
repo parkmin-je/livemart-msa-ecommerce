@@ -15,6 +15,8 @@ import com.livemart.product.repository.ProductSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -64,7 +66,10 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(value = "products", key = "#productId")
+    @Caching(evict = {
+            @CacheEvict(value = "products", key = "#productId"),
+            @CacheEvict(value = "product-detail", key = "#productId")
+    })
     public ProductResponse updateProduct(Long productId, ProductUpdateRequest request) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
@@ -93,6 +98,7 @@ public class ProductService {
         return ProductResponse.from(product);
     }
 
+    @Cacheable(value = "product-detail", key = "#productId")
     public ProductResponse getProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
@@ -121,7 +127,10 @@ public class ProductService {
     }
 
     @Transactional
-    @CacheEvict(value = "products", key = "#productId")
+    @Caching(evict = {
+            @CacheEvict(value = "products", key = "#productId"),
+            @CacheEvict(value = "product-detail", key = "#productId")
+    })
     public void deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
@@ -135,7 +144,10 @@ public class ProductService {
 
     // 비관적 락만 사용 (Order Service에서 이미 분산 락 획득)
     @Transactional
-    @CacheEvict(value = "products", key = "#productId")
+    @Caching(evict = {
+            @CacheEvict(value = "products", key = "#productId"),
+            @CacheEvict(value = "product-detail", key = "#productId")
+    })
     public void updateStock(Long productId, Integer quantity) {
         // 비관적 락으로 조회
         Product product = productRepository.findByIdWithLock(productId)

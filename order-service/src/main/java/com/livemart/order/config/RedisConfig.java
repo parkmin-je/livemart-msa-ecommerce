@@ -34,8 +34,12 @@ public class RedisConfig {
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(serializer));
 
+        RedisCacheConfiguration shortTtl = config.entryTtl(Duration.ofMinutes(3));
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
+                .withCacheConfiguration("order-detail", shortTtl)
+                .withCacheConfiguration("order-statistics", config.entryTtl(Duration.ofMinutes(5)))
                 .build();
     }
 }
