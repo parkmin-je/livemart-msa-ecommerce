@@ -1,0 +1,119 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { productApi } from '@/api/productApi';
+import { ProductCard } from './ProductCard';
+import toast from 'react-hot-toast';
+
+export function ProductList() {
+  const [page, setPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['products', page, searchQuery],
+    queryFn: () => productApi.getProducts({ page, size: 12, search: searchQuery }),
+    staleTime: 30000, // 30초
+  });
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="bg-white rounded-lg shadow-sm p-4 animate-pulse">
+            <div className="bg-gray-200 h-48 rounded-lg mb-4"></div>
+            <div className="bg-gray-200 h-4 rounded mb-2"></div>
+            <div className="bg-gray-200 h-4 rounded w-2/3"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600">상품을 불러오는데 실패했습니다.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
+        >
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+
+  const products = data?.content || [];
+
+  return (
+    <div>
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="상품 검색... (Elasticsearch 실시간 검색)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+          />
+          <button className="absolute right-3 top-3 text-gray-400">
+            🔍
+          </button>
+        </div>
+      </div>
+
+      {/* Product Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {products.map((product: any) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {data && data.totalPages > 1 && (
+        <div className="mt-8 flex justify-center space-x-2">
+          <button
+            onClick={() => setPage(Math.max(0, page - 1))}
+            disabled={page === 0}
+            className="px-4 py-2 border rounded-lg disabled:opacity-50"
+          >
+            이전
+          </button>
+
+          <div className="flex space-x-1">
+            {[...Array(Math.min(5, data.totalPages))].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i)}
+                className={`px-4 py-2 rounded-lg ${
+                  page === i
+                    ? 'bg-blue-600 text-white'
+                    : 'border hover:bg-gray-50'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setPage(Math.min(data.totalPages - 1, page + 1))}
+            disabled={page >= data.totalPages - 1}
+            className="px-4 py-2 border rounded-lg disabled:opacity-50"
+          >
+            다음
+          </button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {products.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">상품이 없습니다.</p>
+        </div>
+      )}
+    </div>
+  );
+}
