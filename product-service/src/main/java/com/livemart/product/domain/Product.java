@@ -89,4 +89,23 @@ public class Product {
     public void changeCategory(Category category) {
         this.category = category;
     }
+
+    public void updateName(String name) {
+        this.name = name;
+    }
+
+    public void updateDescription(String description) {
+        this.description = description;
+    }
+
+    public void updatePrice(BigDecimal price) {
+        if (price.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("가격은 0 이상이어야 합니다");
+        }
+        this.price = price;
+    }
+
+    public void delete() {
+        this.status = ProductStatus.DELETED;
+    }
 }
