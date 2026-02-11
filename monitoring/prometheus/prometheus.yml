@@ -1,0 +1,141 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'livemart-production'
+    env: 'production'
+
+# Alertmanager 설정
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - localhost:9093
+
+# Alert 규칙 로드
+rule_files:
+  - "alerts.yml"
+
+# Scrape 설정
+scrape_configs:
+  # Eureka 서비스 디스커버리
+  - job_name: 'eureka-discovery'
+    eureka_sd_configs:
+      - server: 'http://localhost:8761/eureka'
+    relabel_configs:
+      - source_labels: [__meta_eureka_app_name]
+        target_label: application
+      - source_labels: [__meta_eureka_app_instance_metadata_management_port]
+        target_label: __address__
+        regex: '(.+)'
+        replacement: '${1}/actuator/prometheus'
+
+  # API Gateway
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+
+  # User Service
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['localhost:8081']
+    metrics_path: '/actuator/prometheus'
+
+  # Product Service
+  - job_name: 'product-service'
+    static_configs:
+      - targets: ['localhost:8082']
+    metrics_path: '/actuator/prometheus'
+
+  # Order Service
+  - job_name: 'order-service'
+    static_configs:
+      - targets: ['localhost:8083']
+    metrics_path: '/actuator/prometheus'
+
+  # Payment Service
+  - job_name: 'payment-service'
+    static_configs:
+      - targets: ['localhost:8084']
+    metrics_path: '/actuator/prometheus'
+
+  # Inventory Service
+  - job_name: 'inventory-service'
+    static_configs:
+      - targets: ['localhost:8085']
+    metrics_path: '/actuator/prometheus'
+
+  # Notification Service
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['localhost:8086']
+    metrics_path: '/actuator/prometheus'
+
+  # Analytics Service
+  - job_name: 'analytics-service'
+    static_configs:
+      - targets: ['localhost:8087']
+    metrics_path: '/actuator/prometheus'
+
+  # MySQL Exporter
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['localhost:9104']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'mysql-main'
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['localhost:9121']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'redis-cluster'
+
+  # Kafka Exporter
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['localhost:9308']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'kafka-cluster'
+
+  # Node Exporter (서버 리소스)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'server-1'
+
+  # Kubernetes (프로덕션 환경)
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - livemart-production
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
