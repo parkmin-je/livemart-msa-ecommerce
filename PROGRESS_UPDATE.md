@@ -1,8 +1,8 @@
 # LiveMart 프로젝트 진행 현황
 
-## 📊 전체 진행률: **68%** ⬆️ (+13%)
+## 📊 전체 진행률: **78%** ⬆️ (+10%)
 
-### ✅ 완료된 기능 (68%)
+### ✅ 완료된 기능 (78%)
 
 #### 1. 핵심 MSA 인프라 (10%)
 - ✅ Eureka 서비스 디스커버리
@@ -89,41 +89,68 @@
 - ✅ Backup Codes (8개)
 - ✅ RFC 6238 표준 준수
 
-#### 13. 통합 테스트 (3%) - **신규 완료**
+#### 13. 통합 테스트 (3%)
 - ✅ Testcontainers (MySQL, Redis, Kafka)
 - ✅ 통합 테스트 자동화
 - ✅ 동시성 테스트
 - ✅ N+1 방지 검증
 
+#### 14. 데이터 분석 & BI (7%) - **신규 완료**
+- ✅ 일/주/월별 매출 분석
+- ✅ 카테고리별 매출 리포트
+- ✅ 상품 판매 순위 (매출/판매량)
+- ✅ RFM 분석 (고객 세분화)
+- ✅ 코호트 분석 (리텐션율)
+- ✅ 선형 회귀 매출 예측
+- ✅ 대시보드 요약 API
+
+#### 15. A/B 테스트 프레임워크 (3%) - **신규 완료**
+- ✅ A/B 테스트 생성 및 관리
+- ✅ Consistent Hashing 사용자 할당
+- ✅ 트래픽 할당 제어
+- ✅ 노출/전환 이벤트 추적
+- ✅ 카이제곱 통계 검정
+- ✅ Uplift 계산 및 승자 결정
+- ✅ 다변량 테스트 (MVT) 지원
+
+#### 16. Event Sourcing (5%) - **신규 완료**
+- ✅ Event Store 구현
+- ✅ Domain Event 영속화
+- ✅ Event Replay (상태 재구성)
+- ✅ Time Travel (특정 시점 조회)
+- ✅ Snapshot 최적화
+- ✅ Order Aggregate 구현
+- ✅ 이벤트 스트림 검증
+- ✅ CQRS 패턴 통합
+
 ---
 
-## 🚧 다음 구현 예정 (32%)
+## 🚧 다음 구현 예정 (22%)
 
 ### Phase 1: 고급 보안 (3%)
 - ⏳ API Key 관리 시스템
 - ⏳ Security Audit Log
 - ⏳ OWASP Top 10 대응
 
-### Phase 2: 실시간 데이터 처리 (10%)
+### Phase 2: 실시간 데이터 처리 (7%)
 - ⏳ Apache Flink 스트림 프로세싱
 - ⏳ 실시간 대시보드 (Grafana)
-- ⏳ 이벤트 소싱 (Event Sourcing)
-- ⏳ CQRS + Event Store
+- ⏳ Kafka Streams 처리
 
 ### Phase 3: 배송 & 물류 (2%)
 - ⏳ 지역별 배송비 계산 엔진
 - ⏳ 배송 상태 실시간 알림 (Kafka)
 
-### Phase 4: 데이터 분석 & BI (10%)
+### Phase 4: 데이터 시각화 (5%)
 - ⏳ Metabase/Superset 통합
-- ⏳ 매출 분석 대시보드
-- ⏳ 고객 행동 분석 (Amplitude/Mixpanel)
-- ⏳ A/B 테스트 프레임워크
+- ⏳ 실시간 대시보드
+- ⏳ 고객 행동 분석 시각화
 
-### Phase 5: 성능 최적화 (5%)
+### Phase 5: 고급 최적화 (5%)
 - ⏳ CDN 통합 (Cloudflare)
 - ⏳ Redis Cluster (고가용성)
 - ⏳ Read Replica 설정
+- ⏳ Database Sharding
 
 ---
 
@@ -270,7 +297,7 @@
 
 ---
 
-## 🎉 금일 완료된 기능 (Phase 3)
+## 🎉 최근 완료된 기능 (Phase 3 & 4)
 
 ### 1. 성능 최적화 (10%)
 **파일:**
@@ -373,20 +400,80 @@
 
 ---
 
-## 🚀 다음 커밋 예정 기능
+## 🎯 금일 추가 완료 (Phase 4)
 
-1. **Apache Flink 스트림 프로세싱** (실시간 이벤트 분석)
-2. **Metabase 대시보드** (매출 분석, BI)
-3. **API Key 관리 시스템** (외부 API 인증)
-4. **Event Sourcing** (이벤트 저장소)
+### 1. 데이터 분석 & BI (7%)
+**파일:**
+- `analytics-service/service/SalesAnalyticsService.java`
+- `analytics-service/controller/AnalyticsController.java`
+
+**주요 기능:**
+- **매출 분석**: 일/주/월별 매출 리포트, YoY 성장률
+- **RFM 분석**: 고객을 Champions, Loyal, At Risk, Lost로 분류
+- **코호트 분석**: 월별 리텐션율 추적
+- **예측 분석**: 선형 회귀로 미래 매출 예측 (R-squared)
+- **상품 순위**: 매출액/판매량 기준 TOP 랭킹
+
+**알고리즘:**
+- Linear Regression: `y = mx + b`
+- R-squared: `1 - (SS_residual / SS_total)`
+- RFM Score: 5점 척도 (최근성, 빈도, 금액)
+
+### 2. A/B 테스트 프레임워크 (3%)
+**파일:**
+- `analytics-service/ab/AbTestService.java`
+- `analytics-service/controller/AbTestController.java`
+
+**주요 기능:**
+- **Variant 할당**: Consistent Hashing으로 동일 사용자는 항상 같은 그룹
+- **통계 검정**: Chi-square test로 유의성 검증 (p-value < 0.05)
+- **Uplift 계산**: Control vs Treatment 전환율 비교
+- **다변량 테스트**: 2개 이상의 Variant 동시 테스트
+
+**특징:**
+- 트래픽 할당 제어 (10%, 50%, 100%)
+- 실시간 전환율 추적
+- 통계적 유의성 자동 판단
+- 승자 자동 결정
+
+### 3. Event Sourcing (5%)
+**파일:**
+- `order-service/eventsourcing/EventStore.java`
+- `order-service/eventsourcing/OrderAggregate.java`
+- `order-service/controller/EventSourcingController.java`
+
+**주요 기능:**
+- **Event Store**: 모든 상태 변경을 이벤트로 저장
+- **Event Replay**: 이벤트 재생으로 현재 상태 재구성
+- **Time Travel**: 특정 시점의 상태 조회 가능
+- **Snapshot**: 10개 이벤트마다 자동 스냅샷 생성
+
+**이벤트 타입:**
+- OrderCreated, OrderItemAdded, OrderConfirmed
+- OrderShipped, OrderDelivered, OrderCancelled
+
+**장점:**
+- 완전한 감사 추적 (Audit Trail)
+- 시간 여행 디버깅
+- 이벤트 기반 분석
+- 상태 복원 가능
 
 ---
 
-**현재 진행률:** 68% ⬆️ (+13%)
+## 🚀 다음 커밋 예정 기능
+
+1. **Apache Flink 스트림 프로세싱** (실시간 이벤트 분석)
+2. **API Key 관리 시스템** (외부 API 인증)
+3. **Kafka Streams** (실시간 데이터 처리)
+4. **Redis Cluster** (고가용성)
+
+---
+
+**현재 진행률:** 78% ⬆️ (+10%)
 **목표 진행률:** 100% (완전한 프로덕션 레벨 MSA 플랫폼)
 **예상 완료:** Phase별 순차 구현 진행 중
 
-**마지막 업데이트:** 2026-02-11 (Phase 3 완료)
+**마지막 업데이트:** 2026-02-11 (Phase 4 완료)
 
 ---
 
@@ -401,11 +488,15 @@
 - Spring Cloud (Eureka, Gateway)
 - gRPC, GraphQL
 - Kafka, Redis
+- Event Sourcing & CQRS
+- Event Store Pattern
 
 ### Search & AI
 - Elasticsearch 8.x
 - 협업 필터링 (CF)
 - 콘텐츠 기반 필터링
+- A/B Testing Framework
+- RFM 고객 세분화
 
 ### Security
 - OAuth 2.0 (Google, Kakao, Naver)
