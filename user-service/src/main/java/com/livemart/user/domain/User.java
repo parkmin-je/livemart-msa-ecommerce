@@ -46,6 +46,16 @@ public class User {
     @Column(length = 20)
     private String phoneNumber;
 
+    // MFA (Multi-Factor Authentication) 관련
+    @Column(name = "mfa_enabled")
+    private Boolean mfaEnabled = false;
+
+    @Column(name = "mfa_secret_key", length = 100)
+    private String mfaSecretKey;
+
+    @Column(name = "mfa_backup_codes", length = 500)
+    private String mfaBackupCodes;  // JSON 배열 형태로 저장
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserRole role;
@@ -81,5 +91,34 @@ public class User {
 
     public boolean isOAuthUser() {
         return provider != null && providerId != null;
+    }
+
+    public void enableMfa(String secretKey, java.util.List<String> backupCodes) {
+        this.mfaEnabled = true;
+        this.mfaSecretKey = secretKey;
+        this.mfaBackupCodes = String.join(",", backupCodes);
+    }
+
+    public void disableMfa() {
+        this.mfaEnabled = false;
+        this.mfaSecretKey = null;
+        this.mfaBackupCodes = null;
+    }
+
+    public java.util.Set<String> getBackupCodesSet() {
+        if (mfaBackupCodes == null || mfaBackupCodes.isEmpty()) {
+            return java.util.Collections.emptySet();
+        }
+        return new java.util.HashSet<>(java.util.Arrays.asList(mfaBackupCodes.split(",")));
+    }
+
+    public void consumeBackupCode(String code) {
+        java.util.Set<String> codes = getBackupCodesSet();
+        codes.remove(code);
+        this.mfaBackupCodes = String.join(",", codes);
+    }
+
+    public boolean isMfaEnabled() {
+        return mfaEnabled != null && mfaEnabled;
     }
 }
