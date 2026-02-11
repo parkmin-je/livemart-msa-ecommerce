@@ -1,8 +1,8 @@
 # LiveMart 프로젝트 진행 현황
 
-## 📊 전체 진행률: **78%** ⬆️ (+10%)
+## 📊 전체 진행률: **90%** ⬆️ (+12%)
 
-### ✅ 완료된 기능 (78%)
+### ✅ 완료된 기능 (90%)
 
 #### 1. 핵심 MSA 인프라 (10%)
 - ✅ Eureka 서비스 디스커버리
@@ -113,7 +113,7 @@
 - ✅ Uplift 계산 및 승자 결정
 - ✅ 다변량 테스트 (MVT) 지원
 
-#### 16. Event Sourcing (5%) - **신규 완료**
+#### 16. Event Sourcing (5%)
 - ✅ Event Store 구현
 - ✅ Domain Event 영속화
 - ✅ Event Replay (상태 재구성)
@@ -123,33 +123,65 @@
 - ✅ 이벤트 스트림 검증
 - ✅ CQRS 패턴 통합
 
+#### 17. API Key 관리 (3%) - **신규 완료**
+- ✅ API Key 생성 및 검증
+- ✅ Rate Limiting (Sliding Window)
+- ✅ IP 화이트리스트
+- ✅ 사용량 추적 및 통계
+- ✅ API Key 만료 관리
+- ✅ Gateway Filter 통합
+
+#### 18. Kafka Streams (4%) - **신규 완료**
+- ✅ 실시간 주문 이벤트 처리
+- ✅ 매출 집계 (Tumbling Window)
+- ✅ 상품 판매량 카운팅
+- ✅ 이상 거래 감지
+- ✅ 사용자 구매 패턴 (Session Window)
+- ✅ VIP 고객 자동 감지
+
+#### 19. 실시간 대시보드 (2%) - **신규 완료**
+- ✅ SSE 실시간 스트리밍
+- ✅ 5초 간격 메트릭 업데이트
+- ✅ TOP 상품 순위
+- ✅ 카테고리별 분석
+- ✅ 알림 브로드캐스트
+
+#### 20. Redis Cluster (3%) - **신규 완료**
+- ✅ Cluster 모드 (샤딩)
+- ✅ 자동 Failover
+- ✅ 읽기 복제본 활용
+- ✅ Lettuce Client 최적화
+- ✅ Topology 자동 갱신
+- ✅ 분산 캐시 서비스
+- ✅ Cache Stampede 방지
+
+#### 21. 보안 감사 로그 (3%) - **신규 완료**
+- ✅ 인증/인가 이벤트 로깅
+- ✅ 로그인 실패 추적
+- ✅ IP 자동 차단 (5회 실패)
+- ✅ 의심스러운 활동 감지
+- ✅ 30일 로그 보관
+- ✅ 감사 리포트 생성
+
 ---
 
-## 🚧 다음 구현 예정 (22%)
+## 🚧 다음 구현 예정 (10%)
 
-### Phase 1: 고급 보안 (3%)
-- ⏳ API Key 관리 시스템
-- ⏳ Security Audit Log
+### Phase 1: 추가 보안 (2%)
 - ⏳ OWASP Top 10 대응
+- ⏳ WAF (Web Application Firewall)
 
-### Phase 2: 실시간 데이터 처리 (7%)
+### Phase 2: 고급 모니터링 (3%)
 - ⏳ Apache Flink 스트림 프로세싱
-- ⏳ 실시간 대시보드 (Grafana)
-- ⏳ Kafka Streams 처리
+- ⏳ Grafana 대시보드
 
 ### Phase 3: 배송 & 물류 (2%)
 - ⏳ 지역별 배송비 계산 엔진
-- ⏳ 배송 상태 실시간 알림 (Kafka)
+- ⏳ 배송 상태 Kafka 알림
 
-### Phase 4: 데이터 시각화 (5%)
-- ⏳ Metabase/Superset 통합
-- ⏳ 실시간 대시보드
-- ⏳ 고객 행동 분석 시각화
-
-### Phase 5: 고급 최적화 (5%)
+### Phase 4: 고급 최적화 (3%)
 - ⏳ CDN 통합 (Cloudflare)
-- ⏳ Redis Cluster (고가용성)
-- ⏳ Read Replica 설정
+- ⏳ Database Read Replica
 - ⏳ Database Sharding
 
 ---
@@ -460,20 +492,92 @@
 
 ---
 
-## 🚀 다음 커밋 예정 기능
+## 🎯 금일 추가 완료 (Phase 5)
 
-1. **Apache Flink 스트림 프로세싱** (실시간 이벤트 분석)
-2. **API Key 관리 시스템** (외부 API 인증)
-3. **Kafka Streams** (실시간 데이터 처리)
-4. **Redis Cluster** (고가용성)
+### 1. API Key 관리 시스템 (3%)
+**파일:**
+- `api-gateway/apikey/ApiKeyService.java`
+- `api-gateway/apikey/ApiKeyFilter.java`
+- `api-gateway/controller/ApiKeyController.java`
+
+**주요 기능:**
+- **API Key 생성**: UUID 기반, Secret Key 포함
+- **Rate Limiting**: Sliding Window (분당 요청 제한)
+- **IP 화이트리스트**: 특정 IP만 허용
+- **사용량 추적**: 총 요청, 에러율 통계
+- **Gateway 통합**: GlobalFilter로 자동 검증
+
+**특징:**
+- Cache Stampede 방지 (분산 락)
+- API Key 만료 자동 관리
+- Redis 기반 빠른 검증
+
+### 2. Kafka Streams 실시간 처리 (4%)
+**파일:**
+- `analytics-service/stream/OrderEventProcessor.java`
+
+**주요 기능:**
+- **매출 집계**: Tumbling Window (1분 간격)
+- **상품 판매량**: 실시간 카운팅, TOP 100 자동 감지
+- **이상 거래 감지**: 고액 거래 (100만원 이상), 짧은 시간 다수 주문
+- **구매 패턴**: Session Window (30분 비활성), VIP 고객 자동 감지
+
+**알고리즘:**
+- Tumbling Window: 고정 시간 윈도우
+- Session Window: 비활성 갭 기반
+- Sliding Window: 연속적인 윈도우
+
+### 3. 실시간 대시보드 (2%)
+**파일:**
+- `analytics-service/stream/RealTimeDashboardService.java`
+- `analytics-service/controller/RealTimeDashboardController.java`
+
+**주요 기능:**
+- **SSE 스트리밍**: Server-Sent Events로 5초 간격 업데이트
+- **실시간 메트릭**: 매출, 주문, 전환율, 활성 사용자
+- **TOP 상품**: 매출/판매량 순위
+- **알림 브로드캐스트**: 모든 구독자에게 실시간 알림
+
+### 4. Redis Cluster 고가용성 (3%)
+**파일:**
+- `common/config/RedisClusterConfig.java`
+- `common/cache/DistributedCacheService.java`
+
+**주요 기능:**
+- **Cluster 모드**: 데이터 샤딩, 자동 Failover
+- **Lettuce 최적화**: 읽기 복제본, 자동 재연결
+- **Topology 갱신**: 5분마다 클러스터 구조 업데이트
+- **캐싱 전략**: Cache-Aside, Write-Through, Early Expiration
+- **Cache Stampede 방지**: 분산 락으로 동시 로딩 방지
+
+### 5. 보안 감사 로그 (3%)
+**파일:**
+- `user-service/audit/SecurityAuditService.java`
+- `user-service/controller/SecurityAuditController.java`
+
+**주요 기능:**
+- **이벤트 로깅**: 인증, 인가, 데이터 접근, 설정 변경
+- **로그인 실패 추적**: 5회 실패 시 IP 자동 차단 (1시간)
+- **의심 활동 감지**: 이상 패턴 자동 탐지
+- **감사 리포트**: 이벤트 통계, IP별 접근 분석
+- **30일 보관**: Redis 영속성 보장
 
 ---
 
-**현재 진행률:** 78% ⬆️ (+10%)
+## 🚀 다음 커밋 예정 기능
+
+1. **Apache Flink** (고급 스트림 프로세싱)
+2. **Grafana 대시보드** (메트릭 시각화)
+3. **CDN 통합** (정적 파일 배포)
+4. **Database Sharding** (수평 확장)
+
+---
+
+**현재 진행률:** 90% ⬆️ (+12%)
 **목표 진행률:** 100% (완전한 프로덕션 레벨 MSA 플랫폼)
 **예상 완료:** Phase별 순차 구현 진행 중
 
-**마지막 업데이트:** 2026-02-11 (Phase 4 완료)
+**마지막 업데이트:** 2026-02-11 (Phase 5 완료)
 
 ---
 
