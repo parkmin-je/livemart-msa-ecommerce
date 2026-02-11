@@ -25,11 +25,23 @@ public class User {
     @Column(unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
 
     @Column(nullable = false, length = 50)
     private String name;
+
+    @Column(unique = true, length = 50)
+    private String username;
+
+    @Column(length = 500)
+    private String profileImage;
+
+    @Column(length = 20)
+    private String provider;  // google, kakao, naver
+
+    @Column(length = 100)
+    private String providerId;
 
     @Column(length = 20)
     private String phoneNumber;
@@ -56,5 +68,18 @@ public class User {
     public void updateProfile(String name, String phoneNumber) {
         this.name = name;
         this.phoneNumber = phoneNumber;
+    }
+
+    public void updateProfile(String name, String profileImage) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (profileImage != null) {
+            this.profileImage = profileImage;
+        }
+    }
+
+    public boolean isOAuthUser() {
+        return provider != null && providerId != null;
     }
 }
