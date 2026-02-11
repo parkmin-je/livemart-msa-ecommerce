@@ -40,13 +40,18 @@ public class RateLimitAspect {
         String key = getRateLimitKey(joinPoint, rateLimit);
         RateLimiter rateLimiter = getRateLimiter(key, rateLimit);
 
-        return RateLimiter.decorateCheckedSupplier(rateLimiter, () -> {
-            try {
-                return joinPoint.proceed();
-            } catch (Throwable throwable) {
-                throw new RuntimeException(throwable);
-            }
-        }).apply();
+        // Resilience4j 2.x 방식: acquirePermission() 사용
+        boolean permission = rateLimiter.acquirePermission();
+        if (!permission) {
+            log.warn("Rate limit exceeded for key: {}", key);
+            throw new RuntimeException("Rate limit exceeded. Please try again later.");
+        }
+
+        try {
+            return joinPoint.proceed();
+        } catch (Throwable throwable) {
+            throw throwable;
+        }
     }
 
     private String getRateLimitKey(ProceedingJoinPoint joinPoint, RateLimit rateLimit) {
