@@ -47,6 +47,7 @@ public class User {
     private String phoneNumber;
 
     // MFA (Multi-Factor Authentication) 관련
+    @Builder.Default
     @Column(name = "mfa_enabled")
     private Boolean mfaEnabled = false;
 

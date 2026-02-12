@@ -233,7 +233,7 @@ public class SecurityAuditService {
             ipAddress,
             reason,
             LocalDateTime.now(),
-            LocalDateTime.now().plus(BLOCK_DURATION)
+            LocalDateTime.now().plusHours(1)
         );
 
         redisTemplate.opsForValue().set(key, blockedIp, BLOCK_DURATION.getSeconds(), TimeUnit.SECONDS);
