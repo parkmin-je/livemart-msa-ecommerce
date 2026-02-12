@@ -80,7 +80,7 @@ public class User {
         this.phoneNumber = phoneNumber;
     }
 
-    public void updateProfile(String name, String profileImage) {
+    public void updateProfileImage(String name, String profileImage) {
         if (name != null) {
             this.name = name;
         }
