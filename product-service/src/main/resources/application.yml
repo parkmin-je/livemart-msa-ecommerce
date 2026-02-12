@@ -3,10 +3,10 @@ spring:
     name: product-service
 
   datasource:
-    url: jdbc:mysql://localhost:3317/productdb?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useUnicode=true
+    url: jdbc:mysql://localhost:3317/productdb?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8&useUnicode=true
     username: root
     password: root123
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: com.mysql.jdbc.Driver
 
   jpa:
     hibernate:

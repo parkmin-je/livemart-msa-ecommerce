@@ -46,8 +46,8 @@ dependencies {
     implementation 'com.google.zxing:core:3.5.2'
     implementation 'com.google.zxing:javase:3.5.2'
 
-    // MySQL
-    runtimeOnly 'com.mysql:mysql-connector-j:8.0.33'
+    // MySQL - 레거시 드라이버 (MySQL 5.7 완벽 호환)
+    runtimeOnly 'mysql:mysql-connector-java:5.1.49'
     implementation 'org.flywaydb:flyway-mysql'
 
     // Swagger
