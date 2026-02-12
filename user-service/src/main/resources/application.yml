@@ -3,7 +3,7 @@ spring:
     name: user-service
 
   datasource:
-    url: jdbc:mysql://localhost:3306/userdb?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8&useUnicode=true&defaultAuthenticationPlugin=mysql_native_password
+    url: jdbc:mysql://localhost:3306/userdb?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8&useUnicode=true
     username: root
     password: root123
     driver-class-name: com.mysql.jdbc.Driver
