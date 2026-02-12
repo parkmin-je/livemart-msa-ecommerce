@@ -117,7 +117,7 @@ public class MfaService {
             long counter = Math.floorDiv(timeProvider.getTime(), TIME_STEP);
             String code = codeGenerator.generate(secretKey, counter);
             return code;
-        } catch (CodeGenerationException e) {
+        } catch (Exception e) {
             log.error("Failed to generate code", e);
             throw new RuntimeException("Code generation failed", e);
         }
