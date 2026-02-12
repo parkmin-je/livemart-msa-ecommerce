@@ -2,14 +2,11 @@
 
 services:
   mysql-user:
-    image: mysql:8.0
+    image: mysql:5.7
     container_name: livemart-mysql-user
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: userdb
-      MYSQL_USER: user
-      MYSQL_PASSWORD: user123
-    command: --default-authentication-plugin=mysql_native_password
     ports:
       - "3306:3306"
     volumes:
@@ -18,14 +15,11 @@ services:
       - livemart-network
 
   mysql-product:
-    image: mysql:8.0
+    image: mysql:5.7
     container_name: livemart-mysql-product
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: productdb
-      MYSQL_USER: product
-      MYSQL_PASSWORD: product123
-    command: --default-authentication-plugin=mysql_native_password
     ports:
       - "3317:3306"
     volumes:
@@ -34,14 +28,11 @@ services:
       - livemart-network
 
   mysql-order:
-    image: mysql:8.0
+    image: mysql:5.7
     container_name: livemart-mysql-order
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: orderdb
-      MYSQL_USER: order
-      MYSQL_PASSWORD: order123
-    command: --default-authentication-plugin=mysql_native_password
     ports:
       - "3318:3306"
     volumes:
