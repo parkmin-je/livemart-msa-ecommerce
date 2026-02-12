@@ -12,15 +12,18 @@
 
 ### 발견된 문제들:
 
-#### 1. MySQL Connector/J 버전 불일치
-**문제**: MySQL Connector/J 8.3.0의 `mysql_native_password` 플러그인 버그
+#### 1. MySQL Connector/J 인증 플러그인 버그
+**문제**: MySQL Connector/J 8.x 전체의 인증 플러그인 협상 버그
 ```
 Error: !AuthenticationProvider.BadAuthenticationPlugin!
 ```
 
-**해결**: 모든 서비스에 안정적인 8.0.33 버전 적용
+**해결**: MySQL 5.7과 완벽 호환되는 레거시 드라이버(5.1.49) 사용
 ```gradle
-runtimeOnly 'com.mysql:mysql-connector-j:8.0.33'
+runtimeOnly 'mysql:mysql-connector-java:5.1.49'
+```
+```yaml
+driver-class-name: com.mysql.jdbc.Driver
 ```
 
 #### 2. 서비스별 DB 계정 불일치
@@ -354,17 +357,20 @@ http://localhost:3000
 
 **해결:**
 ```powershell
-# 1. MySQL Connector 버전 확인
+# 1. MySQL Connector 레거시 버전으로 변경
 # user-service/build.gradle, product-service/build.gradle, order-service/build.gradle
-runtimeOnly 'com.mysql:mysql-connector-j:8.0.33'
+runtimeOnly 'mysql:mysql-connector-java:5.1.49'
 
-# 2. MySQL 컨테이너 재생성
+# 2. application.yml에서 드라이버 클래스 변경
+driver-class-name: com.mysql.jdbc.Driver
+
+# 3. MySQL 컨테이너 재생성
 docker stop livemart-mysql-user livemart-mysql-product livemart-mysql-order
 docker rm livemart-mysql-user livemart-mysql-product livemart-mysql-order
 docker volume rm docker_mysql-user-data docker_mysql-product-data docker_mysql-order-data
 docker-compose -f C:\project\livemart\docker\docker-compose.yml up -d
 
-# 3. IntelliJ Gradle 새로고침
+# 4. IntelliJ Gradle 새로고침
 우측 Gradle 탭 → 🔄 새로고침
 ```
 
