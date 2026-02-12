@@ -47,7 +47,7 @@ dependencies {
     implementation 'com.google.zxing:javase:3.5.2'
 
     // MySQL
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    runtimeOnly 'com.mysql:mysql-connector-j:8.0.33'
     implementation 'org.flywaydb:flyway-mysql'
 
     // Swagger
