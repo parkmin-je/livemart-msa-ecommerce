@@ -46,8 +46,8 @@ dependencies {
     implementation 'com.google.zxing:core:3.5.2'
     implementation 'com.google.zxing:javase:3.5.2'
 
-    // MySQL - MySQL 8.0 + mysql_native_password
-    runtimeOnly 'com.mysql:mysql-connector-j:8.4.0'
+    // MariaDB Connector (MySQL 8.0 호환)
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client:3.3.3'
     implementation 'org.flywaydb:flyway-mysql'
 
     // Swagger
