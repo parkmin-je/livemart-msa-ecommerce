@@ -27,7 +27,7 @@ services:
       MYSQL_PASSWORD: product123
     command: --default-authentication-plugin=mysql_native_password
     ports:
-      - "3307:3306"
+      - "3317:3306"
     volumes:
       - mysql-product-data:/var/lib/mysql
     networks:
@@ -43,7 +43,7 @@ services:
       MYSQL_PASSWORD: order123
     command: --default-authentication-plugin=mysql_native_password
     ports:
-      - "3308:3306"
+      - "3318:3306"
     volumes:
       - mysql-order-data:/var/lib/mysql
     networks:
