@@ -13,10 +13,11 @@ docker volume rm docker_mysql-*-data livemart_mysql-*-data
 ```
 - **상태**: ✅ 완료
 
-### 3. MySQL Connector 버전 통일
-- user-service: mysql-connector-j:8.0.33
-- product-service: mysql-connector-j:8.0.33
-- order-service: mysql-connector-j:8.0.33
+### 3. MySQL Connector 레거시 버전으로 다운그레이드
+- user-service: mysql-connector-java:5.1.49 (레거시)
+- product-service: mysql-connector-java:5.1.49 (레거시)
+- order-service: mysql-connector-java:5.1.49 (레거시)
+- **이유**: MySQL Connector/J 8.x의 인증 플러그인 버그
 - **상태**: ✅ 완료
 
 ---
@@ -93,15 +94,15 @@ docker volume rm docker_mysql-*-data livemart_mysql-*-data
 ## ✅ 수정 완료된 설정 파일
 
 ### build.gradle
-- [x] user-service: mysql-connector-j:8.0.33
-- [x] product-service: mysql-connector-j:8.0.33
-- [x] order-service: mysql-connector-j:8.0.33
+- [x] user-service: mysql-connector-java:5.1.49 (레거시)
+- [x] product-service: mysql-connector-java:5.1.49 (레거시)
+- [x] order-service: mysql-connector-java:5.1.49 (레거시)
 - [x] analytics-service: Redis, Kafka Streams 의존성
 
 ### application.yml
-- [x] user-service: root/root123, port 3306
-- [x] product-service: root/root123, port 3317
-- [x] order-service: root/root123, port 3318
+- [x] user-service: root/root123, port 3306, driver: com.mysql.jdbc.Driver
+- [x] product-service: root/root123, port 3317, driver: com.mysql.jdbc.Driver
+- [x] order-service: root/root123, port 3318, driver: com.mysql.jdbc.Driver
 - [x] analytics-service: analytics/analytics123, port 5433
 
 ---
