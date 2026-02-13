@@ -26,21 +26,41 @@ export default function Home() {
                 onClick={() => setShowDashboard(!showDashboard)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
               >
-                📊 실시간 대시보드
+                📊 대시보드
               </button>
 
-              <button className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600">
-                로그인
-              </button>
+              <a
+                href="/test"
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+              >
+                🧪 통합 테스트
+              </a>
 
-              <button className="relative px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                🛒 장바구니
+              <a
+                href="/my-orders"
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+              >
+                📦 내 주문
+              </a>
+
+              <a
+                href="/auth"
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+              >
+                🔐 로그인
+              </a>
+
+              <a
+                href="/orders"
+                className="relative px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                🛒 주문하기
                 {cartItems.length > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {cartItems.length}
                   </span>
                 )}
-              </button>
+              </a>
             </nav>
           </div>
         </div>

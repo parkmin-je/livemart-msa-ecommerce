@@ -15,6 +15,6 @@ public interface ProductFeignClient {
     @GetMapping("/api/products/{productId}/with-lock")
     ProductInfo getProductWithLock(@PathVariable("productId") Long productId);
 
-    @PatchMapping("/api/products/{productId}/stock")
-    void updateStock(@PathVariable("productId") Long productId, @RequestBody Map<String, Integer> body);
+    @PutMapping("/api/products/{productId}/stock")
+    void updateStock(@PathVariable("productId") Long productId, @RequestParam("stockQuantity") Integer stockQuantity);
 }

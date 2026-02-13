@@ -16,7 +16,7 @@ spring:
       routes:
         # User Service
         - id: user-service
-          uri: http://localhost:8081
+          uri: http://localhost:8085
           predicates:
             - Path=/api/users/**
           filters:

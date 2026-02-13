@@ -1,6 +1,5 @@
 package com.livemart.payment.dto;
 
-import com.livemart.payment.domain.PaymentMethod;
 import lombok.Data;
 import java.math.BigDecimal;
 
@@ -9,6 +8,6 @@ public class PaymentRequest {
     private String orderNumber;
     private Long userId;
     private BigDecimal amount;
-    private PaymentMethod method;
+    private String method;  // String으로 변경하여 유연하게 받음
     private String cardNumber;
 }
