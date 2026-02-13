@@ -57,7 +57,7 @@ public class AutoReplenishmentService {
      * Min-Max 알고리즘 기반 재고 발주
      */
     @Transactional
-    public ReplenishmentOrder processReplenishment(Product product) {
+    public ReplenishmentOrderService.ReplenishmentOrder processReplenishment(Product product) {
         int currentStock = product.getStockQuantity();
         int minStock = getMinStock(product);
         int maxStock = getMaxStock(product);
@@ -71,7 +71,7 @@ public class AutoReplenishmentService {
             log.info("Creating replenishment order: productId={}, currentStock={}, orderQuantity={}",
                      product.getId(), currentStock, orderQuantity);
 
-            ReplenishmentOrder order = replenishmentOrderService.createOrder(
+            ReplenishmentOrderService.ReplenishmentOrder order = replenishmentOrderService.createOrder(
                 product.getId(),
                 orderQuantity,
                 calculateLeadTime(product)

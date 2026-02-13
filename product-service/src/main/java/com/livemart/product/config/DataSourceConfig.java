@@ -55,23 +55,16 @@ public class DataSourceConfig {
         config.setConnectionTestQuery("SELECT 1");
         config.setPoolName("LiveMart-HikariCP");
 
-        // MySQL Specific Settings
+        // PostgreSQL Specific Settings
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        config.addDataSourceProperty("useServerPrepStmts", "true");
-        config.addDataSourceProperty("useLocalSessionState", "true");
-        config.addDataSourceProperty("rewriteBatchedStatements", "true");
-        config.addDataSourceProperty("cacheResultSetMetadata", "true");
-        config.addDataSourceProperty("cacheServerConfiguration", "true");
-        config.addDataSourceProperty("elideSetAutoCommits", "true");
-        config.addDataSourceProperty("maintainTimeStats", "false");
 
         // Connection Properties from application.yml
         config.setJdbcUrl(getJdbcUrl());
         config.setUsername(getUsername());
         config.setPassword(getPassword());
-        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        config.setDriverClassName("org.postgresql.Driver");
 
         // Health Check
         config.setHealthCheckRegistry(null); // Prometheus 등록은 별도 처리
@@ -87,14 +80,14 @@ public class DataSourceConfig {
     // application.yml에서 읽어올 속성들
     private String getJdbcUrl() {
         return System.getProperty("spring.datasource.url",
-                "jdbc:mysql://localhost:3306/livemart_product?useSSL=false&serverTimezone=Asia/Seoul");
+                "jdbc:postgresql://localhost:5435/productdb");
     }
 
     private String getUsername() {
-        return System.getProperty("spring.datasource.username", "root");
+        return System.getProperty("spring.datasource.username", "productapp");
     }
 
     private String getPassword() {
-        return System.getProperty("spring.datasource.password", "1234");
+        return System.getProperty("spring.datasource.password", "product123");
     }
 }

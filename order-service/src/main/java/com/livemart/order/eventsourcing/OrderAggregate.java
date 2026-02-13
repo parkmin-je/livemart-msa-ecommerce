@@ -22,7 +22,7 @@ import java.util.Map;
  * - OrderCancelled
  */
 @Data
-public class OrderAggregate implements AggregateRoot<OrderState> {
+public class OrderAggregate implements AggregateRoot<OrderAggregate.OrderState> {
 
     private OrderState state;
     private long currentVersion;
