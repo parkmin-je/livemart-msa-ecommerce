@@ -51,7 +51,7 @@ public class DataSourceConfig {
         config.setLeakDetectionThreshold(60000);  // 60초 이상 반환 안 되면 leak 경고
 
         // Performance Tuning
-        config.setAutoCommit(true);
+        config.setAutoCommit(false);  // Spring @Transactional과 함께 사용하려면 false여야 함
         config.setConnectionTestQuery("SELECT 1");
         config.setPoolName("LiveMart-HikariCP");
 

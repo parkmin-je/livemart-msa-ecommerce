@@ -87,13 +87,11 @@ public class ProductController {
     }
 
     @Operation(summary = "재고 수정", description = "상품 재고를 수정합니다")
-    @PatchMapping("/{id}/stock")
+    @PutMapping("/{id}/stock")
     public ResponseEntity<Void> updateStock(
             @Parameter(description = "상품 ID") @PathVariable Long id,
-            @RequestBody StockUpdateRequest request) {
-        productService.updateStock(id, request.stockQuantity());
+            @Parameter(description = "재고 수량") @RequestParam("stockQuantity") Integer stockQuantity) {
+        productService.updateStock(id, stockQuantity);
         return ResponseEntity.ok().build();
     }
-
-    public record StockUpdateRequest(Integer stockQuantity) {}
 }

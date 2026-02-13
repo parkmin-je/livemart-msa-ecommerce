@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useCartStore } from '@/store/cartStore';
 import toast from 'react-hot-toast';
 
@@ -17,6 +18,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addItem);
+  const [imageError, setImageError] = React.useState(false);
 
   const handleAddToCart = () => {
     addToCart({
@@ -35,14 +37,15 @@ export function ProductCard({ product }: ProductCardProps) {
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       {/* Product Image */}
       <div className="relative h-48 bg-gray-200 overflow-hidden">
-        {product.imageUrl ? (
+        {product.imageUrl && !imageError ? (
           <img
             src={product.imageUrl}
             alt={product.name}
+            onError={() => setImageError(true)}
             className="w-full h-full object-cover hover:scale-105 transition-transform"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
+          <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl bg-gradient-to-br from-gray-100 to-gray-200">
             📦
           </div>
         )}

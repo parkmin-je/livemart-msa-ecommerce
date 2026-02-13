@@ -42,7 +42,7 @@ public class OrderService {
     }
 
     @Transactional
-    private OrderResponse createOrderInternal(OrderCreateRequest request) {
+    protected OrderResponse createOrderInternal(OrderCreateRequest request) {
         Long userId = request.getUserId();
         log.info("Creating order for userId: {}", userId);
 
@@ -95,7 +95,7 @@ public class OrderService {
             for (OrderItemRequest itemRequest : request.getItems()) {
                 ProductInfo product = productFeignClient.getProduct(itemRequest.getProductId());
                 int newStock = product.getStockQuantity() - itemRequest.getQuantity();
-                productFeignClient.updateStock(itemRequest.getProductId(), Map.of("stockQuantity", newStock));
+                productFeignClient.updateStock(itemRequest.getProductId(), newStock);
             }
         } catch (Exception e) {
             log.error("Failed to update stock. Rolling back order: {}", orderNumber, e);
@@ -104,11 +104,17 @@ public class OrderService {
         }
 
         // 4. 결제 처리
+        // Payment Service의 PaymentMethod Enum 값으로 변환
+        String paymentMethod = request.getPaymentMethod();
+        if ("CARD".equals(paymentMethod)) {
+            paymentMethod = "CREDIT_CARD";  // Payment Service 호환성
+        }
+
         PaymentRequest paymentRequest = PaymentRequest.builder()
                 .orderNumber(order.getOrderNumber())
                 .userId(userId)
                 .amount(totalAmount)
-                .method(request.getPaymentMethod())
+                .method(paymentMethod)
                 .cardNumber("1234567812345678")
                 .build();
 

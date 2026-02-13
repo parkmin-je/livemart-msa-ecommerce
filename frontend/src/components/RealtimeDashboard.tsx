@@ -46,35 +46,68 @@ export function RealtimeDashboard() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // SSE (Server-Sent Events) 연결
-    const eventSource = new EventSource('http://localhost:8087/api/v1/dashboard/stream');
+    let eventSource: EventSource | null = null;
+    let reconnectTimer: NodeJS.Timeout | null = null;
 
-    eventSource.addEventListener('metrics', (event) => {
-      const data = JSON.parse(event.data);
-      setMetrics(data);
-      setConnected(true);
+    const connectSSE = () => {
+      try {
+        // SSE (Server-Sent Events) 연결
+        eventSource = new EventSource('http://localhost:8087/api/v1/dashboard/stream');
 
-      // 매출 히스토리 업데이트 (최근 20개)
-      setSalesHistory((prev) => {
-        const newHistory = [...prev, data.todayRevenue];
-        return newHistory.slice(-20);
-      });
+        eventSource.onopen = () => {
+          console.log('SSE connected successfully');
+          setConnected(true);
+        };
 
-      // 시간 라벨 업데이트
-      setTimeLabels((prev) => {
-        const time = new Date(data.timestamp).toLocaleTimeString('ko-KR');
-        const newLabels = [...prev, time];
-        return newLabels.slice(-20);
-      });
-    });
+        eventSource.addEventListener('metrics', (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            setMetrics(data);
+            setConnected(true);
 
-    eventSource.onerror = () => {
-      setConnected(false);
-      console.error('SSE connection error');
+            // 매출 히스토리 업데이트 (최근 20개)
+            setSalesHistory((prev) => {
+              const newHistory = [...prev, data.todayRevenue];
+              return newHistory.slice(-20);
+            });
+
+            // 시간 라벨 업데이트
+            setTimeLabels((prev) => {
+              const time = new Date(data.timestamp).toLocaleTimeString('ko-KR');
+              const newLabels = [...prev, time];
+              return newLabels.slice(-20);
+            });
+          } catch (error) {
+            console.error('Error parsing metrics:', error);
+          }
+        });
+
+        eventSource.onerror = (error) => {
+          console.error('SSE connection error:', error);
+          setConnected(false);
+          eventSource?.close();
+
+          // 5초 후 재연결 시도
+          reconnectTimer = setTimeout(() => {
+            console.log('Attempting to reconnect SSE...');
+            connectSSE();
+          }, 5000);
+        };
+      } catch (error) {
+        console.error('Error creating EventSource:', error);
+        setConnected(false);
+      }
     };
 
+    connectSSE();
+
     return () => {
-      eventSource.close();
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
     };
   }, []);
 
