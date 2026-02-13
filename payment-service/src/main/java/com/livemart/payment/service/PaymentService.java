@@ -1,6 +1,7 @@
 package com.livemart.payment.service;
 
 import com.livemart.payment.domain.Payment;
+import com.livemart.payment.domain.PaymentMethod;
 import com.livemart.payment.domain.PaymentStatus;
 import com.livemart.payment.dto.PaymentRequest;
 import com.livemart.payment.dto.PaymentResponse;
@@ -25,12 +26,25 @@ public class PaymentService {
     public PaymentResponse processPayment(PaymentRequest request) {
         String transactionId = UUID.randomUUID().toString();
 
+        // String method를 Enum으로 변환
+        PaymentMethod paymentMethod;
+        try {
+            String methodStr = request.getMethod();
+            // "CARD" -> "CREDIT_CARD" 매핑
+            if ("CARD".equals(methodStr)) {
+                methodStr = "CREDIT_CARD";
+            }
+            paymentMethod = PaymentMethod.valueOf(methodStr);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("유효하지 않은 결제 수단입니다: " + request.getMethod());
+        }
+
         Payment payment = Payment.builder()
                 .transactionId(transactionId)
                 .orderNumber(request.getOrderNumber())
                 .userId(request.getUserId())
                 .amount(request.getAmount())
-                .method(request.getMethod())
+                .method(paymentMethod)  // 변환된 Enum 사용
                 .cardNumber(maskCardNumber(request.getCardNumber()))
                 .status(PaymentStatus.PENDING)
                 .build();

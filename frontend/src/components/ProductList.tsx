@@ -9,14 +9,38 @@ import toast from 'react-hot-toast';
 export function ProductList() {
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['products', page, searchQuery],
-    queryFn: () => productApi.getProducts({ page, size: 12, search: searchQuery }),
+  // Debounce 검색어 (500ms 지연)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data, isLoading, error, isFetching } = useQuery({
+    queryKey: ['products', page, debouncedSearch],
+    queryFn: () => {
+      // 검색어가 있으면 검색 API, 없으면 목록 API
+      if (debouncedSearch && debouncedSearch.trim()) {
+        return productApi.searchProducts(debouncedSearch).then(result => ({
+          content: result.content || result,
+          totalPages: result.totalPages || 1,
+          totalElements: result.totalElements || (result.content?.length || 0),
+        }));
+      }
+      return productApi.getProducts({ page, size: 12 });
+    },
     staleTime: 30000, // 30초
+    keepPreviousData: true, // 이전 데이터를 유지하면서 새 데이터 로드
   });
 
-  if (isLoading) {
+  const products = data?.content || [];
+
+  // 초기 로딩 시에만 스켈레톤 표시
+  if (isLoading && !data) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(6)].map((_, i) => (
@@ -44,8 +68,6 @@ export function ProductList() {
     );
   }
 
-  const products = data?.content || [];
-
   return (
     <div>
       {/* Search Bar */}
@@ -58,9 +80,10 @@ export function ProductList() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
           />
-          <button className="absolute right-3 top-3 text-gray-400">
-            🔍
-          </button>
+          <div className="absolute right-3 top-3 text-gray-400 flex items-center space-x-2">
+            {isFetching && <div className="animate-spin">⏳</div>}
+            <span>🔍</span>
+          </div>
         </div>
       </div>
 

@@ -5,8 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 @Slf4j
 @Component
 public class ProductFeignClientFallbackFactory implements FallbackFactory<ProductFeignClient> {
@@ -27,8 +25,9 @@ public class ProductFeignClientFallbackFactory implements FallbackFactory<Produc
             }
 
             @Override
-            public void updateStock(Long productId, Map<String, Integer> body) {
-                log.error("Product Service 호출 실패 (updateStock): productId={}", productId, cause);
+            public void updateStock(Long productId, Integer stockQuantity) {
+                log.error("Product Service 호출 실패 (updateStock): productId={}, stockQuantity={}",
+                        productId, stockQuantity, cause);
                 throw new RuntimeException("재고 업데이트가 실패했습니다.");
             }
         };
