@@ -1,45 +1,45 @@
 ﻿version: '3.8'
 
 services:
-  mysql-user:
-    image: mysql:8.0
-    container_name: livemart-mysql-user
-    command: --default-authentication-plugin=mysql_native_password
+  postgres-user:
+    image: postgres:15
+    container_name: livemart-postgres-user
     environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: userdb
+      POSTGRES_DB: userdb
+      POSTGRES_USER: userapp
+      POSTGRES_PASSWORD: user123
     ports:
-      - "3306:3306"
+      - "5434:5432"
     volumes:
-      - mysql-user-data:/var/lib/mysql
+      - postgres-user-data:/var/lib/postgresql/data
     networks:
       - livemart-network
 
-  mysql-product:
-    image: mysql:8.0
-    container_name: livemart-mysql-product
-    command: --default-authentication-plugin=mysql_native_password
+  postgres-product:
+    image: postgres:15
+    container_name: livemart-postgres-product
     environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: productdb
+      POSTGRES_DB: productdb
+      POSTGRES_USER: productapp
+      POSTGRES_PASSWORD: product123
     ports:
-      - "3317:3306"
+      - "5435:5432"
     volumes:
-      - mysql-product-data:/var/lib/mysql
+      - postgres-product-data:/var/lib/postgresql/data
     networks:
       - livemart-network
 
-  mysql-order:
-    image: mysql:8.0
-    container_name: livemart-mysql-order
-    command: --default-authentication-plugin=mysql_native_password
+  postgres-order:
+    image: postgres:15
+    container_name: livemart-postgres-order
     environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: orderdb
+      POSTGRES_DB: orderdb
+      POSTGRES_USER: orderapp
+      POSTGRES_PASSWORD: order123
     ports:
-      - "3318:3306"
+      - "5436:5432"
     volumes:
-      - mysql-order-data:/var/lib/mysql
+      - postgres-order-data:/var/lib/postgresql/data
     networks:
       - livemart-network
 
@@ -169,9 +169,9 @@ services:
       - livemart-network
 
 volumes:
-  mysql-user-data:
-  mysql-product-data:
-  mysql-order-data:
+  postgres-user-data:
+  postgres-product-data:
+  postgres-order-data:
   postgres-inventory-data:
   postgres-analytics-data:
   elasticsearch-data:

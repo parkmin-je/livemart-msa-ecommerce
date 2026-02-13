@@ -36,14 +36,14 @@ public class DatabaseShardingConfig {
     public Map<String, DataSource> shardDataSources() {
         Map<String, DataSource> shards = new HashMap<>();
 
-        // Shard 0: 상품 ID 0 ~ 999,999
-        shards.put("shard0", createDataSource("localhost", 3306, "livemart_product_shard0"));
+        // Shard 0: 상품 ID 0 ~ 999,999 (단일 DB로 통합, sharding은 차후 구현)
+        shards.put("shard0", createDataSource("localhost", 5435, "productdb"));
 
-        // Shard 1: 상품 ID 1,000,000 ~ 1,999,999
-        shards.put("shard1", createDataSource("localhost", 3307, "livemart_product_shard1"));
+        // Shard 1: 상품 ID 1,000,000 ~ 1,999,999 (차후 확장)
+        // shards.put("shard1", createDataSource("localhost", 5436, "productdb_shard1"));
 
-        // Shard 2: 상품 ID 2,000,000 ~ 2,999,999
-        shards.put("shard2", createDataSource("localhost", 3308, "livemart_product_shard2"));
+        // Shard 2: 상품 ID 2,000,000 ~ 2,999,999 (차후 확장)
+        // shards.put("shard2", createDataSource("localhost", 5437, "productdb_shard2"));
 
         log.info("Configured {} database shards", shards.size());
 
@@ -55,11 +55,11 @@ public class DatabaseShardingConfig {
         org.springframework.jdbc.datasource.DriverManagerDataSource ds =
             new org.springframework.jdbc.datasource.DriverManagerDataSource();
 
-        ds.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        ds.setUrl(String.format("jdbc:mysql://%s:%d/%s?useSSL=false&serverTimezone=Asia/Seoul",
+        ds.setDriverClassName("org.postgresql.Driver");
+        ds.setUrl(String.format("jdbc:postgresql://%s:%d/%s",
                                 host, port, database));
-        ds.setUsername("root");
-        ds.setPassword("1234");
+        ds.setUsername("productapp");
+        ds.setPassword("product123");
 
         return ds;
     }

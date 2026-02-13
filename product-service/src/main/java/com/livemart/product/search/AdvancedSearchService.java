@@ -84,10 +84,10 @@ public class AdvancedSearchService {
                     .range(r -> {
                         var rangeQuery = r.field("price");
                         if (criteria.getMinPrice() != null) {
-                            rangeQuery.gte(criteria.getMinPrice().doubleValue());
+                            rangeQuery.gte(co.elastic.clients.json.JsonData.of(criteria.getMinPrice().doubleValue()));
                         }
                         if (criteria.getMaxPrice() != null) {
-                            rangeQuery.lte(criteria.getMaxPrice().doubleValue());
+                            rangeQuery.lte(co.elastic.clients.json.JsonData.of(criteria.getMaxPrice().doubleValue()));
                         }
                         return rangeQuery;
                     })
@@ -109,7 +109,7 @@ public class AdvancedSearchService {
                 mustQueries.add(Query.of(q -> q
                     .range(r -> r
                         .field("stockQuantity")
-                        .gt(0.0)
+                        .gt(co.elastic.clients.json.JsonData.of(0.0))
                     )
                 ));
             }
@@ -158,9 +158,9 @@ public class AdvancedSearchService {
                 .aggregations("price_ranges", Aggregation.of(a -> a
                     .range(r -> r
                         .field("price")
-                        .ranges(ra -> ra.to(10000.0))
-                        .ranges(ra -> ra.from(10000.0).to(50000.0))
-                        .ranges(ra -> ra.from(50000.0))
+                        .ranges(ra -> ra.to(String.valueOf(10000.0)))
+                        .ranges(ra -> ra.from(String.valueOf(10000.0)).to(String.valueOf(50000.0)))
+                        .ranges(ra -> ra.from(String.valueOf(50000.0)))
                     )
                 ))
             );
