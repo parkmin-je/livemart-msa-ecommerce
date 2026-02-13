@@ -59,7 +59,7 @@ public class JpaConfig {
         Properties properties = new Properties();
 
         // 기본 설정
-        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.MySQL8Dialect");
+        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         properties.setProperty("hibernate.hbm2ddl.auto", "validate");
         properties.setProperty("hibernate.show_sql", "false");
         properties.setProperty("hibernate.format_sql", "true");
@@ -76,13 +76,9 @@ public class JpaConfig {
         // 2. JDBC Fetch Size (한 번에 가져올 Row 수)
         properties.setProperty("hibernate.jdbc.fetch_size", "100");
 
-        // 3. 2차 캐시 (Ehcache)
-        properties.setProperty("hibernate.cache.use_second_level_cache", "true");
-        properties.setProperty("hibernate.cache.use_query_cache", "true");
-        properties.setProperty("hibernate.cache.region.factory_class",
-                "org.hibernate.cache.jcache.JCacheRegionFactory");
-        properties.setProperty("hibernate.javax.cache.provider",
-                "org.ehcache.jsr107.EhcacheCachingProvider");
+        // 3. 2차 캐시 비활성화 (JCache 라이브러리 없음)
+        properties.setProperty("hibernate.cache.use_second_level_cache", "false");
+        properties.setProperty("hibernate.cache.use_query_cache", "false");
 
         // 4. Query Plan Cache (쿼리 계획 캐싱)
         properties.setProperty("hibernate.query.plan_cache_max_size", "2048");
@@ -111,6 +107,10 @@ public class JpaConfig {
 
         // 11. Logging
         properties.setProperty("hibernate.connection.autocommit", "false");
+
+        // 12. Naming Strategy (snake_case)
+        properties.setProperty("hibernate.physical_naming_strategy",
+                "org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy");
 
         return properties;
     }

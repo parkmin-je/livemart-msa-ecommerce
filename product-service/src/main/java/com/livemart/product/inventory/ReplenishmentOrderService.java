@@ -110,7 +110,7 @@ public class ReplenishmentOrderService {
         int currentStock = product.getStockQuantity();
         int newStock = currentStock + order.quantity();
 
-        product.setStockQuantity(newStock);
+        product.updateStock(newStock);
         productRepository.save(product);
 
         log.info("Replenishment order received: productId={}, addedQuantity={}, currentStock={}, newStock={}",
