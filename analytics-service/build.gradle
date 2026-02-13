@@ -36,6 +36,9 @@ dependencies {
     // Redis Lettuce
     implementation 'io.lettuce:lettuce-core'
 
+    // Jakarta Annotation API
+    implementation 'jakarta.annotation:jakarta.annotation-api'
+
     runtimeOnly 'org.postgresql:postgresql'
 
     compileOnly 'org.projectlombok:lombok'

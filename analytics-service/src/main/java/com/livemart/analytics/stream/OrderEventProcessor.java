@@ -4,13 +4,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.*;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.Properties;
 
@@ -151,8 +152,7 @@ public class OrderEventProcessor {
                 (key, leftSession, rightSession) -> new UserSession(
                     leftSession.orderCount + rightSession.orderCount,
                     leftSession.totalAmount + rightSession.totalAmount
-                ),
-                Materialized.with(Serdes.String(), new UserSessionSerde())
+                )
             )
             .toStream()
             .foreach((windowedKey, session) -> {
