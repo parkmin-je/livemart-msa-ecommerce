@@ -2,31 +2,21 @@ plugins {
     id 'java-library'
 }
 
+bootJar { enabled = false }
+jar { enabled = true }
+
 dependencies {
-    api 'org.springframework.boot:spring-boot-starter'
     api 'org.springframework.boot:spring-boot-starter-web'
     api 'org.springframework.boot:spring-boot-starter-validation'
-
-    // Redis for distributed cache and rate limiting
     api 'org.springframework.boot:spring-boot-starter-data-redis'
     api 'io.lettuce:lettuce-core'
-
-    // Resilience4j for rate limiting
-    api 'io.github.resilience4j:resilience4j-ratelimiter:2.1.0'
-    api 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
-
-    // AspectJ for AOP
+    api "io.github.resilience4j:resilience4j-spring-boot3:${rootProject.ext.resilience4jVersion}"
+    api "io.github.resilience4j:resilience4j-ratelimiter:${rootProject.ext.resilience4jVersion}"
+    api "io.github.resilience4j:resilience4j-circuitbreaker:${rootProject.ext.resilience4jVersion}"
+    api "io.github.resilience4j:resilience4j-retry:${rootProject.ext.resilience4jVersion}"
     api 'org.springframework.boot:spring-boot-starter-aop'
-
-    // Lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-}
-
-bootJar {
-    enabled = false
-}
-
-jar {
-    enabled = true
+    api 'org.zalando:problem-spring-web:0.29.1'
+    api 'org.mapstruct:mapstruct:1.6.3'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 }

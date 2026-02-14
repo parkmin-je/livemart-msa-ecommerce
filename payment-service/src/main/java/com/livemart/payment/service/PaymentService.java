@@ -1,157 +1,121 @@
 package com.livemart.payment.service;
 
-import com.livemart.payment.domain.Payment;
-import com.livemart.payment.domain.PaymentMethod;
-import com.livemart.payment.domain.PaymentStatus;
-import com.livemart.payment.dto.PaymentRequest;
-import com.livemart.payment.dto.PaymentResponse;
-import com.livemart.payment.event.PaymentEvent;
-import com.livemart.payment.repository.PaymentRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.livemart.common.event.DomainEvent;
+import com.livemart.common.event.EventPublisher;
+import com.livemart.payment.domain.*;
+import com.livemart.payment.dto.*;
+import com.livemart.payment.repository.*;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
+
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
-@Slf4j
 public class PaymentService {
+
     private final PaymentRepository paymentRepository;
-    private final KafkaTemplate<String, PaymentEvent> kafkaTemplate;
+    private final PaymentEventRepository eventRepository;
+    private final EventPublisher eventPublisher;
+    private final ObjectMapper objectMapper;
 
-    public PaymentResponse processPayment(PaymentRequest request) {
-        String transactionId = UUID.randomUUID().toString();
-
-        // String method를 Enum으로 변환
-        PaymentMethod paymentMethod;
-        try {
-            String methodStr = request.getMethod();
-            // "CARD" -> "CREDIT_CARD" 매핑
-            if ("CARD".equals(methodStr)) {
-                methodStr = "CREDIT_CARD";
-            }
-            paymentMethod = PaymentMethod.valueOf(methodStr);
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("유효하지 않은 결제 수단입니다: " + request.getMethod());
-        }
+    @Transactional
+    public PaymentResponse processPayment(PaymentRequest.Create request) {
+        String transactionId = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         Payment payment = Payment.builder()
                 .transactionId(transactionId)
                 .orderNumber(request.getOrderNumber())
                 .userId(request.getUserId())
                 .amount(request.getAmount())
-                .method(paymentMethod)  // 변환된 Enum 사용
-                .cardNumber(maskCardNumber(request.getCardNumber()))
-                .status(PaymentStatus.PENDING)
+                .paymentMethod(request.getPaymentMethod())
+                .status(PaymentStatus.PROCESSING)
                 .build();
 
-        boolean success = simulatePayment(request);
-
-        if (success) {
-            String approvalNumber = generateApprovalNumber();
+        try {
+            String approvalNumber = executePayment(payment, request);
             payment.complete(approvalNumber);
-            log.info("결제 성공: transactionId={}, approvalNumber={}", transactionId, approvalNumber);
+            payment = paymentRepository.save(payment);
+
+            saveEvent(payment, "PAYMENT_COMPLETED");
             publishPaymentEvent(payment, "PAYMENT_COMPLETED");
-        } else {
-            payment.fail("결제 승인 실패");
-            log.error("결제 실패: transactionId={}", transactionId);
+
+            log.info("Payment completed: txn={}, order={}, amount={}",
+                    transactionId, request.getOrderNumber(), request.getAmount());
+        } catch (Exception e) {
+            payment.fail(e.getMessage());
+            payment = paymentRepository.save(payment);
+            saveEvent(payment, "PAYMENT_FAILED");
             publishPaymentEvent(payment, "PAYMENT_FAILED");
+            log.error("Payment failed: txn={}, reason={}", transactionId, e.getMessage());
         }
 
-        paymentRepository.save(payment);
-        return toResponse(payment);
+        return PaymentResponse.from(payment);
     }
 
     @Transactional
-    public void cancelPayment(String transactionId, String reason) {
-        Payment payment = paymentRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new RuntimeException("결제를 찾을 수 없습니다."));
+    public PaymentResponse refundPayment(PaymentRequest.Refund request) {
+        Payment payment = paymentRepository.findByTransactionId(request.getTransactionId())
+                .orElseThrow(() -> new EntityNotFoundException("Payment not found: " + request.getTransactionId()));
 
-        if (payment.getStatus() != PaymentStatus.COMPLETED) {
-            throw new RuntimeException("취소할 수 없는 결제 상태입니다.");
+        if (request.getAmount() != null) {
+            payment.partialRefund(request.getAmount());
+        } else {
+            payment.cancel();
         }
 
-        payment.cancel(reason);
-        paymentRepository.save(payment);
+        payment = paymentRepository.save(payment);
+        saveEvent(payment, "PAYMENT_REFUNDED");
+        publishPaymentEvent(payment, "PAYMENT_REFUNDED");
 
-        // Kafka 이벤트 발행
-        PaymentEvent event = PaymentEvent.builder()
-                .eventType(PaymentEvent.EventType.PAYMENT_CANCELLED)
-                .transactionId(payment.getTransactionId())
-                .orderNumber(payment.getOrderNumber())
-                .amount(payment.getAmount())
-                .occurredAt(LocalDateTime.now())
-                .build();
-
-        kafkaTemplate.send("payment-events", payment.getTransactionId(), event);
-
-        log.info("Payment cancelled: transactionId={}, reason={}", transactionId, reason);
-    }
-
-    public PaymentResponse cancelPayment(String transactionId) {
-        Payment payment = paymentRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new RuntimeException("결제 정보를 찾을 수 없습니다."));
-
-        if (payment.getStatus() != PaymentStatus.COMPLETED) {
-            throw new RuntimeException("취소할 수 없는 상태입니다.");
-        }
-
-        payment.cancel();
-        log.info("결제 취소: transactionId={}", transactionId);
-        publishPaymentEvent(payment, "PAYMENT_CANCELLED");
-        return toResponse(payment);
+        return PaymentResponse.from(payment);
     }
 
     @Transactional(readOnly = true)
-    public PaymentResponse getPaymentByOrderNumber(String orderNumber) {
-        Payment payment = paymentRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new RuntimeException("결제 정보를 찾을 수 없습니다."));
-        return toResponse(payment);
+    public PaymentResponse getByTransactionId(String transactionId) {
+        return paymentRepository.findByTransactionId(transactionId)
+                .map(PaymentResponse::from)
+                .orElseThrow(() -> new EntityNotFoundException("Payment not found: " + transactionId));
+    }
+
+    @Transactional(readOnly = true)
+    public PaymentResponse getByOrderNumber(String orderNumber) {
+        return paymentRepository.findByOrderNumber(orderNumber)
+                .map(PaymentResponse::from)
+                .orElseThrow(() -> new EntityNotFoundException("Payment not found for order: " + orderNumber));
+    }
+
+    private String executePayment(Payment payment, PaymentRequest.Create request) {
+        log.info("Executing payment via {}: amount={}", payment.getPaymentMethod(), payment.getAmount());
+        return "APR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private void saveEvent(Payment payment, String eventType) {
+        try {
+            eventRepository.save(PaymentEvent.builder()
+                    .transactionId(payment.getTransactionId())
+                    .eventType(eventType)
+                    .payload(objectMapper.writeValueAsString(PaymentResponse.from(payment)))
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to save payment event", e);
+        }
     }
 
     private void publishPaymentEvent(Payment payment, String eventType) {
-        PaymentEvent event = PaymentEvent.builder()
-                .eventType(PaymentEvent.EventType.valueOf(eventType))
-                .transactionId(payment.getTransactionId())
-                .orderNumber(payment.getOrderNumber())
-                .userId(payment.getUserId())
-                .amount(payment.getAmount())
-                .status(payment.getStatus())
-                .approvalNumber(payment.getApprovalNumber())
-                .occurredAt(LocalDateTime.now())
-                .build();
-
-        kafkaTemplate.send("payment-events", payment.getTransactionId(), event);
-        log.info("Kafka 이벤트 발행: eventType={}, transactionId={}", eventType, payment.getTransactionId());
-    }
-
-    private boolean simulatePayment(PaymentRequest request) {
-        return true;
-    }
-
-    private String generateApprovalNumber() {
-        return "APV-" + System.currentTimeMillis();
-    }
-
-    private String maskCardNumber(String cardNumber) {
-        if (cardNumber == null || cardNumber.length() < 4) return "****";
-        return "****-****-****-" + cardNumber.substring(cardNumber.length() - 4);
-    }
-
-    private PaymentResponse toResponse(Payment payment) {
-        return PaymentResponse.builder()
-                .id(payment.getId())
-                .transactionId(payment.getTransactionId())
-                .orderNumber(payment.getOrderNumber())
-                .amount(payment.getAmount())
-                .status(payment.getStatus())
-                .approvalNumber(payment.getApprovalNumber())
-                .createdAt(payment.getCreatedAt())
-                .completedAt(payment.getCompletedAt())
-                .build();
+        eventPublisher.publish("payment-events", DomainEvent.builder()
+                .aggregateType("Payment")
+                .aggregateId(payment.getTransactionId())
+                .eventType(eventType)
+                .payload("{\"transactionId\":\"" + payment.getTransactionId() +
+                         "\",\"orderNumber\":\"" + payment.getOrderNumber() +
+                         "\",\"amount\":" + payment.getAmount() +
+                         ",\"status\":\"" + payment.getStatus() + "\"}")
+                .build());
     }
 }

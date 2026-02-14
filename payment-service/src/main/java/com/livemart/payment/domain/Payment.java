@@ -1,22 +1,19 @@
 package com.livemart.payment.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
-@Table(name = "payments")
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "payments", indexes = {
+    @Index(name = "idx_payment_order", columnList = "orderNumber"),
+    @Index(name = "idx_payment_transaction", columnList = "transactionId", unique = true),
+    @Index(name = "idx_payment_status", columnList = "status")
+})
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class Payment {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -25,39 +22,37 @@ public class Payment {
     @Column(nullable = false)
     private String orderNumber;
 
-    @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private PaymentMethod method;
+    @Column(precision = 15, scale = 2)
+    private BigDecimal refundedAmount;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private PaymentStatus status;
+    @Enumerated(EnumType.STRING) @Column(nullable = false)
+    private PaymentMethod paymentMethod;
 
-    private String cardNumber;
+    @Enumerated(EnumType.STRING) @Column(nullable = false)
+    @Builder.Default
+    private PaymentStatus status = PaymentStatus.PENDING;
+
     private String approvalNumber;
+    private String stripePaymentIntentId;
     private String failureReason;
+    private String cardLast4;
+    private String cardBrand;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Builder.Default private Instant createdAt = Instant.now();
+    private Instant completedAt;
+    private Instant cancelledAt;
 
-    private LocalDateTime completedAt;
-    private LocalDateTime cancelledAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
+    @Version private Long version;
 
     public void complete(String approvalNumber) {
         this.status = PaymentStatus.COMPLETED;
         this.approvalNumber = approvalNumber;
-        this.completedAt = LocalDateTime.now();
+        this.completedAt = Instant.now();
     }
 
     public void fail(String reason) {
@@ -67,12 +62,17 @@ public class Payment {
 
     public void cancel() {
         this.status = PaymentStatus.CANCELLED;
-        this.cancelledAt = LocalDateTime.now();
+        this.refundedAmount = this.amount;
+        this.cancelledAt = Instant.now();
     }
 
-    public void cancel(String reason) {
-        this.status = PaymentStatus.CANCELLED;
-        this.failureReason = reason;
-        this.cancelledAt = LocalDateTime.now();
+    public void partialRefund(BigDecimal refundAmount) {
+        this.refundedAmount = (this.refundedAmount != null)
+                ? this.refundedAmount.add(refundAmount) : refundAmount;
+        if (this.refundedAmount.compareTo(this.amount) >= 0) {
+            this.status = PaymentStatus.REFUNDED;
+        } else {
+            this.status = PaymentStatus.PARTIALLY_REFUNDED;
+        }
     }
 }

@@ -1,64 +1,69 @@
 package com.livemart.common.exception;
 
-import com.livemart.common.dto.ErrorResponse;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ProblemDetail handleNotFound(EntityNotFoundException ex) {
+        log.warn("Entity not found: {}", ex.getMessage());
+        return ProblemDetailFactory.notFound("Resource", ex.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e, HttpServletRequest request) {
-        log.warn("Bad request: {}", e.getMessage());
-        return ResponseEntity.badRequest().body(ErrorResponse.builder()
-                .status(400)
-                .error("Bad Request")
-                .message(e.getMessage())
-                .path(request.getRequestURI())
-                .build());
+    public ProblemDetail handleBadRequest(IllegalArgumentException ex) {
+        log.warn("Bad request: {}", ex.getMessage());
+        return ProblemDetailFactory.badRequest(ex.getMessage());
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException e, HttpServletRequest request) {
-        log.warn("Conflict: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.builder()
-                .status(409)
-                .error("Conflict")
-                .message(e.getMessage())
-                .path(request.getRequestURI())
-                .build());
-    }
-
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntime(RuntimeException e, HttpServletRequest request) {
-        log.error("Internal error: {}", e.getMessage(), e);
-        return ResponseEntity.internalServerError().body(ErrorResponse.builder()
-                .status(500)
-                .error("Internal Server Error")
-                .message(e.getMessage())
-                .path(request.getRequestURI())
-                .build());
+    public ProblemDetail handleConflict(IllegalStateException ex) {
+        log.warn("Conflict: {}", ex.getMessage());
+        return ProblemDetailFactory.conflict(ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e, HttpServletRequest request) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining(", "));
+    public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(
+                        fe -> fe.getField(),
+                        fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid",
+                        (a, b) -> a
+                ));
+        ProblemDetail problem = ProblemDetailFactory.badRequest("Validation failed");
+        problem.setProperty("errors", errors);
+        return problem;
+    }
 
-        return ResponseEntity.badRequest().body(ErrorResponse.builder()
-                .status(400)
-                .error("Validation Failed")
-                .message(message)
-                .path(request.getRequestURI())
-                .build());
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail handleConstraintViolation(ConstraintViolationException ex) {
+        return ProblemDetailFactory.badRequest(ex.getMessage());
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public ProblemDetail handleBusiness(BusinessException ex) {
+        log.warn("Business error [{}]: {}", ex.getCode(), ex.getMessage());
+        ProblemDetail problem = ProblemDetailFactory.create(
+                HttpStatus.valueOf(ex.getStatus()), ex.getCode(), ex.getMessage());
+        return problem;
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleGeneric(Exception ex) {
+        log.error("Unexpected error", ex);
+        return ProblemDetailFactory.create(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Internal Server Error", "An unexpected error occurred");
     }
 }
