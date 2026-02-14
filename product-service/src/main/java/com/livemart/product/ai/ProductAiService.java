@@ -2,10 +2,10 @@ package com.livemart.product.ai;
 
 import com.livemart.product.domain.Product;
 import com.livemart.product.repository.ProductRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,11 +13,17 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
+@ConditionalOnBean(ChatModel.class)
 public class ProductAiService {
 
     private final ChatModel chatModel;
     private final ProductRepository productRepository;
+
+    public ProductAiService(ChatModel chatModel, ProductRepository productRepository) {
+        this.chatModel = chatModel;
+        this.productRepository = productRepository;
+        log.info("Spring AI enabled - ProductAiService initialized");
+    }
 
     public String searchWithAi(String userQuery) {
         List<Product> products = productRepository.findAll();
