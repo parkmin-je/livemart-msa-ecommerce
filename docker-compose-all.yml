@@ -1,11 +1,9 @@
 version: '3.8'
 
 services:
-  # ==================== Infrastructure Services ====================
-
-  # PostgreSQL - User Service
+  # ==================== Databases ====================
   postgres-user:
-    image: postgres:15
+    image: postgres:16-alpine
     container_name: livemart-postgres-user
     environment:
       POSTGRES_DB: userdb
@@ -21,9 +19,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # PostgreSQL - Product Service
   postgres-product:
-    image: postgres:15
+    image: postgres:16-alpine
     container_name: livemart-postgres-product
     environment:
       POSTGRES_DB: productdb
@@ -39,9 +36,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # PostgreSQL - Order Service
   postgres-order:
-    image: postgres:15
+    image: postgres:16-alpine
     container_name: livemart-postgres-order
     environment:
       POSTGRES_DB: orderdb
@@ -57,16 +53,15 @@ services:
       timeout: 5s
       retries: 5
 
-  # PostgreSQL - Inventory Service
   postgres-inventory:
-    image: postgres:15
+    image: postgres:16-alpine
     container_name: livemart-postgres-inventory
     environment:
       POSTGRES_DB: inventorydb
       POSTGRES_USER: inventoryapp
       POSTGRES_PASSWORD: inventory123
     ports:
-      - "5432:5432"
+      - "5437:5432"
     volumes:
       - postgres-inventory-data:/var/lib/postgresql/data
     healthcheck:
@@ -75,9 +70,25 @@ services:
       timeout: 5s
       retries: 5
 
-  # PostgreSQL - Analytics Service
+  postgres-payment:
+    image: postgres:16-alpine
+    container_name: livemart-postgres-payment
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: paymentapp
+      POSTGRES_PASSWORD: payment123
+    ports:
+      - "5438:5432"
+    volumes:
+      - postgres-payment-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paymentapp -d paymentdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   postgres-analytics:
-    image: postgres:15
+    image: postgres:16-alpine
     container_name: livemart-postgres-analytics
     environment:
       POSTGRES_DB: analyticsdb
@@ -93,13 +104,13 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis
+  # ==================== Cache & Message ====================
   redis:
     image: redis:7-alpine
     container_name: livemart-redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
     healthcheck:
@@ -108,9 +119,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # Zookeeper
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
+    image: confluentinc/cp-zookeeper:7.7.1
     container_name: livemart-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -123,9 +133,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # Kafka
   kafka:
-    image: confluentinc/cp-kafka:7.5.0
+    image: confluentinc/cp-kafka:7.7.1
     container_name: livemart-kafka
     depends_on:
       zookeeper:
@@ -141,15 +150,15 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 10s
       timeout: 10s
       retries: 5
 
-  # Elasticsearch
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
     container_name: livemart-elasticsearch
     environment:
       - discovery.type=single-node
@@ -157,7 +166,6 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
-      - "9300:9300"
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
     healthcheck:
@@ -166,223 +174,90 @@ services:
       timeout: 10s
       retries: 5
 
-  # Prometheus
+  # ==================== Observability (OpenTelemetry) ====================
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.114.0
+    container_name: livemart-otel-collector
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./monitoring/otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8889:8889"
+    depends_on:
+      - tempo
+      - loki
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: livemart-tempo
+    command: ["-config.file=/etc/tempo.yml"]
+    volumes:
+      - ./monitoring/tempo.yml:/etc/tempo.yml
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"
+      - "9095:9095"
+
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: livemart-loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.55.1
     container_name: livemart-prometheus
     ports:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Zipkin
-  zipkin:
-    image: openzipkin/zipkin:latest
-    container_name: livemart-zipkin
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: livemart-grafana
     ports:
-      - "9411:9411"
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9411/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ==================== Application Services ====================
-
-  # Eureka Server
-  eureka-server:
-    build:
-      context: .
-      dockerfile: eureka-server/Dockerfile
-    container_name: livemart-eureka-server
-    ports:
-      - "8761:8761"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 40s
-
-  # API Gateway
-  api-gateway:
-    build:
-      context: .
-      dockerfile: api-gateway/Dockerfile
-    container_name: livemart-api-gateway
-    ports:
-      - "8080:8080"
-    depends_on:
-      eureka-server:
-        condition: service_healthy
+      - "3000:3000"
     environment:
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  # Product Service
-  product-service:
-    build:
-      context: .
-      dockerfile: product-service/Dockerfile
-    container_name: livemart-product-service
-    ports:
-      - "8082:8082"
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
     depends_on:
-      postgres-product:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      eureka-server:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-product:5432/productdb
-      SPRING_DATASOURCE_USERNAME: productapp
-      SPRING_DATASOURCE_PASSWORD: product123
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-      ELASTICSEARCH_HOST: elasticsearch
-      ELASTICSEARCH_PORT: 9200
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-
-  # Order Service
-  order-service:
-    build:
-      context: .
-      dockerfile: order-service/Dockerfile
-    container_name: livemart-order-service
-    ports:
-      - "8083:8083"
-    depends_on:
-      postgres-order:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      eureka-server:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-order:5432/orderdb
-      SPRING_DATASOURCE_USERNAME: orderapp
-      SPRING_DATASOURCE_PASSWORD: order123
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-
-  # User Service
-  user-service:
-    build:
-      context: .
-      dockerfile: user-service/Dockerfile
-    container_name: livemart-user-service
-    ports:
-      - "8085:8085"
-    depends_on:
-      postgres-user:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      eureka-server:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/userdb
-      SPRING_DATASOURCE_USERNAME: userapp
-      SPRING_DATASOURCE_PASSWORD: user123
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-
-  # Payment Service
-  payment-service:
-    build:
-      context: .
-      dockerfile: payment-service/Dockerfile
-    container_name: livemart-payment-service
-    ports:
-      - "8084:8084"
-    depends_on:
-      kafka:
-        condition: service_healthy
-      eureka-server:
-        condition: service_healthy
-    environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-
-  # Analytics Service
-  analytics-service:
-    build:
-      context: .
-      dockerfile: analytics-service/Dockerfile
-    container_name: livemart-analytics-service
-    ports:
-      - "8087:8087"
-    depends_on:
-      postgres-analytics:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      eureka-server:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-analytics:5432/analyticsdb
-      SPRING_DATASOURCE_USERNAME: analyticsapp
-      SPRING_DATASOURCE_PASSWORD: analytics123
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
+      - prometheus
+      - tempo
+      - loki
 
 volumes:
   postgres-user-data:
   postgres-product-data:
   postgres-order-data:
   postgres-inventory-data:
+  postgres-payment-data:
   postgres-analytics-data:
   redis-data:
   elasticsearch-data:
   prometheus-data:
+  tempo-data:
+  loki-data:
+  grafana-data:
 
 networks:
   default:
