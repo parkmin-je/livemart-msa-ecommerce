@@ -1,6 +1,9 @@
 spring:
   application:
     name: user-service
+  threads:
+    virtual:
+      enabled: true
 
   datasource:
     url: jdbc:postgresql://localhost:5434/userdb

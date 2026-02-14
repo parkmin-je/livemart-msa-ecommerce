@@ -1,6 +1,9 @@
 spring:
   application:
     name: analytics-service
+  threads:
+    virtual:
+      enabled: true
 
   datasource:
     url: jdbc:postgresql://localhost:5433/analyticsdb
