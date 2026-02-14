@@ -1,6 +1,6 @@
 package com.livemart.product.ai;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,10 +9,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai")
-@RequiredArgsConstructor
+@ConditionalOnBean(ProductAiService.class)
 public class ProductAiController {
 
     private final ProductAiService productAiService;
+
+    public ProductAiController(ProductAiService productAiService) {
+        this.productAiService = productAiService;
+    }
 
     @GetMapping("/search")
     public ResponseEntity<Map<String, Object>> aiSearch(@RequestParam String query) {
