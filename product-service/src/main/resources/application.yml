@@ -1,6 +1,9 @@
 spring:
   application:
     name: product-service
+  threads:
+    virtual:
+      enabled: true
 
   datasource:
     url: jdbc:postgresql://localhost:5435/productdb
