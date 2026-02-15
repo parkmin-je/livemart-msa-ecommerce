@@ -1,54 +1,25 @@
-
-ext {
-    set('springCloudVersion', "2023.0.2")
-}
-
 dependencies {
     implementation project(':common')
-
-    // Spring Boot Starters
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-
-    // OpenFeign
-    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-
-    // Kafka
-    implementation 'org.springframework.kafka:spring-kafka'
-
-    // WebClient (Product Service 호출용)
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
-
-    // Resilience4j (Circuit Breaker)
-    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
-    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.1.0'
-    implementation 'io.github.resilience4j:resilience4j-timelimiter:2.1.0'
-    implementation 'org.redisson:redisson-spring-boot-starter:3.27.2'
-
-    // Apache HttpClient (PATCH 메서드 지원)
-    implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
-    // PostgreSQL
-    runtimeOnly 'org.postgresql:postgresql'
-    implementation 'org.flywaydb:flyway-database-postgresql'
-
-
-    // Spring Batch
     implementation 'org.springframework.boot:spring-boot-starter-batch'
-
-    // gRPC Client
-    implementation 'net.devh:grpc-client-spring-boot-starter:3.0.0.RELEASE'
-    implementation 'io.grpc:grpc-protobuf:1.61.0'
-    implementation 'io.grpc:grpc-stub:1.61.0'
-
-    // Swagger
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
-}
-
-dependencyManagement {
-    imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
-    }
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'org.redisson:redisson-spring-boot-starter:3.40.2'
+    implementation 'net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE'
+    implementation 'io.grpc:grpc-protobuf:1.68.2'
+    implementation 'io.grpc:grpc-stub:1.68.2'
+    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.1'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:kafka'
 }
