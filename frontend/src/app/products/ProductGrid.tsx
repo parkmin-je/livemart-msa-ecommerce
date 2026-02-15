@@ -37,16 +37,20 @@ export function ProductGrid({ products }: { products: Product[] }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((product) => (
           <div key={product.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-6">
-            {product.imageUrl && (
-              <img src={product.imageUrl} alt={product.name} className="h-48 w-full object-cover rounded-lg mb-4" />
-            )}
-            {!product.imageUrl && (
-              <div className="h-48 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg mb-4 flex items-center justify-center">
-                <span className="text-4xl">📦</span>
-              </div>
-            )}
+            <a href={`/products/${product.id}`}>
+              {product.imageUrl && (
+                <img src={product.imageUrl} alt={product.name} className="h-48 w-full object-cover rounded-lg mb-4" />
+              )}
+              {!product.imageUrl && (
+                <div className="h-48 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg mb-4 flex items-center justify-center">
+                  <span className="text-4xl">📦</span>
+                </div>
+              )}
+            </a>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold text-gray-900 truncate">{product.name}</h3>
+              <a href={`/products/${product.id}`} className="hover:text-blue-600">
+                <h3 className="text-lg font-semibold text-gray-900 truncate">{product.name}</h3>
+              </a>
               {product.category && (
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                   {product.category.name}
