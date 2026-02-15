@@ -2,7 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['cdn.livemart.com', 'localhost'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'cdn.livemart.com' },
+      { protocol: 'http', hostname: 'localhost' },
+    ],
+  },
+  experimental: {
+    ppr: true,
+    reactCompiler: true,
   },
   async rewrites() {
     return [

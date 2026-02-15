@@ -8,6 +8,9 @@ import com.livemart.order.domain.OrderItem;
 import com.livemart.order.domain.OrderStatus;
 import com.livemart.order.dto.*;
 import com.livemart.order.event.OrderEvent;
+import com.livemart.common.event.DomainEvent;
+import com.livemart.common.event.EventPublisher;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.livemart.order.repository.OrderRepository;
@@ -33,6 +36,8 @@ public class OrderService {
     private final ProductFeignClient productFeignClient;
     private final PaymentFeignClient paymentFeignClient;
     private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
+    private final EventPublisher eventPublisher;
+    private final ObjectMapper objectMapper;
 
     private static final String ORDER_TOPIC = "order-events";
 
@@ -175,8 +180,22 @@ public class OrderService {
                 .cancelReason(cancelReason)
                 .build();
 
-        kafkaTemplate.send(ORDER_TOPIC, order.getOrderNumber(), event);
-        log.info("Order event published: eventType={}, orderNumber={}", eventType, order.getOrderNumber());
+        // Transactional Outbox 패턴으로 이벤트 발행 (DB에 먼저 저장 후 비동기 Kafka 전송)
+        try {
+            String payload = objectMapper.writeValueAsString(event);
+            DomainEvent domainEvent = DomainEvent.builder()
+                    .aggregateType("Order")
+                    .aggregateId(order.getOrderNumber())
+                    .eventType(eventType.name())
+                    .payload(payload)
+                    .build();
+            eventPublisher.publish(ORDER_TOPIC, domainEvent);
+            log.info("Order event published via Outbox: eventType={}, orderNumber={}", eventType, order.getOrderNumber());
+        } catch (Exception e) {
+            log.warn("Outbox publish failed, falling back to direct Kafka: {}", e.getMessage());
+            kafkaTemplate.send(ORDER_TOPIC, order.getOrderNumber(), event);
+            log.info("Order event published directly: eventType={}, orderNumber={}", eventType, order.getOrderNumber());
+        }
     }
 
     private OrderResponse toResponse(Order order) {
