@@ -51,10 +51,10 @@ export default function Home() {
               </a>
 
               <a
-                href="/orders"
+                href="/cart"
                 className="relative px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
               >
-                🛒 주문하기
+                🛒 장바구니
                 {cartItems.length > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {cartItems.length}
