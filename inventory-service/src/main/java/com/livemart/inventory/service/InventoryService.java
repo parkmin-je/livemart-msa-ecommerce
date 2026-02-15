@@ -25,6 +25,7 @@ public class InventoryService {
     private final StockMovementRepository movementRepository;
     private final RedissonClient redissonClient;
     private final EventPublisher eventPublisher;
+    private final LowStockAlertService lowStockAlertService;
 
     @Transactional
     public InventoryResponse createInventory(InventoryRequest.Create request) {
@@ -69,6 +70,7 @@ public class InventoryService {
                     request.getOrderId(), "Stock reserved for order");
 
             publishStockEvent(inventory, "STOCK_RESERVED");
+            lowStockAlertService.checkAndAlertIfLow(inventory);
             return InventoryResponse.from(inventory);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
