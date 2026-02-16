@@ -315,6 +315,38 @@ export const cartApi = {
   },
 };
 
+// 쿠폰 API
+export const couponApi = {
+  getActiveCoupons: async (page = 0, size = 10) => {
+    const response = await apiClient.get('/api/coupons', {
+      params: { page, size },
+    });
+    return response.data;
+  },
+
+  getCoupon: async (code: string) => {
+    const response = await apiClient.get(`/api/coupons/${code}`);
+    return response.data;
+  },
+
+  previewDiscount: async (code: string, orderAmount: number) => {
+    const response = await apiClient.get(`/api/coupons/${code}/preview`, {
+      params: { orderAmount },
+    });
+    return response.data;
+  },
+};
+
+// 검색 자동완성 API
+export const searchApi = {
+  autocomplete: async (keyword: string) => {
+    const response = await apiClient.get('/api/products/search/autocomplete', {
+      params: { keyword },
+    });
+    return response.data;
+  },
+};
+
 export const dashboardApi = {
   // 실시간 메트릭 조회 (REST)
   getMetrics: async () => {
