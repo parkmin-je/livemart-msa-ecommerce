@@ -49,7 +49,8 @@ export function IntegrationTest() {
       await testFn();
       const duration = Date.now() - startTime;
       updateTest(index, { status: 'success', duration, message: `성공 (${duration}ms)` });
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string };
       const duration = Date.now() - startTime;
       updateTest(index, {
         status: 'error',
