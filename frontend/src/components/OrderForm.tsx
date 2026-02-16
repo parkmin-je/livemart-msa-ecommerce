@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { orderApi } from '@/api/productApi';
+import { orderApi, paymentApi } from '@/api/productApi';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
@@ -48,11 +48,24 @@ export function OrderForm() {
       };
 
       const response = await orderApi.createOrder(orderData);
+      toast.success(`주문 생성 완료! 결제를 진행합니다...`);
 
-      toast.success(`주문이 완료되었습니다! 주문번호: ${response.orderNumber}`);
+      // 결제 API 호출
+      try {
+        await paymentApi.processPayment({
+          orderNumber: response.orderNumber,
+          userId: formData.userId,
+          amount: totalAmount,
+          method: formData.paymentMethod,
+        });
+        toast.success(`결제가 완료되었습니다! 주문번호: ${response.orderNumber}`);
+      } catch (paymentError: any) {
+        console.error('Payment failed:', paymentError);
+        toast.error('결제에 실패했습니다. 주문 상세에서 다시 시도해주세요.');
+      }
+
       clearCart();
 
-      // Redirect to order detail page
       setTimeout(() => {
         router.push(`/orders/${response.id}`);
       }, 1500);
