@@ -2,9 +2,20 @@
 
 import { useState } from 'react';
 import { useCartStore } from '@/store/cartStore';
-import { orderApi, paymentApi } from '@/api/productApi';
+import { orderApi, paymentApi, couponApi } from '@/api/productApi';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+
+interface CouponDiscount {
+  couponCode: string;
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+}
+
+interface ApiError {
+  response?: { data?: { message?: string } };
+}
 
 export function OrderForm() {
   const router = useRouter();
@@ -12,14 +23,47 @@ export function OrderForm() {
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    userId: 1, // Mock user ID
+    userId: typeof window !== 'undefined' ? parseInt(localStorage.getItem('userId') || '1') : 1,
     deliveryAddress: '',
     phoneNumber: '',
     orderNote: '',
     paymentMethod: 'CARD',
   });
 
+  // 쿠폰 상태
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState<CouponDiscount | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
   const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const finalAmount = couponDiscount ? couponDiscount.finalAmount : totalAmount;
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('쿠폰 코드를 입력해주세요.');
+      return;
+    }
+
+    setCouponLoading(true);
+    try {
+      const preview = await couponApi.previewDiscount(couponCode, totalAmount);
+      setCouponDiscount(preview);
+      toast.success(`쿠폰 적용 완료! ${preview.discountAmount.toLocaleString()}원 할인`);
+    } catch (err: unknown) {
+      const error = err as ApiError;
+      console.error('Coupon apply failed:', error);
+      toast.error(error.response?.data?.message || '유효하지 않은 쿠폰입니다.');
+      setCouponDiscount(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setCouponDiscount(null);
+    toast.success('쿠폰이 제거되었습니다.');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +73,6 @@ export function OrderForm() {
       return;
     }
 
-    // Validate phone number format
     const phoneRegex = /^01[0-9]-\d{3,4}-\d{4}$/;
     if (!phoneRegex.test(formData.phoneNumber)) {
       toast.error('올바른 전화번호 형식이 아닙니다. (예: 010-1234-5678)');
@@ -45,22 +88,22 @@ export function OrderForm() {
           productId: item.productId,
           quantity: item.quantity,
         })),
+        ...(couponDiscount ? { couponCode } : {}),
       };
 
       const response = await orderApi.createOrder(orderData);
-      toast.success(`주문 생성 완료! 결제를 진행합니다...`);
+      toast.success('주문 생성 완료! 결제를 진행합니다...');
 
-      // 결제 API 호출
       try {
         await paymentApi.processPayment({
           orderNumber: response.orderNumber,
           userId: formData.userId,
-          amount: totalAmount,
+          amount: finalAmount,
           method: formData.paymentMethod,
         });
         toast.success(`결제가 완료되었습니다! 주문번호: ${response.orderNumber}`);
-      } catch (paymentError: any) {
-        console.error('Payment failed:', paymentError);
+      } catch (paymentErr: unknown) {
+        console.error('Payment failed:', paymentErr);
         toast.error('결제에 실패했습니다. 주문 상세에서 다시 시도해주세요.');
       }
 
@@ -69,7 +112,8 @@ export function OrderForm() {
       setTimeout(() => {
         router.push(`/orders/${response.id}`);
       }, 1500);
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as ApiError;
       console.error('Order creation failed:', error);
       toast.error(error.response?.data?.message || '주문 생성에 실패했습니다.');
     } finally {
@@ -147,12 +191,52 @@ export function OrderForm() {
               </select>
             </div>
 
+            {/* 쿠폰 적용 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                쿠폰 코드
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  disabled={!!couponDiscount}
+                  className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-gray-100"
+                  placeholder="쿠폰 코드 입력"
+                />
+                {couponDiscount ? (
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                  >
+                    제거
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={couponLoading || !couponCode.trim()}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 transition-colors text-sm"
+                  >
+                    {couponLoading ? '확인중...' : '적용'}
+                  </button>
+                )}
+              </div>
+              {couponDiscount && (
+                <p className="text-sm text-green-600 mt-1 font-medium">
+                  {couponDiscount.discountAmount.toLocaleString()}원 할인 적용됨
+                </p>
+              )}
+            </div>
+
             <button
               type="submit"
               disabled={loading || items.length === 0}
               className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? '주문 처리 중...' : `${totalAmount.toLocaleString()}원 결제하기`}
+              {loading ? '주문 처리 중...' : `${finalAmount.toLocaleString()}원 결제하기`}
             </button>
           </form>
         </div>
@@ -176,13 +260,13 @@ export function OrderForm() {
                       />
                     ) : (
                       <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
-                        📦
+                        &#x1F4E6;
                       </div>
                     )}
                     <div className="flex-1">
                       <h3 className="font-medium">{item.name}</h3>
                       <p className="text-sm text-gray-600">
-                        {item.price.toLocaleString()}원 × {item.quantity}
+                        {item.price.toLocaleString()}원 x {item.quantity}
                       </p>
                     </div>
                     <div className="text-right">
@@ -199,30 +283,24 @@ export function OrderForm() {
                   <span>상품 금액</span>
                   <span>{totalAmount.toLocaleString()}원</span>
                 </div>
+                {couponDiscount && (
+                  <div className="flex justify-between text-green-600">
+                    <span>쿠폰 할인</span>
+                    <span>-{couponDiscount.discountAmount.toLocaleString()}원</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>배송비</span>
                   <span className="text-green-600">무료</span>
                 </div>
                 <div className="flex justify-between text-xl font-bold pt-2 border-t">
                   <span>총 결제 금액</span>
-                  <span className="text-blue-600">{totalAmount.toLocaleString()}원</span>
+                  <span className="text-blue-600">{finalAmount.toLocaleString()}원</span>
                 </div>
               </div>
             </>
           )}
         </div>
-      </div>
-
-      {/* Feature Info */}
-      <div className="mt-8 bg-blue-50 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-3">🚀 MSA 아키텍처 테스트 기능</h3>
-        <ul className="space-y-2 text-sm text-blue-800">
-          <li>✅ <strong>Saga Pattern</strong>: 주문 생성 시 Order → Inventory → Payment 순차 처리</li>
-          <li>✅ <strong>분산 트랜잭션</strong>: 재고 차감 실패 시 자동 롤백 (Compensation)</li>
-          <li>✅ <strong>비관적 락</strong>: 재고 동시성 제어 (Pessimistic Lock)</li>
-          <li>✅ <strong>Kafka 이벤트</strong>: 주문 생성 시 이벤트 발행 → Analytics 수집</li>
-          <li>✅ <strong>서비스 간 통신</strong>: RestTemplate을 통한 마이크로서비스 호출</li>
-        </ul>
       </div>
     </div>
   );

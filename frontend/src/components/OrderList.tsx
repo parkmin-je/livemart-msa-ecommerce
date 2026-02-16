@@ -4,10 +4,43 @@ import { useState, useEffect } from 'react';
 import { orderApi } from '@/api/productApi';
 import toast from 'react-hot-toast';
 
+interface OrderItem {
+  id: number;
+  productId: number;
+  productName: string;
+  price: number;
+  productPrice: number;
+  quantity: number;
+  totalPrice: number;
+}
+
+interface Order {
+  id: number;
+  orderNumber: string;
+  userId: number;
+  items: OrderItem[];
+  totalAmount: number;
+  status: string;
+  deliveryAddress: string;
+  phoneNumber: string;
+  orderNote?: string;
+  paymentMethod: string;
+  paymentTransactionId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
 export function OrderList() {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const userId = typeof window !== 'undefined' ? parseInt(localStorage.getItem('userId') || '1') : 1;
 
@@ -20,8 +53,8 @@ export function OrderList() {
       setLoading(true);
       const response = await orderApi.getOrders(userId, { page: 0, size: 20 });
       setOrders(response.content || []);
-    } catch (error: any) {
-      console.error('Failed to fetch orders:', error);
+    } catch (err: unknown) {
+      console.error('Failed to fetch orders:', err);
       toast.error('주문 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -36,8 +69,9 @@ export function OrderList() {
     try {
       await orderApi.cancelOrder(orderId, '고객 요청에 의한 취소');
       toast.success('주문이 취소되었습니다.');
-      fetchOrders(); // Refresh list
-    } catch (error: any) {
+      fetchOrders();
+    } catch (err: unknown) {
+      const error = err as ApiError;
       console.error('Failed to cancel order:', error);
       toast.error(error.response?.data?.message || '주문 취소에 실패했습니다.');
     }
@@ -47,8 +81,9 @@ export function OrderList() {
     try {
       await orderApi.confirmOrder(orderId);
       toast.success('주문이 확인되었습니다.');
-      fetchOrders(); // Refresh list
-    } catch (error: any) {
+      fetchOrders();
+    } catch (err: unknown) {
+      const error = err as ApiError;
       console.error('Failed to confirm order:', error);
       toast.error(error.response?.data?.message || '주문 확인에 실패했습니다.');
     }
@@ -76,7 +111,7 @@ export function OrderList() {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center py-12">
-          <div className="animate-spin text-4xl">⏳</div>
+          <div className="animate-spin text-4xl">&#x23F3;</div>
           <p className="mt-4 text-gray-600">주문 목록을 불러오는 중...</p>
         </div>
       </div>
@@ -101,7 +136,6 @@ export function OrderList() {
         <div className="space-y-4">
           {orders.map((order) => (
             <div key={order.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              {/* Order Header */}
               <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-b">
                 <div>
                   <h3 className="font-semibold text-lg">주문번호: {order.orderNumber}</h3>
@@ -112,30 +146,28 @@ export function OrderList() {
                 {getStatusBadge(order.status)}
               </div>
 
-              {/* Order Items */}
               <div className="px-6 py-4">
                 <div className="space-y-3">
-                  {order.items?.map((item: any, idx: number) => (
+                  {order.items?.map((item: OrderItem, idx: number) => (
                     <div key={idx} className="flex items-center space-x-4">
                       <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-2xl">
-                        📦
+                        &#x1F4E6;
                       </div>
                       <div className="flex-1">
                         <h4 className="font-medium">{item.productName || `상품 ID: ${item.productId}`}</h4>
                         <p className="text-sm text-gray-600">
-                          {item.price?.toLocaleString()}원 × {item.quantity}개
+                          {item.productPrice?.toLocaleString()}원 x {item.quantity}개
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="font-semibold">
-                          {(item.price * item.quantity).toLocaleString()}원
+                          {item.totalPrice?.toLocaleString()}원
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Order Info */}
                 <div className="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">배송지</p>
@@ -153,7 +185,6 @@ export function OrderList() {
                   )}
                 </div>
 
-                {/* Total Amount */}
                 <div className="mt-4 pt-4 border-t flex justify-between items-center">
                   <span className="font-semibold text-lg">총 결제 금액</span>
                   <span className="text-2xl font-bold text-blue-600">
@@ -161,7 +192,6 @@ export function OrderList() {
                   </span>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="mt-4 flex space-x-2">
                   {order.status === 'PENDING' && (
                     <>
@@ -198,17 +228,6 @@ export function OrderList() {
           ))}
         </div>
       )}
-
-      {/* Feature Info */}
-      <div className="mt-8 bg-blue-50 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-3">📦 주문 관리 기능</h3>
-        <ul className="space-y-2 text-sm text-blue-800">
-          <li>✅ <strong>주문 상태 조회</strong>: PENDING → CONFIRMED → SHIPPED → DELIVERED</li>
-          <li>✅ <strong>주문 취소</strong>: Saga Compensation Pattern (재고 복구)</li>
-          <li>✅ <strong>페이징 처리</strong>: Spring Data JPA Pageable</li>
-          <li>✅ <strong>실시간 업데이트</strong>: WebSocket을 통한 주문 상태 변경 알림 (예정)</li>
-        </ul>
-      </div>
     </div>
   );
 }
