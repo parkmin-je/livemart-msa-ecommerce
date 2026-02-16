@@ -120,7 +120,6 @@ public class OrderService {
                 .userId(userId)
                 .amount(totalAmount)
                 .method(paymentMethod)
-                .cardNumber("1234567812345678")
                 .build();
 
         try {

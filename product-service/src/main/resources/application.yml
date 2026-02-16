@@ -6,9 +6,9 @@ spring:
       enabled: true
 
   datasource:
-    url: jdbc:postgresql://localhost:5435/productdb
-    username: productapp
-    password: product123
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5435}/productdb
+    username: ${DB_USERNAME:productapp}
+    password: ${DB_PASSWORD:product123}
     driver-class-name: org.postgresql.Driver
 
   jpa:
