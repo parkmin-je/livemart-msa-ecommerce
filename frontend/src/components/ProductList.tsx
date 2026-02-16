@@ -2,14 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { productApi } from '@/api/productApi';
+import { productApi, searchApi } from '@/api/productApi';
 import { ProductCard } from './ProductCard';
-import toast from 'react-hot-toast';
+
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  stockQuantity: number;
+  imageUrl?: string;
+  category?: string;
+}
 
 export function ProductList() {
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Debounce 검색어 (500ms 지연)
   useEffect(() => {
@@ -17,6 +28,23 @@ export function ProductList() {
       setDebouncedSearch(searchQuery);
     }, 500);
 
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // 자동완성
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const result = await searchApi.autocomplete(searchQuery);
+        setSuggestions(Array.isArray(result) ? result : result.suggestions || []);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 200);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -70,26 +98,50 @@ export function ProductList() {
 
   return (
     <div>
-      {/* Search Bar */}
+      {/* Search Bar with Autocomplete */}
       <div className="mb-6">
         <div className="relative">
           <input
             type="text"
             placeholder="상품 검색... (Elasticsearch 실시간 검색)"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
           />
           <div className="absolute right-3 top-3 text-gray-400 flex items-center space-x-2">
-            {isFetching && <div className="animate-spin">⏳</div>}
-            <span>🔍</span>
+            {isFetching && <div className="animate-spin">&#x23F3;</div>}
+            <span>&#x1F50D;</span>
           </div>
+
+          {/* Autocomplete Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {suggestions.map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  className="w-full px-4 py-2 text-left hover:bg-blue-50 text-sm transition-colors"
+                  onMouseDown={() => {
+                    setSearchQuery(suggestion);
+                    setShowSuggestions(false);
+                  }}
+                >
+                  <span className="text-gray-400 mr-2">&#x1F50D;</span>
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product: any) => (
+        {products.map((product: Product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
