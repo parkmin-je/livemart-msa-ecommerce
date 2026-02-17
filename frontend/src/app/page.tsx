@@ -1,72 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ProductList } from '@/components/ProductList';
 import { RealtimeDashboard } from '@/components/RealtimeDashboard';
 import { CartSummary } from '@/components/CartSummary';
+import { GlobalNav } from '@/components/GlobalNav';
 import { useCartStore } from '@/store/cartStore';
 
 export default function Home() {
   const [showDashboard, setShowDashboard] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const cartItems = useCartStore((state) => state.items);
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">🛒 LiveMart</h1>
-              <span className="ml-3 text-sm text-gray-500">MSA E-Commerce</span>
-            </div>
-
-            <nav className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowDashboard(!showDashboard)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
-              >
-                📊 대시보드
-              </button>
-
-              <a
-                href="/test"
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
-              >
-                🧪 통합 테스트
-              </a>
-
-              <a
-                href="/my-orders"
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
-              >
-                📦 내 주문
-              </a>
-
-              <a
-                href="/auth"
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
-              >
-                🔐 로그인
-              </a>
-
-              <a
-                href="/cart"
-                className="relative px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-              >
-                🛒 장바구니
-                {cartItems.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartItems.length}
-                  </span>
-                )}
-              </a>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <GlobalNav />
 
       {/* Realtime Dashboard (Optional) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <button
+          onClick={() => setShowDashboard(!showDashboard)}
+          className="text-sm text-gray-500 hover:text-blue-600 transition"
+        >
+          {showDashboard ? '대시보드 숨기기' : '실시간 대시보드 보기'}
+        </button>
+      </div>
       {showDashboard && (
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -75,40 +42,72 @@ export default function Home() {
         </div>
       )}
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
+        {/* Hero Section + Search */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 mb-8 text-white">
-          <h2 className="text-4xl font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
             실시간 대규모 트래픽 처리 가능한<br />
             엔터프라이즈 E-Commerce 플랫폼
           </h2>
-          <p className="text-xl mb-6 opacity-90">
+          <p className="text-lg mb-6 opacity-90">
             MSA, Event-Driven, WebFlux 기반 고성능 쇼핑몰
           </p>
-          <div className="flex space-x-4">
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
-              <div className="text-3xl font-bold">3,500</div>
-              <div className="text-sm opacity-80">RPS 처리량</div>
+
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="max-w-xl mb-6">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="상품을 검색해보세요..."
+                className="w-full px-5 py-3 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+              <button type="submit" className="absolute right-2 top-1.5 px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition">검색</button>
             </div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
-              <div className="text-3xl font-bold">80ms</div>
-              <div className="text-sm opacity-80">P95 응답시간</div>
-            </div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-6 py-3">
-              <div className="text-3xl font-bold">100K</div>
-              <div className="text-sm opacity-80">동시 연결</div>
-            </div>
+          </form>
+
+          <div className="flex flex-wrap gap-4">
+            {[
+              { value: '3,500', label: 'RPS 처리량' },
+              { value: '80ms', label: 'P95 응답시간' },
+              { value: '100K', label: '동시 연결' },
+              { value: '95%', label: '캐시 Hit Rate' },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-white/20 backdrop-blur-sm rounded-lg px-5 py-3">
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-sm opacity-80">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Product List */}
+        {/* Category Quick Links */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-8">
+          {[
+            { label: '전자제품', emoji: '\u{1F4F1}', cat: 'ELECTRONICS' },
+            { label: '패션', emoji: '\u{1F45A}', cat: 'FASHION' },
+            { label: '식품', emoji: '\u{1F34E}', cat: 'FOOD' },
+            { label: '홈/리빙', emoji: '\u{1F3E0}', cat: 'HOME' },
+            { label: '뷰티', emoji: '\u{1F484}', cat: 'BEAUTY' },
+            { label: '스포츠', emoji: '\u26BD', cat: 'SPORTS' },
+          ].map((c) => (
+            <a
+              key={c.cat}
+              href={`/search?q=${c.cat}`}
+              className="bg-white rounded-xl p-4 text-center shadow-sm hover:shadow-md transition"
+            >
+              <div className="text-2xl mb-1">{c.emoji}</div>
+              <div className="text-sm font-medium text-gray-700">{c.label}</div>
+            </a>
+          ))}
+        </div>
+
+        {/* Product Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Filters */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
               <h3 className="text-lg font-semibold mb-4">필터</h3>
-
               <div className="mb-6">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">카테고리</h4>
                 <div className="space-y-2">
@@ -120,7 +119,6 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-
               <div className="mb-6">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">가격대</h4>
                 <input type="range" className="w-full" />
@@ -129,54 +127,56 @@ export default function Home() {
                   <span>1,000,000원</span>
                 </div>
               </div>
-
-              <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-                필터 적용
-              </button>
+              <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">필터 적용</button>
             </div>
           </div>
 
-          {/* Products */}
           <div className="lg:col-span-3">
             <ProductList />
           </div>
         </div>
 
-        {/* Cart Summary (Bottom Right) */}
         {cartItems.length > 0 && <CartSummary />}
       </div>
 
       {/* Footer */}
       <footer className="bg-gray-800 text-white mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <h3 className="text-lg font-semibold mb-4">LiveMart</h3>
-              <p className="text-gray-400 text-sm">
-                MSA 기반 엔터프라이즈 E-Commerce 플랫폼
-              </p>
+              <p className="text-gray-400 text-sm">MSA 기반 엔터프라이즈 E-Commerce 플랫폼</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">쇼핑</h3>
+              <ul className="text-gray-400 text-sm space-y-2">
+                <li><a href="/products" className="hover:text-white transition">전체 상품</a></li>
+                <li><a href="/search" className="hover:text-white transition">상품 검색</a></li>
+                <li><a href="/cart" className="hover:text-white transition">장바구니</a></li>
+                <li><a href="/wishlist" className="hover:text-white transition">위시리스트</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">고객 서비스</h3>
+              <ul className="text-gray-400 text-sm space-y-2">
+                <li><a href="/my-orders" className="hover:text-white transition">주문 내역</a></li>
+                <li><a href="/returns" className="hover:text-white transition">반품/환불</a></li>
+                <li><a href="/notifications" className="hover:text-white transition">알림</a></li>
+                <li><a href="/profile" className="hover:text-white transition">내 정보</a></li>
+              </ul>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">기술 스택</h3>
               <ul className="text-gray-400 text-sm space-y-2">
-                <li>• Spring Boot 3.4.1 + Java 21</li>
-                <li>• Kafka Streams + Event Sourcing</li>
-                <li>• Redis Cluster + Redis Streams</li>
-                <li>• Spring AI + OpenTelemetry</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">성능</h3>
-              <ul className="text-gray-400 text-sm space-y-2">
-                <li>• 3,500 RPS 처리</li>
-                <li>• 80ms P95 응답시간</li>
-                <li>• 100K 동시 연결</li>
-                <li>• 95% 캐시 Hit Rate</li>
+                <li>Spring Boot 3.4 + Java 21</li>
+                <li>Kafka Streams + Event Sourcing</li>
+                <li>Redis Cluster + Elasticsearch</li>
+                <li>Next.js + TypeScript</li>
               </ul>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400 text-sm">
-            © 2026 LiveMart. Made with ❤️ by LiveMart Team
+            &copy; 2026 LiveMart. All rights reserved.
           </div>
         </div>
       </footer>

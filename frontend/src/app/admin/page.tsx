@@ -82,8 +82,9 @@ export default function AdminDashboardPage() {
             <a href="/" className="text-2xl font-bold text-blue-600">LiveMart</a>
             <nav className="flex items-center space-x-4">
               <a href="/admin/orders" className="text-sm text-gray-700 hover:text-blue-600">주문관리</a>
+              <a href="/admin/users" className="text-sm text-gray-700 hover:text-blue-600">유저관리</a>
+              <a href="/admin/coupons" className="text-sm text-gray-700 hover:text-blue-600">쿠폰</a>
               <a href="/seller/products" className="text-sm text-gray-700 hover:text-blue-600">상품관리</a>
-              <a href="/profile" className="text-sm text-gray-700 hover:text-blue-600">프로필</a>
             </nav>
           </div>
         </div>
@@ -115,9 +116,9 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
             { label: '주문 관리', href: '/admin/orders', color: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
-            { label: '상품 관리', href: '/seller/products', color: 'bg-green-50 text-green-700 hover:bg-green-100' },
-            { label: '쿠폰 관리', href: '/admin/orders', color: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' },
-            { label: '판매자 대시보드', href: '/seller', color: 'bg-purple-50 text-purple-700 hover:bg-purple-100' },
+            { label: '유저 관리', href: '/admin/users', color: 'bg-green-50 text-green-700 hover:bg-green-100' },
+            { label: '쿠폰 관리', href: '/admin/coupons', color: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' },
+            { label: '재고 관리', href: '/seller/inventory', color: 'bg-purple-50 text-purple-700 hover:bg-purple-100' },
           ].map((action) => (
             <a key={action.label} href={action.href} className={`p-4 rounded-xl text-center font-medium transition ${action.color}`}>
               {action.label}
