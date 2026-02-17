@@ -75,9 +75,10 @@ export default function SellerDashboardPage() {
           <div className="flex justify-between items-center h-16">
             <a href="/" className="text-2xl font-bold text-blue-600">LiveMart</a>
             <nav className="flex items-center space-x-4">
-              <a href="/products" className="text-sm text-gray-700 hover:text-blue-600">상품</a>
-              <a href="/my-orders" className="text-sm text-gray-700 hover:text-blue-600">주문</a>
-              <span className="text-sm font-medium text-blue-600">판매자 대시보드</span>
+              <a href="/seller/products" className="text-sm text-gray-700 hover:text-blue-600">상품관리</a>
+              <a href="/seller/orders" className="text-sm text-gray-700 hover:text-blue-600">주문관리</a>
+              <a href="/seller/inventory" className="text-sm text-gray-700 hover:text-blue-600">재고관리</a>
+              <span className="text-sm font-medium text-blue-600">대시보드</span>
             </nav>
           </div>
         </div>
@@ -190,14 +191,17 @@ export default function SellerDashboardPage() {
             <div className="bg-white rounded-xl p-6 shadow-sm mt-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4">빠른 메뉴</h2>
               <div className="space-y-2">
-                <a href="/products" className="block w-full text-left px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-medium">
+                <a href="/seller/products" className="block w-full text-left px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-medium">
                   상품 관리
                 </a>
-                <a href="/my-orders" className="block w-full text-left px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition text-sm font-medium">
+                <a href="/seller/orders" className="block w-full text-left px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition text-sm font-medium">
                   주문 관리
                 </a>
-                <a href="/wishlist" className="block w-full text-left px-4 py-3 bg-pink-50 text-pink-700 rounded-lg hover:bg-pink-100 transition text-sm font-medium">
-                  위시리스트 분석
+                <a href="/seller/inventory" className="block w-full text-left px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition text-sm font-medium">
+                  재고 관리
+                </a>
+                <a href="/admin" className="block w-full text-left px-4 py-3 bg-pink-50 text-pink-700 rounded-lg hover:bg-pink-100 transition text-sm font-medium">
+                  관리자 패널
                 </a>
               </div>
             </div>

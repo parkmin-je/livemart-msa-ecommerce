@@ -84,6 +84,7 @@ export default function AdminDashboardPage() {
               <a href="/admin/orders" className="text-sm text-gray-700 hover:text-blue-600">주문관리</a>
               <a href="/admin/users" className="text-sm text-gray-700 hover:text-blue-600">유저관리</a>
               <a href="/admin/coupons" className="text-sm text-gray-700 hover:text-blue-600">쿠폰</a>
+              <a href="/admin/analytics" className="text-sm text-gray-700 hover:text-blue-600">분석</a>
               <a href="/seller/products" className="text-sm text-gray-700 hover:text-blue-600">상품관리</a>
             </nav>
           </div>
