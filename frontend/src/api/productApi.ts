@@ -208,6 +208,145 @@ export const paymentApi = {
   },
 };
 
+// 리뷰 API
+export const reviewApi = {
+  getReviews: async (productId: number, page = 0, size = 10) => {
+    const response = await apiClient.get(`/api/products/${productId}/reviews`, {
+      params: { page, size },
+    });
+    return response.data;
+  },
+
+  getReviewSummary: async (productId: number) => {
+    const response = await apiClient.get(`/api/products/${productId}/reviews/summary`);
+    return response.data;
+  },
+
+  createReview: async (productId: number, data: {
+    userId: number;
+    rating: number;
+    content: string;
+    title?: string;
+  }) => {
+    const response = await apiClient.post(`/api/products/${productId}/reviews`, data);
+    return response.data;
+  },
+
+  deleteReview: async (productId: number, reviewId: number, userId: number) => {
+    const response = await apiClient.delete(`/api/products/${productId}/reviews/${reviewId}`, {
+      params: { userId },
+    });
+    return response.data;
+  },
+
+  markHelpful: async (productId: number, reviewId: number) => {
+    const response = await apiClient.post(`/api/products/${productId}/reviews/${reviewId}/helpful`);
+    return response.data;
+  },
+};
+
+// 반품/환불 API
+export const returnApi = {
+  createReturn: async (data: {
+    orderId: number;
+    userId: number;
+    reason: string;
+    type: string;
+  }) => {
+    const response = await apiClient.post('/api/returns', data);
+    return response.data;
+  },
+
+  getReturn: async (returnId: number) => {
+    const response = await apiClient.get(`/api/returns/${returnId}`);
+    return response.data;
+  },
+
+  getUserReturns: async (userId: number, page = 0, size = 10) => {
+    const response = await apiClient.get(`/api/returns/user/${userId}`, {
+      params: { page, size },
+    });
+    return response.data;
+  },
+};
+
+// 배송 추적 API
+export const deliveryApi = {
+  getDeliveryInfo: async (trackingNumber: string) => {
+    const response = await apiClient.get(`/api/delivery/${trackingNumber}`);
+    return response.data;
+  },
+
+  createTracking: async (orderId: number, courierCompany = 'CJ대한통운') => {
+    const response = await apiClient.post(`/api/delivery/${orderId}`, null, {
+      params: { courierCompany },
+    });
+    return response.data;
+  },
+};
+
+// 장바구니 백엔드 API
+export const cartApi = {
+  getCart: async (userId: number) => {
+    const response = await apiClient.get(`/api/users/${userId}/cart`);
+    return response.data;
+  },
+
+  addToCart: async (userId: number, data: { productId: number; quantity: number }) => {
+    const response = await apiClient.post(`/api/users/${userId}/cart`, data);
+    return response.data;
+  },
+
+  updateQuantity: async (userId: number, productId: number, quantity: number) => {
+    const response = await apiClient.put(`/api/users/${userId}/cart/${productId}`, null, {
+      params: { quantity },
+    });
+    return response.data;
+  },
+
+  removeFromCart: async (userId: number, productId: number) => {
+    const response = await apiClient.delete(`/api/users/${userId}/cart/${productId}`);
+    return response.data;
+  },
+
+  clearCart: async (userId: number) => {
+    const response = await apiClient.delete(`/api/users/${userId}/cart`);
+    return response.data;
+  },
+};
+
+// 쿠폰 API
+export const couponApi = {
+  getActiveCoupons: async (page = 0, size = 10) => {
+    const response = await apiClient.get('/api/coupons', {
+      params: { page, size },
+    });
+    return response.data;
+  },
+
+  getCoupon: async (code: string) => {
+    const response = await apiClient.get(`/api/coupons/${code}`);
+    return response.data;
+  },
+
+  previewDiscount: async (code: string, orderAmount: number) => {
+    const response = await apiClient.get(`/api/coupons/${code}/preview`, {
+      params: { orderAmount },
+    });
+    return response.data;
+  },
+};
+
+// 검색 자동완성 API
+export const searchApi = {
+  autocomplete: async (keyword: string) => {
+    const response = await apiClient.get('/api/products/search/autocomplete', {
+      params: { keyword },
+    });
+    return response.data;
+  },
+};
+
 export const dashboardApi = {
   // 실시간 메트릭 조회 (REST)
   getMetrics: async () => {

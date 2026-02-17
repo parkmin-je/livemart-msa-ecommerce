@@ -9,9 +9,9 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:postgresql://localhost:5438/inventorydb
-    username: inventoryapp
-    password: inventory123
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5438}/inventorydb
+    username: ${DB_USERNAME:inventoryapp}
+    password: ${DB_PASSWORD:inventory123}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
