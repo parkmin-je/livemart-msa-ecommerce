@@ -9,9 +9,9 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:postgresql://localhost:5437/paymentdb
-    username: paymentapp
-    password: payment123
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5437}/paymentdb
+    username: ${DB_USERNAME:paymentapp}
+    password: ${DB_PASSWORD:payment123}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
