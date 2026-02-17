@@ -324,11 +324,27 @@ export default function OrderDetailPage() {
                 </button>
               )}
               {order.status === 'DELIVERED' && (
+                <>
+                  <button
+                    onClick={() => router.push(`/products/${order.items[0]?.productId}`)}
+                    className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                  >
+                    리뷰 작성
+                  </button>
+                  <button
+                    onClick={() => router.push(`/returns?orderId=${order.id}`)}
+                    className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                  >
+                    반품/환불 요청
+                  </button>
+                </>
+              )}
+              {(order.status === 'SHIPPED' || order.status === 'DELIVERED') && order.paymentTransactionId && (
                 <button
-                  onClick={() => router.push(`/products/${order.items[0]?.productId}`)}
-                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                  onClick={() => router.push(`/delivery/${order.paymentTransactionId}`)}
+                  className="px-6 py-2 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition"
                 >
-                  리뷰 작성
+                  배송 추적
                 </button>
               )}
             </div>
