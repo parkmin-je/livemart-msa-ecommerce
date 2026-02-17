@@ -82,11 +82,23 @@ export default function ProductDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', content: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     loadProduct();
     loadReviews();
+    loadRelated();
   }, [productId]);
+
+  const loadRelated = async () => {
+    try {
+      const data = await productApi.getProducts({ page: 0, size: 20 });
+      const all: Product[] = data.content || [];
+      setRelatedProducts(all.filter((p: Product) => p.id !== productId).slice(0, 4));
+    } catch {
+      // optional
+    }
+  };
 
   const loadProduct = async () => {
     try {
@@ -448,6 +460,31 @@ export default function ProductDetailPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">관련 상품</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {relatedProducts.map((rp) => (
+                <a key={rp.id} href={`/products/${rp.id}`} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition group">
+                  <div className="h-40 bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+                    {rp.imageUrl ? (
+                      <img src={rp.imageUrl} alt={rp.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-4xl group-hover:scale-110 transition">&#x1F4E6;</span>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-medium text-gray-900 text-sm truncate">{rp.name}</h3>
+                    <div className="text-blue-600 font-bold mt-1">{rp.price?.toLocaleString()}원</div>
+                    {rp.stockQuantity === 0 && <span className="text-xs text-red-500">품절</span>}
+                  </div>
+                </a>
+              ))}
+            </div>
           </div>
         )}
       </div>
