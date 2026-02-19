@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Random;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class OrderService {
     private final OrderRepository orderRepository;
@@ -38,6 +37,20 @@ public class OrderService {
     private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
     private final EventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+
+    public OrderService(OrderRepository orderRepository,
+                       ProductFeignClient productFeignClient,
+                       PaymentFeignClient paymentFeignClient,
+                       KafkaTemplate<String, OrderEvent> kafkaTemplate,
+                       java.util.Optional<EventPublisher> eventPublisher,
+                       java.util.Optional<ObjectMapper> objectMapper) {
+        this.orderRepository = orderRepository;
+        this.productFeignClient = productFeignClient;
+        this.paymentFeignClient = paymentFeignClient;
+        this.kafkaTemplate = kafkaTemplate;
+        this.eventPublisher = eventPublisher.orElse(null);
+        this.objectMapper = objectMapper.orElse(new com.fasterxml.jackson.databind.ObjectMapper());
+    }
 
     private static final String ORDER_TOPIC = "order-events";
 
@@ -180,20 +193,26 @@ public class OrderService {
                 .build();
 
         // Transactional Outbox 패턴으로 이벤트 발행 (DB에 먼저 저장 후 비동기 Kafka 전송)
-        try {
-            String payload = objectMapper.writeValueAsString(event);
-            DomainEvent domainEvent = DomainEvent.builder()
-                    .aggregateType("Order")
-                    .aggregateId(order.getOrderNumber())
-                    .eventType(eventType.name())
-                    .payload(payload)
-                    .build();
-            eventPublisher.publish(ORDER_TOPIC, domainEvent);
-            log.info("Order event published via Outbox: eventType={}, orderNumber={}", eventType, order.getOrderNumber());
-        } catch (Exception e) {
-            log.warn("Outbox publish failed, falling back to direct Kafka: {}", e.getMessage());
+        if (eventPublisher != null) {
+            try {
+                String payload = objectMapper.writeValueAsString(event);
+                DomainEvent domainEvent = DomainEvent.builder()
+                        .aggregateType("Order")
+                        .aggregateId(order.getOrderNumber())
+                        .eventType(eventType.name())
+                        .payload(payload)
+                        .build();
+                eventPublisher.publish(ORDER_TOPIC, domainEvent);
+                log.info("Order event published via Outbox: eventType={}, orderNumber={}", eventType, order.getOrderNumber());
+            } catch (Exception e) {
+                log.warn("Outbox publish failed, falling back to direct Kafka: {}", e.getMessage());
+                kafkaTemplate.send(ORDER_TOPIC, order.getOrderNumber(), event);
+                log.info("Order event published directly: eventType={}, orderNumber={}", eventType, order.getOrderNumber());
+            }
+        } else {
+            // EventPublisher가 없으면 직접 Kafka로 발행
             kafkaTemplate.send(ORDER_TOPIC, order.getOrderNumber(), event);
-            log.info("Order event published directly: eventType={}, orderNumber={}", eventType, order.getOrderNumber());
+            log.info("Order event published directly via Kafka: eventType={}, orderNumber={}", eventType, order.getOrderNumber());
         }
     }
 
