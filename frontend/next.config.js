@@ -9,7 +9,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    ppr: true,
+    // ppr: true,  // Canary 버전에서만 사용 가능
     reactCompiler: true,
   },
   async rewrites() {
