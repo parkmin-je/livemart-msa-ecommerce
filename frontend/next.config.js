@@ -10,7 +10,7 @@ const nextConfig = {
   },
   experimental: {
     // ppr: true,  // Canary 버전에서만 사용 가능
-    reactCompiler: true,
+    // reactCompiler: true,  // babel-plugin-react-compiler 필요
   },
   async rewrites() {
     return [
