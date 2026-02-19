@@ -10,6 +10,7 @@ public class PaymentRequest {
     private String orderNumber;
     private Long userId;
     private BigDecimal amount;
-    private String method;
-    private String cardNumber;
+    private String paymentMethod;  // Payment Service expects "paymentMethod"
+    private String cardToken;
+    private String returnUrl;
 }

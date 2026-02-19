@@ -132,7 +132,7 @@ public class OrderService {
                 .orderNumber(order.getOrderNumber())
                 .userId(userId)
                 .amount(totalAmount)
-                .method(paymentMethod)
+                .paymentMethod(paymentMethod)
                 .build();
 
         try {
