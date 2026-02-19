@@ -71,6 +71,20 @@ services:
     networks:
       - livemart-network
 
+  postgres-payment:
+    image: postgres:15
+    container_name: livemart-postgres-payment
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: paymentapp
+      POSTGRES_PASSWORD: payment123
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres-payment-data:/var/lib/postgresql/data
+    networks:
+      - livemart-network
+
   redis:
     image: redis:7-alpine
     container_name: livemart-redis
@@ -186,6 +200,7 @@ volumes:
   postgres-order-data:
   postgres-inventory-data:
   postgres-analytics-data:
+  postgres-payment-data:
   elasticsearch-data:
   prometheus-data:
   grafana-data:
