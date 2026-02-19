@@ -79,18 +79,27 @@ public class AdvancedSearchService {
             }
 
             // 가격 범위
-            if (criteria.getMinPrice() != null || criteria.getMaxPrice() != null) {
+            if (criteria.getMinPrice() != null && criteria.getMaxPrice() != null) {
                 mustQueries.add(Query.of(q -> q
-                    .range(r -> {
-                        var rangeQuery = r.field("price");
-                        if (criteria.getMinPrice() != null) {
-                            rangeQuery.gte(co.elastic.clients.json.JsonData.of(criteria.getMinPrice().doubleValue()));
-                        }
-                        if (criteria.getMaxPrice() != null) {
-                            rangeQuery.lte(co.elastic.clients.json.JsonData.of(criteria.getMaxPrice().doubleValue()));
-                        }
-                        return rangeQuery;
-                    })
+                    .range(r -> r
+                        .field("price")
+                        .gte(co.elastic.clients.json.JsonData.of(criteria.getMinPrice().doubleValue()))
+                        .lte(co.elastic.clients.json.JsonData.of(criteria.getMaxPrice().doubleValue()))
+                    )
+                ));
+            } else if (criteria.getMinPrice() != null) {
+                mustQueries.add(Query.of(q -> q
+                    .range(r -> r
+                        .field("price")
+                        .gte(co.elastic.clients.json.JsonData.of(criteria.getMinPrice().doubleValue()))
+                    )
+                ));
+            } else if (criteria.getMaxPrice() != null) {
+                mustQueries.add(Query.of(q -> q
+                    .range(r -> r
+                        .field("price")
+                        .lte(co.elastic.clients.json.JsonData.of(criteria.getMaxPrice().doubleValue()))
+                    )
                 ));
             }
 
@@ -109,7 +118,7 @@ public class AdvancedSearchService {
                 mustQueries.add(Query.of(q -> q
                     .range(r -> r
                         .field("stockQuantity")
-                        .gt(co.elastic.clients.json.JsonData.of(0.0))
+                        .gt(co.elastic.clients.json.JsonData.of(0))
                     )
                 ));
             }
@@ -158,9 +167,9 @@ public class AdvancedSearchService {
                 .aggregations("price_ranges", Aggregation.of(a -> a
                     .range(r -> r
                         .field("price")
-                        .ranges(ra -> ra.to(String.valueOf(10000.0)))
-                        .ranges(ra -> ra.from(String.valueOf(10000.0)).to(String.valueOf(50000.0)))
-                        .ranges(ra -> ra.from(String.valueOf(50000.0)))
+                        .ranges(ra -> ra.to(10000.0))
+                        .ranges(ra -> ra.from(10000.0).to(50000.0))
+                        .ranges(ra -> ra.from(50000.0))
                     )
                 ))
             );
