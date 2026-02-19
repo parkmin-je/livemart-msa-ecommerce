@@ -16,13 +16,22 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentEventRepository eventRepository;
     private final EventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+
+    public PaymentService(PaymentRepository paymentRepository,
+                         PaymentEventRepository eventRepository,
+                         java.util.Optional<EventPublisher> eventPublisher,
+                         java.util.Optional<ObjectMapper> objectMapper) {
+        this.paymentRepository = paymentRepository;
+        this.eventRepository = eventRepository;
+        this.eventPublisher = eventPublisher.orElse(null);
+        this.objectMapper = objectMapper.orElse(new com.fasterxml.jackson.databind.ObjectMapper());
+    }
 
     @Transactional
     public PaymentResponse processPayment(PaymentRequest.Create request) {
@@ -108,14 +117,18 @@ public class PaymentService {
     }
 
     private void publishPaymentEvent(Payment payment, String eventType) {
-        eventPublisher.publish("payment-events", DomainEvent.builder()
-                .aggregateType("Payment")
-                .aggregateId(payment.getTransactionId())
-                .eventType(eventType)
-                .payload("{\"transactionId\":\"" + payment.getTransactionId() +
-                         "\",\"orderNumber\":\"" + payment.getOrderNumber() +
-                         "\",\"amount\":" + payment.getAmount() +
-                         ",\"status\":\"" + payment.getStatus() + "\"}")
-                .build());
+        if (eventPublisher != null) {
+            eventPublisher.publish("payment-events", DomainEvent.builder()
+                    .aggregateType("Payment")
+                    .aggregateId(payment.getTransactionId())
+                    .eventType(eventType)
+                    .payload("{\"transactionId\":\"" + payment.getTransactionId() +
+                             "\",\"orderNumber\":\"" + payment.getOrderNumber() +
+                             "\",\"amount\":" + payment.getAmount() +
+                             ",\"status\":\"" + payment.getStatus() + "\"}")
+                    .build());
+        } else {
+            log.debug("EventPublisher not available, skipping event publish for: {}", eventType);
+        }
     }
 }
