@@ -191,19 +191,27 @@ export const paymentApi = {
     method: string;
     cardNumber?: string;
   }) => {
-    const response = await apiClient.post('/api/payments', data);
+    // Transform frontend field names to match backend expectations
+    const requestData = {
+      orderNumber: data.orderNumber,
+      userId: data.userId,
+      amount: data.amount,
+      paymentMethod: data.method,  // method -> paymentMethod
+      cardToken: data.cardNumber,  // cardNumber -> cardToken
+    };
+    const response = await apiClient.post('/api/v1/payments', requestData);
     return response.data;
   },
 
   // 결제 취소
   cancelPayment: async (transactionId: string) => {
-    const response = await apiClient.post(`/api/payments/${transactionId}/cancel`);
+    const response = await apiClient.post(`/api/v1/payments/${transactionId}/cancel`);
     return response.data;
   },
 
   // 주문번호로 결제 조회
   getPaymentByOrderNumber: async (orderNumber: string) => {
-    const response = await apiClient.get(`/api/payments/order/${orderNumber}`);
+    const response = await apiClient.get(`/api/v1/payments/order/${orderNumber}`);
     return response.data;
   },
 };
