@@ -12,6 +12,7 @@ build/
 out/
 .gradle/
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.class
 
@@ -21,3 +22,10 @@ out/
 
 # Kubernetes secrets
 *secret*.yaml
+*secret*.yml
+
+# Gradle wrapper download placeholder
+gradle/wrapper/gradle-wrapper.jar.download
+
+# AI conversation files
+.ai/
