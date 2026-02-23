@@ -6,7 +6,7 @@ metadata:
   labels:
     app: order-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: order-service
@@ -27,33 +27,42 @@ spec:
       containers:
         - name: order-service
           image: livemart/order-service:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8083
           envFrom:
             - configMapRef:
                 name: livemart-config
-            - secretRef:
-                name: livemart-secrets
           env:
-            - name: SPRING_DATASOURCE_URL
+            - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
                   name: livemart-config
-                  key: MYSQL_ORDER_URL
-            - name: SPRING_DATASOURCE_USERNAME
+                  key: ORDER_DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: livemart-config
+                  key: ORDER_DB_PORT
+            - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: livemart-secrets
-                  key: MYSQL_ORDER_USERNAME
-            - name: SPRING_DATASOURCE_PASSWORD
+                  key: ORDER_DB_USERNAME
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: livemart-secrets
-                  key: MYSQL_ORDER_PASSWORD
+                  key: ORDER_DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: livemart-secrets
+                  key: JWT_SECRET
           resources:
             requests:
               memory: "256Mi"
-              cpu: "200m"
+              cpu: "100m"
             limits:
               memory: "512Mi"
               cpu: "500m"
@@ -61,14 +70,16 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8083
-            initialDelaySeconds: 30
+            initialDelaySeconds: 120
             periodSeconds: 10
+            failureThreshold: 10
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 8083
-            initialDelaySeconds: 60
+            initialDelaySeconds: 240
             periodSeconds: 30
+            failureThreshold: 5
 ---
 apiVersion: v1
 kind: Service
@@ -82,23 +93,3 @@ spec:
     - port: 8083
       targetPort: 8083
   type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: order-service-hpa
-  namespace: livemart
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: order-service
-  minReplicas: 2
-  maxReplicas: 5
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
