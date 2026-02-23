@@ -6,7 +6,7 @@ metadata:
   labels:
     app: user-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: user-service
@@ -21,54 +21,65 @@ spec:
         app: user-service
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8081"
+        prometheus.io/port: "8085"
         prometheus.io/path: "/actuator/prometheus"
     spec:
       containers:
         - name: user-service
           image: livemart/user-service:latest
+          imagePullPolicy: Never
           ports:
-            - containerPort: 8081
+            - containerPort: 8085
           envFrom:
             - configMapRef:
                 name: livemart-config
-            - secretRef:
-                name: livemart-secrets
           env:
-            - name: SPRING_DATASOURCE_URL
+            - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
                   name: livemart-config
-                  key: MYSQL_USER_URL
-            - name: SPRING_DATASOURCE_USERNAME
+                  key: USER_DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: livemart-config
+                  key: USER_DB_PORT
+            - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: livemart-secrets
-                  key: MYSQL_USER_USERNAME
-            - name: SPRING_DATASOURCE_PASSWORD
+                  key: USER_DB_USERNAME
+            - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: livemart-secrets
-                  key: MYSQL_USER_PASSWORD
+                  key: USER_DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: livemart-secrets
+                  key: JWT_SECRET
           resources:
             requests:
               memory: "256Mi"
-              cpu: "200m"
+              cpu: "100m"
             limits:
               memory: "512Mi"
               cpu: "500m"
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8081
-            initialDelaySeconds: 30
+              port: 8085
+            initialDelaySeconds: 120
             periodSeconds: 10
+            failureThreshold: 10
           livenessProbe:
             httpGet:
               path: /actuator/health
-              port: 8081
-            initialDelaySeconds: 60
+              port: 8085
+            initialDelaySeconds: 240
             periodSeconds: 30
+            failureThreshold: 5
 ---
 apiVersion: v1
 kind: Service
@@ -79,26 +90,6 @@ spec:
   selector:
     app: user-service
   ports:
-    - port: 8081
-      targetPort: 8081
+    - port: 8085
+      targetPort: 8085
   type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: user-service-hpa
-  namespace: livemart
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: user-service
-  minReplicas: 2
-  maxReplicas: 5
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70

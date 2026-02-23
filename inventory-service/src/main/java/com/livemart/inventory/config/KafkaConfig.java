@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import java.util.Map;
 
@@ -32,6 +33,22 @@ public class KafkaConfig {
     @Bean
     public KafkaTemplate<String, String> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
+    }
+
+    @Bean
+    public ProducerFactory<String, Object> objectProducerFactory() {
+        return new DefaultKafkaProducerFactory<>(Map.of(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class,
+                ProducerConfig.ACKS_CONFIG, "all",
+                ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true
+        ));
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> objectKafkaTemplate() {
+        return new KafkaTemplate<>(objectProducerFactory());
     }
 
     @Bean

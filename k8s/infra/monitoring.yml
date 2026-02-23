@@ -18,6 +18,8 @@ spec:
           image: prom/prometheus:latest
           ports:
             - containerPort: 9090
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
           volumeMounts:
             - name: config
               mountPath: /etc/prometheus
@@ -44,6 +46,7 @@ spec:
   ports:
     - port: 9090
       targetPort: 9090
+  type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -89,6 +92,7 @@ spec:
   ports:
     - port: 3000
       targetPort: 3000
+  type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -129,3 +133,4 @@ spec:
   ports:
     - port: 9411
       targetPort: 9411
+  type: NodePort

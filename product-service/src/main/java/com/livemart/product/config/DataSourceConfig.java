@@ -3,6 +3,7 @@ package com.livemart.product.config;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +24,15 @@ import javax.sql.DataSource;
 @Configuration
 @Slf4j
 public class DataSourceConfig {
+
+    @Value("${spring.datasource.url:jdbc:postgresql://localhost:5432/productdb}")
+    private String datasourceUrl;
+
+    @Value("${spring.datasource.username:productapp}")
+    private String datasourceUsername;
+
+    @Value("${spring.datasource.password:product123}")
+    private String datasourcePassword;
 
     /**
      * HikariCP 데이터소스 설정
@@ -77,17 +87,16 @@ public class DataSourceConfig {
         return dataSource;
     }
 
-    // application.yml에서 읽어올 속성들
+    // Spring @Value로 application.yml 및 환경변수에서 읽어옴
     private String getJdbcUrl() {
-        return System.getProperty("spring.datasource.url",
-                "jdbc:postgresql://localhost:5435/productdb");
+        return datasourceUrl;
     }
 
     private String getUsername() {
-        return System.getProperty("spring.datasource.username", "productapp");
+        return datasourceUsername;
     }
 
     private String getPassword() {
-        return System.getProperty("spring.datasource.password", "product123");
+        return datasourcePassword;
     }
 }
