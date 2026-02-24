@@ -2,165 +2,293 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { GlobalNav } from '@/components/GlobalNav';
+import toast from 'react-hot-toast';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-interface DashboardMetrics {
-  totalOrders: number;
-  totalRevenue: number;
-  pendingOrders: number;
-  todayOrders: number;
-  totalProducts: number;
-  totalUsers: number;
+interface Stats {
+  totalOrders?: number;
+  totalRevenue?: number;
+  totalUsers?: number;
+  totalProducts?: number;
+  pendingOrders?: number;
+  cancelledOrders?: number;
 }
 
-interface RecentOrder {
+interface AdminOrder {
   id: number;
-  orderNumber: string;
   status: string;
   totalAmount: number;
   createdAt: string;
+  userId?: number;
 }
 
-const statusConfig: Record<string, { cls: string; label: string }> = {
-  PENDING: { cls: 'bg-yellow-100 text-yellow-800', label: '대기' },
-  CONFIRMED: { cls: 'bg-blue-100 text-blue-800', label: '확인' },
-  SHIPPED: { cls: 'bg-purple-100 text-purple-800', label: '배송중' },
-  DELIVERED: { cls: 'bg-green-100 text-green-800', label: '완료' },
-  CANCELLED: { cls: 'bg-red-100 text-red-800', label: '취소' },
+interface Coupon {
+  id?: number;
+  code: string;
+  discountType: string;
+  discountValue: number;
+  minOrderAmount: number;
+  maxUses: number;
+  expiresAt: string;
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  PENDING: 'badge-yellow', CONFIRMED: 'badge-blue', PAYMENT_COMPLETED: 'badge-green',
+  SHIPPED: 'badge-purple', DELIVERED: 'badge-green', CANCELLED: 'badge-gray',
 };
 
-export default function AdminDashboardPage() {
+export default function AdminPage() {
   const router = useRouter();
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    totalOrders: 0, totalRevenue: 0, pendingOrders: 0, todayOrders: 0, totalProducts: 0, totalUsers: 0,
-  });
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [tab, setTab] = useState<'dashboard' | 'orders' | 'coupons' | 'users'>('dashboard');
+  const [stats, setStats] = useState<Stats>({});
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCouponForm, setShowCouponForm] = useState(false);
+  const [newCoupon, setNewCoupon] = useState<Coupon>({
+    code: '', discountType: 'PERCENTAGE', discountValue: 10, minOrderAmount: 0, maxUses: 100, expiresAt: '',
+  });
+  const [savingCoupon, setSavingCoupon] = useState(false);
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   useEffect(() => {
-    const token = localStorage.getItem('token') || '';
-    const headers = { Authorization: `Bearer ${token}` };
-
     Promise.all([
-      fetch(`${API_BASE}/api/orders/user/1?page=0&size=10`, { headers }).then(r => r.json()).catch(() => ({ content: [] })),
-      fetch(`${API_BASE}/api/products?page=0&size=1`, { headers }).then(r => r.json()).catch(() => ({ totalElements: 0 })),
-    ]).then(([orderData, productData]) => {
-      const orders: RecentOrder[] = orderData?.content || [];
-      setRecentOrders(orders.slice(0, 5));
-
-      const totalRevenue = orders.reduce((sum: number, o: RecentOrder) => sum + (o.totalAmount || 0), 0);
-      const pendingOrders = orders.filter((o: RecentOrder) => o.status === 'PENDING').length;
-      const today = new Date().toDateString();
-      const todayOrders = orders.filter((o: RecentOrder) => new Date(o.createdAt).toDateString() === today).length;
-
-      setMetrics({
-        totalOrders: orderData?.totalElements || orders.length,
-        totalRevenue,
-        pendingOrders,
-        todayOrders,
-        totalProducts: productData?.totalElements || 0,
-        totalUsers: 0,
-      });
-      setLoading(false);
-    });
+      fetch('/api/orders/query/statistics', { headers }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch('/api/orders?page=0&size=20', { headers }).then(r => r.json()).catch(() => ({ content: [] })),
+      fetch('/api/coupons', { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
+    ]).then(([s, o, c]) => {
+      setStats(s);
+      setOrders(o.content || o || []);
+      setCoupons(c.content || c || []);
+    }).finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
+  const createCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingCoupon(true);
+    try {
+      const res = await fetch('/api/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify(newCoupon),
+      });
+      if (!res.ok) throw new Error('쿠폰 생성 실패');
+      const created = await res.json();
+      setCoupons(prev => [created, ...prev]);
+      toast.success(`쿠폰 "${newCoupon.code}" 생성 완료!`);
+      setShowCouponForm(false);
+      setNewCoupon({ code: '', discountType: 'PERCENTAGE', discountValue: 10, minOrderAmount: 0, maxUses: 100, expiresAt: '' });
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '오류'); }
+    setSavingCoupon(false);
+  };
+
+  const KPI = [
+    { label: '총 주문', value: stats.totalOrders?.toLocaleString() || '0', emoji: '📋', sub: `처리중 ${stats.pendingOrders || 0}건`, color: 'text-blue-600' },
+    { label: '총 매출', value: `${(stats.totalRevenue || 0).toLocaleString()}원`, emoji: '💰', sub: '누적', color: 'text-green-600' },
+    { label: '회원 수', value: stats.totalUsers?.toLocaleString() || '0', emoji: '👥', sub: '가입자', color: 'text-purple-600' },
+    { label: '총 상품', value: stats.totalProducts?.toLocaleString() || '0', emoji: '📦', sub: '등록됨', color: 'text-orange-600' },
+  ];
+
+  const TABS = [
+    { id: 'dashboard', label: '대시보드', emoji: '📊' },
+    { id: 'orders', label: '주문 관리', emoji: '📋' },
+    { id: 'coupons', label: '쿠폰 관리', emoji: '🎫' },
+    { id: 'users', label: '회원 관리', emoji: '👥' },
+  ];
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <a href="/" className="text-2xl font-bold text-blue-600">LiveMart</a>
-            <nav className="flex items-center space-x-4">
-              <a href="/admin/orders" className="text-sm text-gray-700 hover:text-blue-600">주문관리</a>
-              <a href="/admin/users" className="text-sm text-gray-700 hover:text-blue-600">유저관리</a>
-              <a href="/admin/coupons" className="text-sm text-gray-700 hover:text-blue-600">쿠폰</a>
-              <a href="/seller/products" className="text-sm text-gray-700 hover:text-blue-600">상품관리</a>
-            </nav>
+    <main className="min-h-screen bg-gray-100">
+      <GlobalNav />
+      <div className="max-w-[1280px] mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">관리자 대시보드</h1>
+            <p className="text-sm text-gray-500 mt-1">LiveMart 전체 현황을 확인하세요</p>
           </div>
         </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">관리자 대시보드</h1>
+        {/* 탭 */}
+        <div className="flex gap-0 mb-6 border-b border-gray-200">
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id as 'dashboard' | 'orders' | 'coupons' | 'users')}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${tab === t.id ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              {t.emoji} {t.label}
+            </button>
+          ))}
+        </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: '총 주문', value: metrics.totalOrders.toLocaleString(), sub: '전체', color: 'bg-blue-500' },
-            { label: '총 매출', value: `${metrics.totalRevenue.toLocaleString()}원`, sub: '누적', color: 'bg-green-500' },
-            { label: '처리 대기', value: metrics.pendingOrders.toString(), sub: '미처리', color: 'bg-yellow-500' },
-            { label: '총 상품', value: metrics.totalProducts.toLocaleString(), sub: '등록', color: 'bg-purple-500' },
-          ].map((card) => (
-            <div key={card.label} className="bg-white rounded-xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`w-3 h-3 rounded-full ${card.color}`} />
-                <span className="text-sm text-gray-500">{card.label}</span>
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{card.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{card.sub}</div>
+        {/* 대시보드 */}
+        {tab === 'dashboard' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {KPI.map(k => (
+                <div key={k.label} className="bg-white rounded-xl border border-gray-100 p-5">
+                  <div className="text-3xl mb-2">{k.emoji}</div>
+                  <p className="text-sm text-gray-500">{k.label}</p>
+                  <p className={`text-2xl font-bold mt-1 ${k.color}`}>{k.value}</p>
+                  <p className="text-xs text-gray-400 mt-1">{k.sub}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: '주문 관리', href: '/admin/orders', color: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
-            { label: '유저 관리', href: '/admin/users', color: 'bg-green-50 text-green-700 hover:bg-green-100' },
-            { label: '쿠폰 관리', href: '/admin/coupons', color: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' },
-            { label: '재고 관리', href: '/seller/inventory', color: 'bg-purple-50 text-purple-700 hover:bg-purple-100' },
-          ].map((action) => (
-            <a key={action.label} href={action.href} className={`p-4 rounded-xl text-center font-medium transition ${action.color}`}>
-              {action.label}
-            </a>
-          ))}
-        </div>
-
-        {/* Recent Orders */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b flex justify-between items-center">
-            <h2 className="text-lg font-bold text-gray-900">최근 주문</h2>
-            <a href="/admin/orders" className="text-sm text-blue-600 hover:underline">전체 보기</a>
-          </div>
-          {recentOrders.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">주문이 없습니다.</div>
-          ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">주문번호</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">상태</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">금액</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">날짜</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {recentOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/orders/${order.id}`)}>
-                    <td className="px-6 py-4 text-sm text-blue-600 font-medium">{order.orderNumber}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${(statusConfig[order.status] || statusConfig.PENDING).cls}`}>
-                        {(statusConfig[order.status] || statusConfig.PENDING).label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium">{order.totalAmount?.toLocaleString()}원</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString('ko-KR')}</td>
-                  </tr>
+            <div className="grid lg:grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl border border-gray-100 p-5">
+                <h2 className="font-bold text-gray-900 mb-4">최근 주문 (상위 5건)</h2>
+                {orders.slice(0, 5).map(o => (
+                  <div key={o.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">주문 #{o.id}</span>
+                      <span className={`ml-2 text-xs ${STATUS_COLOR[o.status] || 'badge-gray'}`}>{o.status}</span>
+                    </div>
+                    <span className="text-sm font-bold text-gray-900">{o.totalAmount.toLocaleString()}원</span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-5">
+                <h2 className="font-bold text-gray-900 mb-4">빠른 액션</h2>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setTab('coupons')} className="flex flex-col items-center gap-2 p-4 border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors">
+                    <span className="text-2xl">🎫</span><span className="text-sm font-medium text-gray-700">쿠폰 생성</span>
+                  </button>
+                  <button onClick={() => router.push('/seller')} className="flex flex-col items-center gap-2 p-4 border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors">
+                    <span className="text-2xl">📦</span><span className="text-sm font-medium text-gray-700">상품 관리</span>
+                  </button>
+                  <button onClick={() => setTab('orders')} className="flex flex-col items-center gap-2 p-4 border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors">
+                    <span className="text-2xl">📋</span><span className="text-sm font-medium text-gray-700">주문 조회</span>
+                  </button>
+                  <button onClick={() => setTab('users')} className="flex flex-col items-center gap-2 p-4 border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors">
+                    <span className="text-2xl">👥</span><span className="text-sm font-medium text-gray-700">회원 관리</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 주문 관리 */}
+        {tab === 'orders' && (
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="p-4 border-b border-gray-50">
+              <h2 className="font-bold text-gray-900">주문 목록 ({orders.length}건)</h2>
+            </div>
+            {loading ? <div className="p-16 text-center text-gray-400">로딩중...</div> : (
+              <div className="divide-y divide-gray-50">
+                {orders.map(o => (
+                  <div key={o.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="font-medium text-gray-900">주문 #{o.id}</span>
+                        <span className={`text-xs ${STATUS_COLOR[o.status] || 'badge-gray'}`}>{o.status}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">{new Date(o.createdAt).toLocaleString('ko-KR')}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">{o.totalAmount.toLocaleString()}원</p>
+                      {o.userId && <p className="text-xs text-gray-400">사용자 #{o.userId}</p>}
+                    </div>
+                    <button onClick={() => router.push(`/orders/${o.id}`)}
+                      className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0">
+                      상세
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 쿠폰 관리 */}
+        {tab === 'coupons' && (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button onClick={() => setShowCouponForm(!showCouponForm)} className="btn-primary px-4">
+                {showCouponForm ? '취소' : '+ 쿠폰 생성'}
+              </button>
+            </div>
+
+            {showCouponForm && (
+              <form onSubmit={createCoupon} className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+                <h2 className="font-bold text-gray-900">새 쿠폰 생성</h2>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="form-label">쿠폰 코드 *</label>
+                    <input type="text" value={newCoupon.code} onChange={e => setNewCoupon(c => ({ ...c, code: e.target.value.toUpperCase() }))}
+                      className="form-input" required placeholder="WELCOME10" />
+                  </div>
+                  <div>
+                    <label className="form-label">할인 유형</label>
+                    <select value={newCoupon.discountType} onChange={e => setNewCoupon(c => ({ ...c, discountType: e.target.value }))} className="form-input">
+                      <option value="PERCENTAGE">퍼센트 할인 (%)</option>
+                      <option value="FIXED_AMOUNT">금액 할인 (원)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">할인 값 *</label>
+                    <input type="number" value={newCoupon.discountValue} onChange={e => setNewCoupon(c => ({ ...c, discountValue: Number(e.target.value) }))}
+                      className="form-input" required min="1" />
+                  </div>
+                  <div>
+                    <label className="form-label">최소 주문금액</label>
+                    <input type="number" value={newCoupon.minOrderAmount} onChange={e => setNewCoupon(c => ({ ...c, minOrderAmount: Number(e.target.value) }))}
+                      className="form-input" min="0" />
+                  </div>
+                  <div>
+                    <label className="form-label">최대 사용 횟수</label>
+                    <input type="number" value={newCoupon.maxUses} onChange={e => setNewCoupon(c => ({ ...c, maxUses: Number(e.target.value) }))}
+                      className="form-input" min="1" />
+                  </div>
+                  <div>
+                    <label className="form-label">만료일</label>
+                    <input type="datetime-local" value={newCoupon.expiresAt} onChange={e => setNewCoupon(c => ({ ...c, expiresAt: e.target.value }))}
+                      className="form-input" />
+                  </div>
+                </div>
+                <button type="submit" disabled={savingCoupon} className="btn-primary px-6">
+                  {savingCoupon ? '생성중...' : '쿠폰 생성'}
+                </button>
+              </form>
+            )}
+
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="p-4 border-b border-gray-50">
+                <h2 className="font-bold text-gray-900">쿠폰 목록 ({coupons.length}개)</h2>
+              </div>
+              {coupons.length === 0 ? (
+                <div className="p-16 text-center text-gray-400">
+                  <div className="text-4xl mb-3">🎫</div>
+                  <p>등록된 쿠폰이 없습니다</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {coupons.map((c, i) => (
+                    <div key={c.id || i} className="flex items-center gap-4 p-4">
+                      <div className="flex-1">
+                        <p className="font-mono font-bold text-gray-900">{c.code}</p>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          {c.discountType === 'PERCENTAGE' ? `${c.discountValue}% 할인` : `${c.discountValue.toLocaleString()}원 할인`}
+                          {c.minOrderAmount > 0 && ` · ${c.minOrderAmount.toLocaleString()}원 이상 사용`}
+                        </p>
+                      </div>
+                      <span className="badge-green text-xs">사용가능</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 회원 관리 */}
+        {tab === 'users' && (
+          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+            <div className="text-5xl mb-4">👥</div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">회원 관리</h2>
+            <p className="text-gray-500 text-sm">관리자 권한으로 회원을 관리할 수 있습니다</p>
+            <p className="text-xs text-gray-400 mt-2">총 회원 수: {stats.totalUsers || 0}명</p>
+          </div>
+        )}
       </div>
     </main>
   );
