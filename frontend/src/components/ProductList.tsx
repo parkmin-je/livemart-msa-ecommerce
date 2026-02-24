@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { productApi, searchApi } from '@/api/productApi';
+import { productApi } from '@/api/productApi';
 import { ProductCard } from './ProductCard';
+import { useCartStore } from '@/store/cartStore';
+import toast from 'react-hot-toast';
 
 interface Product {
   id: number;
@@ -13,182 +16,230 @@ interface Product {
   stockQuantity: number;
   imageUrl?: string;
   category?: string;
+  categoryId?: number;
 }
 
-export function ProductList() {
+type SortOption = 'default' | 'price_asc' | 'price_desc' | 'name';
+
+const SORT_OPTIONS = [
+  { value: 'default', label: '기본순' },
+  { value: 'price_asc', label: '낮은 가격순' },
+  { value: 'price_desc', label: '높은 가격순' },
+  { value: 'name', label: '상품명순' },
+];
+
+function sortProducts(products: Product[], sort: SortOption): Product[] {
+  const arr = [...products];
+  if (sort === 'price_asc') return arr.sort((a, b) => a.price - b.price);
+  if (sort === 'price_desc') return arr.sort((a, b) => b.price - a.price);
+  if (sort === 'name') return arr.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  return arr;
+}
+
+function ProductCardSkeleton() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
+      <div className="aspect-square bg-gray-200" />
+      <div className="p-3 space-y-2">
+        <div className="h-3 bg-gray-200 rounded w-1/4" />
+        <div className="h-4 bg-gray-200 rounded" />
+        <div className="h-4 bg-gray-200 rounded w-3/4" />
+        <div className="h-3 bg-gray-200 rounded w-1/2 mt-3" />
+        <div className="h-6 bg-gray-200 rounded w-1/3" />
+        <div className="h-9 bg-gray-200 rounded mt-2" />
+      </div>
+    </div>
+  );
+}
+
+interface ProductListProps {
+  categoryId?: number;
+  initialKeyword?: string;
+  pageSize?: number;
+}
+
+export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: ProductListProps) {
   const [page, setPage] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('default');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Debounce 검색어 (500ms 지연)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // 자동완성
-  useEffect(() => {
-    if (searchQuery.length < 2) {
-      setSuggestions([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      try {
-        const result = await searchApi.autocomplete(searchQuery);
-        setSuggestions(Array.isArray(result) ? result : result.suggestions || []);
-      } catch {
-        setSuggestions([]);
-      }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['products', page, debouncedSearch],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['products', page, categoryId, pageSize],
     queryFn: () => {
-      // 검색어가 있으면 검색 API, 없으면 목록 API
-      if (debouncedSearch && debouncedSearch.trim()) {
-        return productApi.searchProducts(debouncedSearch).then(result => ({
-          content: result.content || result,
-          totalPages: result.totalPages || 1,
-          totalElements: result.totalElements || (result.content?.length || 0),
-        }));
+      if (categoryId) {
+        return fetch(`/api/products/category/${categoryId}?page=${page}&size=${pageSize}`)
+          .then(r => r.json())
+          .then(d => ({ content: d.content || d, totalPages: d.totalPages || 1, totalElements: d.totalElements || 0 }));
       }
-      return productApi.getProducts({ page, size: 12 });
+      return productApi.getProducts({ page, size: pageSize });
     },
-    staleTime: 30000, // 30초
-    keepPreviousData: true, // 이전 데이터를 유지하면서 새 데이터 로드
+    staleTime: 30000,
+    placeholderData: (prev) => prev,
   });
 
-  const products = data?.content || [];
+  const rawProducts: Product[] = data?.content || [];
+  const products = sortProducts(rawProducts, sortBy);
+  const totalPages = data?.totalPages || 1;
+  const totalElements = data?.totalElements || 0;
 
-  // 초기 로딩 시에만 스켈레톤 표시
   if (isLoading && !data) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow-sm p-4 animate-pulse">
-            <div className="bg-gray-200 h-48 rounded-lg mb-4"></div>
-            <div className="bg-gray-200 h-4 rounded mb-2"></div>
-            <div className="bg-gray-200 h-4 rounded w-2/3"></div>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {Array.from({ length: pageSize }).map((_, i) => <ProductCardSkeleton key={i} />)}
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-600">상품을 불러오는데 실패했습니다.</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
-        >
-          다시 시도
-        </button>
+      <div className="text-center py-16 bg-white rounded-xl border border-gray-100">
+        <div className="text-5xl mb-4">😢</div>
+        <p className="text-gray-600 font-medium mb-2">상품을 불러오지 못했습니다</p>
+        <p className="text-gray-400 text-sm mb-6">잠시 후 다시 시도해주세요</p>
+        <button onClick={() => window.location.reload()} className="btn-primary btn-sm">다시 시도</button>
       </div>
     );
   }
 
   return (
     <div>
-      {/* Search Bar with Autocomplete */}
-      <div className="mb-6">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="상품 검색... (Elasticsearch 실시간 검색)"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setShowSuggestions(true);
-            }}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-          />
-          <div className="absolute right-3 top-3 text-gray-400 flex items-center space-x-2">
-            {isFetching && <div className="animate-spin">&#x23F3;</div>}
-            <span>&#x1F50D;</span>
+      {/* 정렬/뷰 컨트롤 */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-gray-500">
+          총 <span className="font-semibold text-gray-900">{totalElements.toLocaleString()}</span>개 상품
+        </p>
+        <div className="flex items-center gap-2">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
+          >
+            {SORT_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 transition-colors ${viewMode === 'grid' ? 'bg-red-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+              aria-label="그리드 뷰"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M1 2.5A1.5 1.5 0 012.5 1h3A1.5 1.5 0 017 2.5v3A1.5 1.5 0 015.5 7h-3A1.5 1.5 0 011 5.5v-3zm8 0A1.5 1.5 0 0110.5 1h3A1.5 1.5 0 0115 2.5v3A1.5 1.5 0 0113.5 7h-3A1.5 1.5 0 019 5.5v-3zm-8 8A1.5 1.5 0 012.5 9h3A1.5 1.5 0 017 10.5v3A1.5 1.5 0 015.5 15h-3A1.5 1.5 0 011 13.5v-3zm8 0A1.5 1.5 0 0110.5 9h3a1.5 1.5 0 011.5 1.5v3a1.5 1.5 0 01-1.5 1.5h-3A1.5 1.5 0 019 13.5v-3z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 transition-colors ${viewMode === 'list' ? 'bg-red-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+              aria-label="리스트 뷰"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
-
-          {/* Autocomplete Dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {suggestions.map((suggestion, idx) => (
-                <button
-                  key={idx}
-                  className="w-full px-4 py-2 text-left hover:bg-blue-50 text-sm transition-colors"
-                  onMouseDown={() => {
-                    setSearchQuery(suggestion);
-                    setShowSuggestions(false);
-                  }}
-                >
-                  <span className="text-gray-400 mr-2">&#x1F50D;</span>
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product: Product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
-
-      {/* Pagination */}
-      {data && data.totalPages > 1 && (
-        <div className="mt-8 flex justify-center space-x-2">
-          <button
-            onClick={() => setPage(Math.max(0, page - 1))}
-            disabled={page === 0}
-            className="px-4 py-2 border rounded-lg disabled:opacity-50"
-          >
-            이전
-          </button>
-
-          <div className="flex space-x-1">
-            {[...Array(Math.min(5, data.totalPages))].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setPage(i)}
-                className={`px-4 py-2 rounded-lg ${
-                  page === i
-                    ? 'bg-blue-600 text-white'
-                    : 'border hover:bg-gray-50'
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setPage(Math.min(data.totalPages - 1, page + 1))}
-            disabled={page >= data.totalPages - 1}
-            className="px-4 py-2 border rounded-lg disabled:opacity-50"
-          >
-            다음
-          </button>
+      {/* 상품 그리드 */}
+      {products.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
+          <div className="text-6xl mb-4">🔍</div>
+          <p className="text-gray-600 font-medium text-lg mb-2">상품이 없습니다</p>
+          <p className="text-gray-400 text-sm">다른 카테고리를 선택하거나 검색어를 바꿔보세요</p>
+        </div>
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {products.map((product) => (
+            <ListProductCard key={product.id} product={product} />
+          ))}
         </div>
       )}
 
-      {/* Empty State */}
-      {products.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">상품이 없습니다.</p>
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex justify-center items-center gap-1">
+          <button
+            onClick={() => setPage(Math.max(0, page - 1))}
+            disabled={page === 0}
+            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+            const pageNum = Math.max(0, Math.min(page - 3, totalPages - 7)) + i;
+            return (
+              <button
+                key={pageNum}
+                onClick={() => setPage(pageNum)}
+                className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                  page === pageNum
+                    ? 'bg-red-600 text-white border border-red-600'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {pageNum + 1}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+            disabled={page >= totalPages - 1}
+            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       )}
     </div>
   );
 }
+
+function ListProductCard({ product }: { product: Product }) {
+  const addToCart = useCartStore((state) => state.addItem);
+  const router = useRouter();
+
+  return (
+    <div
+      className="bg-white rounded-xl border border-gray-100 hover:shadow-md transition-shadow p-4 flex gap-4 cursor-pointer group"
+      onClick={() => router.push(`/products/${product.id}`)}
+    >
+      <div className="w-28 h-28 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+        {product.imageUrl ? (
+          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        {product.category && <span className="text-xs text-gray-400">{product.category}</span>}
+        <h3 className="font-medium text-gray-900 line-clamp-2 mt-0.5">{product.name}</h3>
+        <p className="text-sm text-gray-500 line-clamp-1 mt-1">{product.description}</p>
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-lg font-bold text-gray-900">{product.price.toLocaleString()}원</span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              addToCart({ productId: product.id, name: product.name, price: product.price, quantity: 1, imageUrl: product.imageUrl });
+              toast.success('장바구니에 추가됐습니다!', { duration: 1500 });
+            }}
+            className="btn-primary btn-sm"
+          >
+            장바구니 담기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -1,234 +1,138 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { returnApi } from '@/api/productApi';
+import { GlobalNav } from '@/components/GlobalNav';
 import toast from 'react-hot-toast';
 
 interface ReturnItem {
   id: number;
-  returnNumber: string;
   orderId: number;
-  orderNumber: string;
-  userId: number;
-  reason: string;
-  type: string;
   status: string;
-  refundAmount: number;
+  reason: string;
   createdAt: string;
-  updatedAt: string;
-  approvedAt: string | null;
-  completedAt: string | null;
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  REQUESTED: { label: '요청됨', color: 'bg-yellow-100 text-yellow-800' },
-  APPROVED: { label: '승인됨', color: 'bg-blue-100 text-blue-800' },
-  REJECTED: { label: '거절됨', color: 'bg-red-100 text-red-800' },
-  PROCESSING: { label: '처리 중', color: 'bg-purple-100 text-purple-800' },
-  COMPLETED: { label: '완료', color: 'bg-green-100 text-green-800' },
-};
+const REASONS = [
+  '단순 변심', '상품 불량/하자', '오배송', '상품 미도착', '상품 정보 상이', '기타',
+];
 
-const TYPE_MAP: Record<string, string> = {
-  RETURN: '반품',
-  REFUND: '환불',
-  EXCHANGE: '교환',
+const RETURN_STATUS: Record<string, { label: string; color: string }> = {
+  REQUESTED: { label: '신청 완료', color: 'badge-blue' },
+  APPROVED: { label: '승인됨', color: 'badge-green' },
+  REJECTED: { label: '반려됨', color: 'badge-red' },
+  COMPLETED: { label: '반품 완료', color: 'badge-gray' },
 };
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString('ko-KR', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
 
 export default function ReturnsPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const orderIdParam = searchParams.get('orderId');
-
+  const [tab, setTab] = useState<'list' | 'new'>('list');
   const [returns, setReturns] = useState<ReturnItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(!!orderIdParam);
+  const [form, setForm] = useState({ orderId: '', reason: REASONS[0], detail: '' });
   const [submitting, setSubmitting] = useState(false);
 
-  const [form, setForm] = useState({
-    orderId: orderIdParam ? Number(orderIdParam) : 0,
-    reason: '',
-    type: 'RETURN',
-  });
+  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
-    loadReturns();
-  }, []);
+    if (!userId) { setLoading(false); return; }
+    fetch(`/api/returns?userId=${userId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.json())
+      .then(d => setReturns(d.content || d || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [userId]);
 
-  const loadReturns = async () => {
-    try {
-      const data = await returnApi.getUserReturns(1);
-      setReturns(data.content || []);
-    } catch {
-      // empty
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submitReturn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.orderId || !form.reason.trim()) {
-      toast.error('주문 ID와 사유를 입력해주세요.');
-      return;
-    }
+    if (!form.orderId) { toast.error('주문 번호를 입력하세요'); return; }
     setSubmitting(true);
     try {
-      await returnApi.createReturn({
-        orderId: form.orderId,
-        userId: 1,
-        reason: form.reason,
-        type: form.type,
+      const res = await fetch('/api/returns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ orderId: Number(form.orderId), reason: `${form.reason}: ${form.detail}`, userId: Number(userId) }),
       });
-      toast.success('반품/환불 요청이 접수되었습니다.');
-      setShowForm(false);
-      setForm({ orderId: 0, reason: '', type: 'RETURN' });
-      loadReturns();
-    } catch {
-      toast.error('요청에 실패했습니다.');
-    } finally {
-      setSubmitting(false);
+      if (!res.ok) throw new Error('신청 실패');
+      toast.success('반품/교환 신청이 완료되었습니다');
+      setTab('list');
+      setForm({ orderId: '', reason: REASONS[0], detail: '' });
+      // 목록 새로고침
+      const d = await fetch(`/api/returns?userId=${userId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).then(r => r.json());
+      setReturns(d.content || d || []);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : '오류 발생');
     }
+    setSubmitting(false);
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <a href="/" className="text-2xl font-bold text-blue-600">LiveMart</a>
-            <nav className="flex items-center space-x-4">
-              <a href="/products" className="text-sm text-gray-700 hover:text-blue-600">상품</a>
-              <a href="/my-orders" className="text-sm text-gray-700 hover:text-blue-600">내 주문</a>
-              <a href="/profile" className="text-sm text-gray-700 hover:text-blue-600">마이페이지</a>
-            </nav>
-          </div>
-        </div>
-      </header>
+    <main className="min-h-screen bg-gray-100">
+      <GlobalNav />
+      <div className="max-w-[700px] mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">반품/교환</h1>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">반품/환불 관리</h1>
-            <p className="text-gray-500 mt-1">반품, 환불, 교환 요청을 관리합니다</p>
-          </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-          >
-            {showForm ? '취소' : '새 요청'}
-          </button>
+        {/* 탭 */}
+        <div className="flex gap-2 mb-5">
+          {[{ id: 'list', label: '신청 내역' }, { id: 'new', label: '반품/교환 신청' }].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id as 'list' | 'new')}
+              className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-colors ${tab === t.id ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-200 hover:border-red-300'}`}>
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        {showForm && (
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 shadow-sm mb-8 space-y-4">
-            <h2 className="text-lg font-bold">반품/환불 요청</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">주문 ID *</label>
-                <input
-                  type="number"
-                  value={form.orderId || ''}
-                  onChange={(e) => setForm({ ...form, orderId: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  placeholder="주문 ID 입력"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">요청 유형 *</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="RETURN">반품</option>
-                  <option value="REFUND">환불</option>
-                  <option value="EXCHANGE">교환</option>
-                </select>
-              </div>
+        {tab === 'list' ? (
+          loading ? (
+            <div className="space-y-3">{[1,2].map(i => <div key={i} className="bg-white rounded-xl h-24 animate-pulse border border-gray-100"/>)}</div>
+          ) : returns.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
+              <div className="text-5xl mb-4">↩️</div>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">신청 내역이 없습니다</h2>
+              <button onClick={() => setTab('new')} className="btn-primary px-5 mt-4">반품/교환 신청하기</button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {returns.map(r => {
+                const st = RETURN_STATUS[r.status] || { label: r.status, color: 'badge-gray' };
+                return (
+                  <div key={r.id} className="bg-white rounded-xl border border-gray-100 p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-500">주문 #{r.orderId}</span>
+                      <span className={`${st.color} text-xs`}>{st.label}</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-900">{r.reason}</p>
+                    <p className="text-xs text-gray-400 mt-1">신청일: {new Date(r.createdAt).toLocaleDateString('ko-KR')}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          <form onSubmit={submitReturn} className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
+            <h2 className="font-bold text-gray-900 text-lg">반품/교환 신청</h2>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
+              ⚠️ 배송 완료 후 7일 이내에만 신청 가능합니다
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">사유 *</label>
-              <textarea
-                value={form.reason}
-                onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                rows={3}
-                required
-                placeholder="반품/환불 사유를 상세히 입력해주세요"
-              />
+              <label className="form-label">주문 번호 *</label>
+              <input type="number" value={form.orderId} onChange={e => setForm(f => ({ ...f, orderId: e.target.value }))}
+                placeholder="주문 번호를 입력하세요 (예: 123)" className="form-input" required />
             </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-8 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 transition"
-            >
-              {submitting ? '처리 중...' : '요청 접수'}
+            <div>
+              <label className="form-label">반품/교환 사유 *</label>
+              <select value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} className="form-input">
+                {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="form-label">상세 내용</label>
+              <textarea value={form.detail} onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
+                placeholder="상세한 사유를 입력해주세요" rows={4} className="form-input resize-none" />
+            </div>
+            <button type="submit" disabled={submitting || !userId} className="w-full btn-primary py-3 font-bold disabled:opacity-60">
+              {!userId ? '로그인이 필요합니다' : submitting ? '신청중...' : '반품/교환 신청'}
             </button>
           </form>
-        )}
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-          </div>
-        ) : returns.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-            <div className="text-5xl mb-4">📦</div>
-            <h3 className="text-lg font-medium text-gray-700">반품/환불 내역이 없습니다</h3>
-            <p className="text-gray-500 mt-1">주문 상세에서 반품/환불을 요청할 수 있습니다</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {returns.map((item) => (
-              <div key={item.id} className="bg-white rounded-xl p-6 shadow-sm">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="font-mono text-sm text-gray-500">#{item.returnNumber}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_MAP[item.status]?.color || 'bg-gray-100 text-gray-800'}`}>
-                        {STATUS_MAP[item.status]?.label || item.status}
-                      </span>
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                        {TYPE_MAP[item.type] || item.type}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500">요청일: {formatDate(item.createdAt)}</p>
-                  </div>
-                  {item.refundAmount > 0 && (
-                    <div className="text-right">
-                      <div className="text-sm text-gray-500">환불 금액</div>
-                      <div className="text-lg font-bold text-blue-600">₩{item.refundAmount?.toLocaleString()}</div>
-                    </div>
-                  )}
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="text-sm text-gray-500">사유</div>
-                  <div className="text-gray-700">{item.reason}</div>
-                </div>
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={() => router.push(`/orders/${item.orderId}`)}
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    주문 상세 보기
-                  </button>
-                  {item.completedAt && (
-                    <span className="text-sm text-green-600">완료: {formatDate(item.completedAt)}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
         )}
       </div>
     </main>
