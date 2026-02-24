@@ -2,138 +2,100 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { GlobalNav } from '@/components/GlobalNav';
 import { useCartStore } from '@/store/cartStore';
+import toast from 'react-hot-toast';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-interface WishlistItem {
+interface WishItem {
   id: number;
   productId: number;
-  productName: string;
-  productPrice: number;
-  imageUrl?: string;
-  createdAt: string;
+  product: { id: number; name: string; price: number; imageUrl?: string; description?: string; stockQuantity?: number };
 }
 
 export default function WishlistPage() {
   const router = useRouter();
-  const addItem = useCartStore((state) => state.addItem);
-  const [items, setItems] = useState<WishlistItem[]>([]);
+  const { addItem } = useCartStore();
+  const [items, setItems] = useState<WishItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const userId = typeof window !== 'undefined'
-    ? parseInt(localStorage.getItem('userId') || '1') : 1;
+  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/users/${userId}/wishlist`)
+    if (!userId) { setLoading(false); return; }
+    fetch(`/api/users/${userId}/wishlist`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
       .then(r => r.json())
-      .then(data => { setItems(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(d => setItems(d.content || d || []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
   }, [userId]);
 
-  const removeFromWishlist = async (wishlistId: number) => {
+  const removeWish = async (wishId: number) => {
     try {
-      await fetch(`${API_BASE}/api/users/${userId}/wishlist/${wishlistId}`, { method: 'DELETE' });
-      setItems(items.filter(i => i.id !== wishlistId));
-    } catch {
-      alert('삭제에 실패했습니다.');
-    }
+      await fetch(`/api/users/${userId}/wishlist/${wishId}`, {
+        method: 'DELETE', headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      setItems(items.filter(i => i.id !== wishId));
+      toast.success('위시리스트에서 제거됐습니다');
+    } catch { toast.error('제거 실패'); }
   };
 
-  const moveToCart = (item: WishlistItem) => {
-    addItem({
-      productId: item.productId,
-      name: item.productName,
-      price: item.productPrice,
-      quantity: 1,
-      imageUrl: item.imageUrl,
-    });
-    removeFromWishlist(item.id);
+  const addToCart = (item: WishItem) => {
+    addItem({ productId: item.product.id, name: item.product.name, price: item.product.price, quantity: 1, imageUrl: item.product.imageUrl });
+    toast.success('장바구니에 추가됐습니다!');
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <a href="/" className="text-2xl font-bold text-blue-600">LiveMart</a>
-            <nav className="flex items-center space-x-4">
-              <a href="/products" className="text-sm text-gray-700 hover:text-blue-600">상품</a>
-              <a href="/cart" className="text-sm text-gray-700 hover:text-blue-600">장바구니</a>
-              <a href="/my-orders" className="text-sm text-gray-700 hover:text-blue-600">내 주문</a>
-            </nav>
+    <main className="min-h-screen bg-gray-100">
+      <GlobalNav />
+      <div className="max-w-[1280px] mx-auto px-4 py-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">위시리스트 <span className="text-gray-400 text-lg font-normal">({items.length})</span></h1>
+
+        {!userId ? (
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
+            <div className="text-6xl mb-4">🔒</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
+            <a href="/auth" className="btn-primary px-6 mt-4 inline-block">로그인하기</a>
           </div>
-        </div>
-      </header>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">위시리스트</h1>
-
-        {items.length === 0 ? (
-          <div className="bg-white rounded-xl p-16 shadow-sm text-center">
-            <div className="text-6xl mb-4">💝</div>
-            <h2 className="text-xl font-medium text-gray-700 mb-2">위시리스트가 비어있습니다</h2>
-            <p className="text-gray-500 mb-6">마음에 드는 상품을 저장해보세요!</p>
-            <button
-              onClick={() => router.push('/products')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition"
-            >
-              상품 둘러보기
-            </button>
+        ) : loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
+                <div className="aspect-square bg-gray-200" />
+                <div className="p-3 space-y-2"><div className="h-4 bg-gray-200 rounded" /><div className="h-8 bg-gray-200 rounded mt-4" /></div>
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
+            <div className="text-6xl mb-4">❤️</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">위시리스트가 비어있습니다</h2>
+            <p className="text-gray-500 mb-6">마음에 드는 상품에 하트를 눌러보세요!</p>
+            <a href="/products" className="btn-primary px-6">쇼핑하기</a>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="text-sm text-gray-500 mb-4">{items.length}개 상품</div>
-
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {items.map(item => (
-              <div key={item.id} className="bg-white rounded-xl p-6 shadow-sm flex gap-6 items-center">
-                <div
-                  className="w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer"
-                  onClick={() => router.push(`/products/${item.productId}`)}
-                >
-                  {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.productName} className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <span className="text-3xl">💝</span>
-                  )}
-                </div>
-
-                <div className="flex-1">
-                  <h3
-                    className="font-medium text-gray-900 cursor-pointer hover:text-blue-600"
-                    onClick={() => router.push(`/products/${item.productId}`)}
+              <div key={item.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden group hover:shadow-md transition-shadow">
+                <div className="relative aspect-square bg-gray-100 cursor-pointer" onClick={() => router.push(`/products/${item.product.id}`)}>
+                  {item.product.imageUrl
+                    ? <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    : <div className="w-full h-full flex items-center justify-center text-4xl">📦</div>}
+                  <button
+                    onClick={e => { e.stopPropagation(); removeWish(item.id); }}
+                    className="absolute top-2 right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md text-red-500 hover:text-red-700 transition-colors"
+                    title="위시리스트 제거"
                   >
-                    {item.productName}
+                    ❤️
+                  </button>
+                </div>
+                <div className="p-3">
+                  <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-2 cursor-pointer hover:text-red-600"
+                    onClick={() => router.push(`/products/${item.product.id}`)}>
+                    {item.product.name}
                   </h3>
-                  <div className="text-lg font-bold text-blue-600 mt-1">
-                    ₩{item.productPrice?.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {new Date(item.createdAt).toLocaleDateString('ko-KR')} 추가
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => moveToCart(item)}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
-                  >
-                    장바구니 담기
-                  </button>
-                  <button
-                    onClick={() => removeFromWishlist(item.id)}
-                    className="px-4 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200 transition"
-                  >
-                    삭제
-                  </button>
+                  <p className="text-base font-bold text-gray-900 mb-2">{item.product.price.toLocaleString()}원</p>
+                  <button onClick={() => addToCart(item)} className="w-full btn-primary text-sm py-2">장바구니 담기</button>
                 </div>
               </div>
             ))}

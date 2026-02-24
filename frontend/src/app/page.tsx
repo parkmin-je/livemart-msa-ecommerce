@@ -1,164 +1,312 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ProductList } from '@/components/ProductList';
-import { RealtimeDashboard } from '@/components/RealtimeDashboard';
-import { CartSummary } from '@/components/CartSummary';
+import { useQuery } from '@tanstack/react-query';
 import { GlobalNav } from '@/components/GlobalNav';
-import { useCartStore } from '@/store/cartStore';
+import { ProductCard } from '@/components/ProductCard';
+import { CartSummary } from '@/components/CartSummary';
+import { productApi } from '@/api/productApi';
 
-export default function Home() {
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const cartItems = useCartStore((state) => state.items);
+// ── 히어로 배너 데이터 ──────────────────────────────────
+const BANNERS = [
+  {
+    id: 1,
+    title: '봄 맞이 특가',
+    subtitle: '인기 상품 최대 30% 할인',
+    cta: '지금 쇼핑하기',
+    href: '/products',
+    bg: 'from-red-600 to-rose-500',
+    emoji: '🌸',
+  },
+  {
+    id: 2,
+    title: '로켓배송 특집',
+    subtitle: '5만원 이상 주문 시 무료배송',
+    cta: '로켓배송 상품 보기',
+    href: '/search?q=로켓',
+    bg: 'from-blue-600 to-indigo-600',
+    emoji: '🚀',
+  },
+  {
+    id: 3,
+    title: '신상품 입고',
+    subtitle: '전자기기 · 패션 · 뷰티 최신 상품',
+    cta: '신상품 보기',
+    href: '/products',
+    bg: 'from-purple-600 to-violet-600',
+    emoji: '✨',
+  },
+];
+
+const CATEGORIES = [
+  { label: '전자기기', emoji: '📱', href: '/search?cat=1', bg: 'bg-blue-50', text: 'text-blue-700' },
+  { label: '패션', emoji: '👗', href: '/search?cat=2', bg: 'bg-pink-50', text: 'text-pink-700' },
+  { label: '식품', emoji: '🍎', href: '/search?cat=3', bg: 'bg-green-50', text: 'text-green-700' },
+  { label: '홈/리빙', emoji: '🏠', href: '/search?cat=4', bg: 'bg-amber-50', text: 'text-amber-700' },
+  { label: '뷰티', emoji: '💄', href: '/search?cat=5', bg: 'bg-rose-50', text: 'text-rose-700' },
+  { label: '스포츠', emoji: '⚽', href: '/search?cat=6', bg: 'bg-orange-50', text: 'text-orange-700' },
+];
+
+// ── 히어로 배너 컴포넌트 ───────────────────────────────
+function HeroBanner() {
+  const [current, setCurrent] = useState(0);
   const router = useRouter();
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
+  useEffect(() => {
+    const timer = setInterval(() => setCurrent(c => (c + 1) % BANNERS.length), 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const banner = BANNERS[current];
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <div className={`relative bg-gradient-to-r ${banner.bg} rounded-2xl overflow-hidden h-52 md:h-64 transition-all duration-500`}>
+      <div className="absolute inset-0 flex items-center">
+        <div className="px-8 md:px-12 max-w-lg">
+          <div className="text-5xl md:text-7xl mb-4 animate-fadeInUp">{banner.emoji}</div>
+          <h2 className="text-2xl md:text-3xl font-black text-white mb-2 animate-fadeInUp">{banner.title}</h2>
+          <p className="text-white/80 text-sm md:text-base mb-5 animate-fadeInUp">{banner.subtitle}</p>
+          <button
+            onClick={() => router.push(banner.href)}
+            className="bg-white text-gray-900 font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-gray-100 transition-colors shadow-lg"
+          >
+            {banner.cta} →
+          </button>
+        </div>
+      </div>
+
+      {/* 배너 인디케이터 */}
+      <div className="absolute bottom-4 right-6 flex gap-2">
+        {BANNERS.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`transition-all rounded-full ${i === current ? 'w-6 h-2 bg-white' : 'w-2 h-2 bg-white/50 hover:bg-white/75'}`}
+          />
+        ))}
+      </div>
+
+      {/* 좌우 화살표 */}
+      <button
+        onClick={() => setCurrent(c => (c - 1 + BANNERS.length) % BANNERS.length)}
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/20 hover:bg-white/40 rounded-full flex items-center justify-center text-white transition-colors"
+      >
+        ‹
+      </button>
+      <button
+        onClick={() => setCurrent(c => (c + 1) % BANNERS.length)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/20 hover:bg-white/40 rounded-full flex items-center justify-center text-white transition-colors"
+      >
+        ›
+      </button>
+    </div>
+  );
+}
+
+// ── 섹션 헤더 ─────────────────────────────────────────
+function SectionHeader({ title, subtitle, href }: { title: string; subtitle?: string; href?: string }) {
+  return (
+    <div className="flex items-center justify-between mb-5">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+      </div>
+      {href && (
+        <a href={href} className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors flex items-center gap-1">
+          전체보기
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ── 상품 스켈레톤 ─────────────────────────────────────
+function ProductSkeleton() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
+      <div className="aspect-square bg-gray-200" />
+      <div className="p-3 space-y-2">
+        <div className="h-3 bg-gray-200 rounded w-1/4" />
+        <div className="h-4 bg-gray-200 rounded" />
+        <div className="h-4 bg-gray-200 rounded w-3/4" />
+        <div className="h-3 bg-gray-200 rounded w-1/2 mt-3" />
+        <div className="h-6 bg-gray-200 rounded w-1/3" />
+        <div className="h-9 bg-gray-200 rounded mt-2" />
+      </div>
+    </div>
+  );
+}
+
+// ── 메인 홈 페이지 ────────────────────────────────────
+export default function Home() {
+  const { data: allProducts, isLoading } = useQuery({
+    queryKey: ['products', 'home'],
+    queryFn: () => productApi.getProducts({ page: 0, size: 20 }),
+    staleTime: 60000,
+  });
+
+  const products = allProducts?.content || [];
+
+  // 카테고리별로 분류
+  const electronics = products.filter((p: any) => p.categoryId === 1).slice(0, 4);
+  const fashion = products.filter((p: any) => p.categoryId === 2).slice(0, 4);
+  const featured = products.slice(0, 8);
+  const newArrivals = [...products].reverse().slice(0, 8);
+
+  return (
+    <main className="min-h-screen bg-gray-100">
       <GlobalNav />
 
-      {/* Realtime Dashboard (Optional) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-        <button
-          onClick={() => setShowDashboard(!showDashboard)}
-          className="text-sm text-gray-500 hover:text-blue-600 transition"
-        >
-          {showDashboard ? '대시보드 숨기기' : '실시간 대시보드 보기'}
-        </button>
-      </div>
-      {showDashboard && (
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <RealtimeDashboard />
-          </div>
-        </div>
-      )}
+      <div className="max-w-[1280px] mx-auto px-4 py-5 space-y-8">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section + Search */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 mb-8 text-white">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            실시간 대규모 트래픽 처리 가능한<br />
-            엔터프라이즈 E-Commerce 플랫폼
-          </h2>
-          <p className="text-lg mb-6 opacity-90">
-            MSA, Event-Driven, WebFlux 기반 고성능 쇼핑몰
-          </p>
+        {/* ── 히어로 배너 ── */}
+        <HeroBanner />
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="max-w-xl mb-6">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="상품을 검색해보세요..."
-                className="w-full px-5 py-3 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
-              />
-              <button type="submit" className="absolute right-2 top-1.5 px-4 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition">검색</button>
-            </div>
-          </form>
-
-          <div className="flex flex-wrap gap-4">
-            {[
-              { value: '3,500', label: 'RPS 처리량' },
-              { value: '80ms', label: 'P95 응답시간' },
-              { value: '100K', label: '동시 연결' },
-              { value: '95%', label: '캐시 Hit Rate' },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-white/20 backdrop-blur-sm rounded-lg px-5 py-3">
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="text-sm opacity-80">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Category Quick Links */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-8">
+        {/* ── 이벤트 바 ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { label: '전자제품', emoji: '\u{1F4F1}', cat: 'ELECTRONICS' },
-            { label: '패션', emoji: '\u{1F45A}', cat: 'FASHION' },
-            { label: '식품', emoji: '\u{1F34E}', cat: 'FOOD' },
-            { label: '홈/리빙', emoji: '\u{1F3E0}', cat: 'HOME' },
-            { label: '뷰티', emoji: '\u{1F484}', cat: 'BEAUTY' },
-            { label: '스포츠', emoji: '\u26BD', cat: 'SPORTS' },
-          ].map((c) => (
-            <a
-              key={c.cat}
-              href={`/search?q=${c.cat}`}
-              className="bg-white rounded-xl p-4 text-center shadow-sm hover:shadow-md transition"
-            >
-              <div className="text-2xl mb-1">{c.emoji}</div>
-              <div className="text-sm font-medium text-gray-700">{c.label}</div>
-            </a>
+            { icon: '🚀', title: '로켓배송', desc: '오늘 주문 → 내일 도착', color: 'bg-blue-50 border-blue-100' },
+            { icon: '🎁', title: '5만원 이상 무료배송', desc: '전 품목 배송비 혜택', color: 'bg-green-50 border-green-100' },
+            { icon: '🔒', title: '안전결제', desc: '카드 · 계좌이체 · 간편결제', color: 'bg-purple-50 border-purple-100' },
+          ].map((item) => (
+            <div key={item.title} className={`${item.color} border rounded-xl p-4 flex items-center gap-3`}>
+              <span className="text-2xl">{item.icon}</span>
+              <div>
+                <div className="font-semibold text-gray-800 text-sm">{item.title}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{item.desc}</div>
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
-              <h3 className="text-lg font-semibold mb-4">필터</h3>
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">카테고리</h4>
-                <div className="space-y-2">
-                  {['전자기기', '패션', '식품', '도서', '가전'].map((cat) => (
-                    <label key={cat} className="flex items-center">
-                      <input type="checkbox" className="rounded text-blue-600" />
-                      <span className="ml-2 text-sm text-gray-600">{cat}</span>
-                    </label>
+        {/* ── 카테고리 쇼케이스 ── */}
+        <section className="bg-white rounded-2xl p-6">
+          <SectionHeader title="카테고리" subtitle="원하는 상품을 빠르게 찾아보세요" />
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            {CATEGORIES.map((cat) => (
+              <a
+                key={cat.label}
+                href={cat.href}
+                className={`${cat.bg} rounded-xl p-4 flex flex-col items-center gap-2 hover:opacity-80 transition-opacity group`}
+              >
+                <span className="text-3xl group-hover:scale-110 transition-transform">{cat.emoji}</span>
+                <span className={`text-xs font-semibold ${cat.text}`}>{cat.label}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* ── 추천 상품 ── */}
+        <section className="bg-white rounded-2xl p-6">
+          <SectionHeader title="🔥 오늘의 추천" subtitle="가장 인기 있는 상품을 만나보세요" href="/products" />
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />)}
+            </div>
+          ) : featured.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {featured.map((product: any) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-400">
+              <div className="text-5xl mb-3">📦</div>
+              <p>상품을 불러오는 중...</p>
+            </div>
+          )}
+        </section>
+
+        {/* ── 전자기기 & 패션 병렬 섹션 ── */}
+        {(electronics.length > 0 || fashion.length > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 전자기기 */}
+            {electronics.length > 0 && (
+              <section className="bg-white rounded-2xl p-6">
+                <SectionHeader title="📱 전자기기" href="/search?cat=1" />
+                <div className="grid grid-cols-2 gap-3">
+                  {electronics.map((product: any) => (
+                    <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
-              </div>
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">가격대</h4>
-                <input type="range" className="w-full" />
-                <div className="flex justify-between text-sm text-gray-500 mt-1">
-                  <span>0원</span>
-                  <span>1,000,000원</span>
+              </section>
+            )}
+            {/* 패션 */}
+            {fashion.length > 0 && (
+              <section className="bg-white rounded-2xl p-6">
+                <SectionHeader title="👗 패션" href="/search?cat=2" />
+                <div className="grid grid-cols-2 gap-3">
+                  {fashion.map((product: any) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
                 </div>
-              </div>
-              <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">필터 적용</button>
+              </section>
+            )}
+          </div>
+        )}
+
+        {/* ── 신상품 ── */}
+        {newArrivals.length > 0 && (
+          <section className="bg-white rounded-2xl p-6">
+            <SectionHeader title="✨ 신상품" subtitle="방금 입고된 새로운 상품들" href="/products" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {newArrivals.map((product: any) => (
+                <ProductCard key={`new-${product.id}`} product={product} />
+              ))}
             </div>
-          </div>
+          </section>
+        )}
 
-          <div className="lg:col-span-3">
-            <ProductList />
-          </div>
+        {/* ── 하단 배너 ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <a href="/auth" className="bg-gradient-to-r from-gray-900 to-gray-700 rounded-2xl p-6 text-white hover:opacity-90 transition-opacity flex items-center gap-4">
+            <span className="text-4xl">🎉</span>
+            <div>
+              <div className="font-bold text-lg">신규 회원 혜택</div>
+              <div className="text-sm text-gray-300 mt-1">가입 즉시 3,000원 쿠폰 지급</div>
+            </div>
+          </a>
+          <a href="/seller" className="bg-gradient-to-r from-red-600 to-orange-500 rounded-2xl p-6 text-white hover:opacity-90 transition-opacity flex items-center gap-4">
+            <span className="text-4xl">🏪</span>
+            <div>
+              <div className="font-bold text-lg">판매자 시작하기</div>
+              <div className="text-sm text-white/80 mt-1">지금 바로 판매를 시작해보세요</div>
+            </div>
+          </a>
         </div>
-
-        {cartItems.length > 0 && <CartSummary />}
       </div>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      {/* 플로팅 장바구니 */}
+      <CartSummary />
+
+      {/* ── 푸터 ── */}
+      <footer className="bg-gray-900 text-white mt-12">
+        <div className="max-w-[1280px] mx-auto px-4 py-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-lg font-semibold mb-4">LiveMart</h3>
-              <p className="text-gray-400 text-sm">MSA 기반 엔터프라이즈 E-Commerce 플랫폼</p>
+              <div className="text-xl font-black mb-3">
+                <span className="text-red-500">Live</span>Mart
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                MSA 기반 엔터프라이즈<br />이커머스 플랫폼
+              </p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">쇼핑</h3>
-              <ul className="text-gray-400 text-sm space-y-2">
+              <h4 className="font-semibold mb-3 text-gray-200">쇼핑</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
                 <li><a href="/products" className="hover:text-white transition">전체 상품</a></li>
-                <li><a href="/search" className="hover:text-white transition">상품 검색</a></li>
+                <li><a href="/search" className="hover:text-white transition">검색</a></li>
                 <li><a href="/cart" className="hover:text-white transition">장바구니</a></li>
                 <li><a href="/wishlist" className="hover:text-white transition">위시리스트</a></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">고객 서비스</h3>
-              <ul className="text-gray-400 text-sm space-y-2">
+              <h4 className="font-semibold mb-3 text-gray-200">고객센터</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
                 <li><a href="/my-orders" className="hover:text-white transition">주문 내역</a></li>
                 <li><a href="/returns" className="hover:text-white transition">반품/환불</a></li>
                 <li><a href="/notifications" className="hover:text-white transition">알림</a></li>
@@ -166,17 +314,20 @@ export default function Home() {
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">기술 스택</h3>
-              <ul className="text-gray-400 text-sm space-y-2">
-                <li>Spring Boot 3.4 + Java 21</li>
-                <li>Kafka Streams + Event Sourcing</li>
-                <li>Redis Cluster + Elasticsearch</li>
-                <li>Next.js + TypeScript</li>
+              <h4 className="font-semibold mb-3 text-gray-200">비즈니스</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li><a href="/seller" className="hover:text-white transition">판매자센터</a></li>
+                <li><a href="/admin" className="hover:text-white transition">관리자</a></li>
+                <li><a href="/seller/products" className="hover:text-white transition">상품 등록</a></li>
+                <li><a href="/admin/coupons" className="hover:text-white transition">쿠폰 관리</a></li>
               </ul>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400 text-sm">
-            &copy; 2026 LiveMart. All rights reserved.
+          <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-gray-500 text-xs">© 2026 LiveMart. All rights reserved.</p>
+            <div className="flex items-center gap-4 text-xs text-gray-500">
+              <span>Spring Boot 3.4 · Next.js 15 · Kubernetes</span>
+            </div>
           </div>
         </div>
       </footer>
