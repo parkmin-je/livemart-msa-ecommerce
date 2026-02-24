@@ -14,6 +14,12 @@ const nextConfig = {
   },
   async rewrites() {
     return [
+      // user-service 이메일 인증 직접 프록시 (user-service: 8085)
+      {
+        source: '/api/users/:path*',
+        destination: 'http://localhost:8085/api/users/:path*',
+      },
+      // 그 외 모든 API → API Gateway (8080)
       {
         source: '/api/:path*',
         destination: 'http://localhost:8080/api/:path*',

@@ -20,6 +20,10 @@ out/
 .env
 *.log
 
+# 로컬 OAuth/SMTP 시크릿 (절대 커밋 금지)
+application-local.yml
+**/application-local.yml
+
 # Kubernetes secrets
 *secret*.yaml
 *secret*.yml
