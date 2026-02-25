@@ -34,6 +34,14 @@ function CallbackContent() {
       localStorage.setItem('userId', userId);
       if (name) localStorage.setItem('userName', decodeURIComponent(name));
 
+      // JWT payload에서 role 추출 후 저장 (관리자 메뉴 표시 용도)
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        localStorage.setItem('userRole', payload.role || 'USER');
+      } catch {
+        localStorage.setItem('userRole', 'USER');
+      }
+
       const needOnboarding = searchParams.get('needOnboarding') === 'true';
 
       if (needOnboarding) {
