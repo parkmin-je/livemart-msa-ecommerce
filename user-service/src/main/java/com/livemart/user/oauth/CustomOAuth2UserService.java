@@ -50,29 +50,47 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private User saveOrUpdateUser(OAuth2UserInfo oAuth2UserInfo) {
-        Optional<User> userOptional = userRepository.findByEmail(oAuth2UserInfo.getEmail());
-
-        if (userOptional.isPresent()) {
-            // 기존 사용자 업데이트
-            User user = userOptional.get();
-            user.updateProfile(
-                oAuth2UserInfo.getName(),
-                oAuth2UserInfo.getImageUrl()
-            );
+        // 1. provider + providerId로 먼저 조회 (가장 확실한 OAuth 식별자)
+        Optional<User> byProvider = userRepository.findByProviderAndProviderId(
+            oAuth2UserInfo.getProvider(), oAuth2UserInfo.getProviderId()
+        );
+        if (byProvider.isPresent()) {
+            User user = byProvider.get();
+            user.updateProfileImage(oAuth2UserInfo.getName(), oAuth2UserInfo.getImageUrl());
+            log.info("OAuth 기존 사용자 업데이트: provider={}, providerId={}", oAuth2UserInfo.getProvider(), oAuth2UserInfo.getProviderId());
             return userRepository.save(user);
-        } else {
-            // 신규 사용자 생성
-            User newUser = User.builder()
-                .email(oAuth2UserInfo.getEmail())
-                .username(oAuth2UserInfo.getName())
-                .profileImage(oAuth2UserInfo.getImageUrl())
-                .provider(oAuth2UserInfo.getProvider())
-                .providerId(oAuth2UserInfo.getProviderId())
-                .role(UserRole.USER)
-                .status(UserStatus.ACTIVE)
-                .build();
-
-            return userRepository.save(newUser);
         }
+
+        // 2. email로 조회 (일반 회원이 소셜 로그인 연동하는 경우)
+        Optional<User> byEmail = userRepository.findByEmail(oAuth2UserInfo.getEmail());
+        if (byEmail.isPresent()) {
+            User user = byEmail.get();
+            user.updateProfileImage(oAuth2UserInfo.getName(), oAuth2UserInfo.getImageUrl());
+            log.info("OAuth 이메일 매칭 사용자 업데이트: email={}", oAuth2UserInfo.getEmail());
+            return userRepository.save(user);
+        }
+
+        // 3. 신규 사용자 생성
+        String displayName = oAuth2UserInfo.getName() != null && !oAuth2UserInfo.getName().isBlank()
+            ? oAuth2UserInfo.getName()
+            : oAuth2UserInfo.getEmail().split("@")[0];
+
+        // username = "provider_providerId" 형태로 고유하게 생성 (displayName 중복 방지)
+        String uniqueUsername = oAuth2UserInfo.getProvider() + "_" + oAuth2UserInfo.getProviderId();
+
+        User newUser = User.builder()
+            .email(oAuth2UserInfo.getEmail())
+            .name(displayName)
+            .username(uniqueUsername)
+            .password("")           // OAuth 유저는 비밀번호 없음 (NOT NULL 컬럼 대응)
+            .profileImage(oAuth2UserInfo.getImageUrl())
+            .provider(oAuth2UserInfo.getProvider())
+            .providerId(oAuth2UserInfo.getProviderId())
+            .role(UserRole.USER)
+            .status(UserStatus.ACTIVE)
+            .build();
+
+        log.info("OAuth 신규 사용자 생성: provider={}, email={}, username={}", oAuth2UserInfo.getProvider(), oAuth2UserInfo.getEmail(), uniqueUsername);
+        return userRepository.save(newUser);
     }
 }

@@ -34,13 +34,22 @@ function CallbackContent() {
       localStorage.setItem('userId', userId);
       if (name) localStorage.setItem('userName', decodeURIComponent(name));
 
-      setStatus('success');
-      setMessage(`환영합니다, ${decodeURIComponent(name || '회원')}님! 🎉`);
+      const needOnboarding = searchParams.get('needOnboarding') === 'true';
 
-      setTimeout(() => {
-        router.push('/');
-        window.location.reload();
-      }, 1200);
+      if (needOnboarding) {
+        // 최초 소셜 로그인 → 추가 정보 입력 페이지로 이동
+        setStatus('success');
+        setMessage('추가 정보를 입력해주세요 ✍️');
+        setTimeout(() => {
+          window.location.href = '/auth/onboarding';
+        }, 800);
+      } else {
+        setStatus('success');
+        setMessage(`환영합니다, ${decodeURIComponent(name || '회원')}님! 🎉`);
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1200);
+      }
     } else {
       setStatus('error');
       setMessage('토큰 정보가 없습니다. 다시 시도해주세요.');

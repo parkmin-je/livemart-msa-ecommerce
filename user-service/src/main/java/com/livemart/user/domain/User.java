@@ -122,4 +122,12 @@ public class User {
     public boolean isMfaEnabled() {
         return mfaEnabled != null && mfaEnabled;
     }
+
+    public void updateRole(UserRole newRole) {
+        this.role = newRole;
+    }
+
+    public void deactivate() {
+        this.status = UserStatus.INACTIVE;
+    }
 }
