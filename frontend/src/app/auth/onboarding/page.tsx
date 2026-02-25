@@ -64,8 +64,13 @@ export default function OnboardingPage() {
 
       if (res.ok) {
         const data = await res.json();
-        // 이름 업데이트된 경우 localStorage 갱신
         if (data.name) localStorage.setItem('userName', data.name);
+        // 온보딩 완료 후 role 재확인 저장 (token에서 파싱)
+        try {
+          const tok = localStorage.getItem('token') || '';
+          const payload = JSON.parse(atob(tok.split('.')[1]));
+          localStorage.setItem('userRole', payload.role || 'USER');
+        } catch { /* ignore */ }
         window.location.href = '/';
       } else if (res.status === 401) {
         window.location.href = '/auth';

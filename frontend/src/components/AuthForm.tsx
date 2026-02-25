@@ -104,10 +104,18 @@ export function AuthForm() {
         throw new Error(err.message || '이메일 또는 비밀번호가 올바르지 않습니다');
       }
       const data = await res.json();
-      localStorage.setItem('token', data.accessToken || data.token || '');
+      const accessToken = data.accessToken || data.token || '';
+      localStorage.setItem('token', accessToken);
       localStorage.setItem('refreshToken', data.refreshToken || '');
       localStorage.setItem('userId', String(data.userId || data.id || ''));
       localStorage.setItem('userName', data.name || data.username || form.email.split('@')[0]);
+      // JWT payload에서 role 파싱 후 저장
+      try {
+        const payload = JSON.parse(atob(accessToken.split('.')[1]));
+        localStorage.setItem('userRole', payload.role || 'USER');
+      } catch {
+        localStorage.setItem('userRole', 'USER');
+      }
       toast.success('로그인되었습니다!');
       window.location.href = '/';
     } catch (err: unknown) {
