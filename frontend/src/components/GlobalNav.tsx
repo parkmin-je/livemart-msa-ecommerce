@@ -19,6 +19,7 @@ export function GlobalNav() {
   const router = useRouter();
   const cartItems = useCartStore((state) => state.items);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -27,6 +28,7 @@ export function GlobalNav() {
 
   useEffect(() => {
     setUserName(localStorage.getItem('userName'));
+    setUserRole(localStorage.getItem('userRole'));
     const onScroll = () => setScrolled(window.scrollY > 4);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
@@ -48,7 +50,7 @@ export function GlobalNav() {
       // 서버 오류여도 로컬 로그아웃은 진행
     }
     // 2. 로컬 토큰 삭제
-    ['token', 'refreshToken', 'userId', 'userName', 'apiKey'].forEach(k => localStorage.removeItem(k));
+    ['token', 'refreshToken', 'userId', 'userName', 'userRole', 'apiKey'].forEach(k => localStorage.removeItem(k));
     window.location.href = '/';
   };
 
@@ -72,7 +74,9 @@ export function GlobalNav() {
                 </>
               )}
               <a href="/seller" className="text-gray-300 hover:text-white transition hidden md:block">판매자센터</a>
-              <a href="/admin" className="text-gray-300 hover:text-white transition hidden md:block">관리자</a>
+              {userRole === 'ADMIN' && (
+                <a href="/admin" className="text-yellow-300 hover:text-yellow-100 transition hidden md:block font-semibold">관리자</a>
+              )}
             </div>
           </div>
         </div>
