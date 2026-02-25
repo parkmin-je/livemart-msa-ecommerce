@@ -64,13 +64,17 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail(), user.getRole().name());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        log.info("OAuth2 login success: userId={}, email={}", user.getId(), email);
+        // 휴대폰 번호가 없으면 온보딩 필요
+        boolean needOnboarding = user.getPhoneNumber() == null || user.getPhoneNumber().isBlank();
+
+        log.info("OAuth2 login success: userId={}, email={}, needOnboarding={}", user.getId(), email, needOnboarding);
 
         String redirectUrl = UriComponentsBuilder.fromUriString(redirectUri)
                 .queryParam("token", accessToken)
                 .queryParam("refreshToken", refreshToken)
                 .queryParam("userId", user.getId())
                 .queryParam("name", URLEncoder.encode(user.getName(), StandardCharsets.UTF_8))
+                .queryParam("needOnboarding", needOnboarding)
                 .build().toUriString();
 
         response.sendRedirect(redirectUrl);

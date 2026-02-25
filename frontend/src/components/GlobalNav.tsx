@@ -37,10 +37,19 @@ export function GlobalNav() {
     if (searchQuery.trim()) router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // 1. Spring Security 서버 세션 무효화 (OAuth2 자동 재인증 방지)
+    try {
+      await fetch('http://localhost:8085/api/users/session-logout', {
+        method: 'POST',
+        credentials: 'include',  // JSESSIONID 쿠키 전송
+      });
+    } catch (_) {
+      // 서버 오류여도 로컬 로그아웃은 진행
+    }
+    // 2. 로컬 토큰 삭제
     ['token', 'refreshToken', 'userId', 'userName', 'apiKey'].forEach(k => localStorage.removeItem(k));
-    router.push('/');
-    window.location.reload();
+    window.location.href = '/';
   };
 
   return (

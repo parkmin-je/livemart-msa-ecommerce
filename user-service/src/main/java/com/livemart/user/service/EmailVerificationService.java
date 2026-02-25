@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -19,6 +20,9 @@ public class EmailVerificationService {
 
     private final JavaMailSender mailSender;
     private final StringRedisTemplate redisTemplate;
+
+    @Value("${spring.mail.username}")
+    private String senderEmail;
 
     private static final String CODE_PREFIX = "email:verify:";
     private static final long CODE_EXPIRE_MINUTES = 5;
@@ -69,6 +73,7 @@ public class EmailVerificationService {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+        helper.setFrom(senderEmail);
         helper.setTo(to);
         helper.setSubject("[LiveMart] 이메일 인증 코드");
         helper.setText(buildEmailHtml(code), true); // HTML 메일
