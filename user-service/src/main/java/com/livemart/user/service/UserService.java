@@ -4,6 +4,9 @@ import com.livemart.user.domain.User;
 import com.livemart.user.domain.UserRole;
 import com.livemart.user.domain.UserStatus;
 import com.livemart.user.dto.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 import com.livemart.user.repository.UserRepository;
 import com.livemart.user.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -105,5 +108,44 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
         return UserResponse.from(user);
+    }
+
+    // ─── 내 정보 수정 ────────────────────────────────────────────
+
+    @Transactional
+    public UserResponse updateMyProfile(Long userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+        String newName = (request.getName() != null && !request.getName().isBlank())
+                ? request.getName() : user.getName();
+        user.updateProfile(newName, request.getPhoneNumber());
+        log.info("Profile updated: userId={}", userId);
+        return UserResponse.from(userRepository.save(user));
+    }
+
+    // ─── 관리자 전용 ──────────────────────────────────────────────
+
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(UserResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public UserResponse updateUserRole(Long userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+        UserRole newRole = UserRole.valueOf(roleName.toUpperCase());
+        user.updateRole(newRole);
+        return UserResponse.from(userRepository.save(user));
+    }
+
+    @Transactional
+    public void deactivateUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+        user.deactivate();
+        userRepository.save(user);
+        log.info("User deactivated by admin: userId={}", userId);
     }
 }

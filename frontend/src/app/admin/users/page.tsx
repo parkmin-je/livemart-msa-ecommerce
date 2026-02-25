@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE = 'http://localhost:8085';
 
 interface User {
   id: number;
@@ -25,14 +25,27 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token') || '';
+      if (!token) {
+        toast.error('로그인이 필요합니다. 관리자 계정으로 로그인해주세요.');
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`${API_BASE}/api/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
         setUsers(Array.isArray(data) ? data : data.content || []);
+      } else if (res.status === 401) {
+        toast.error('세션이 만료됐습니다. 다시 로그인해주세요.');
+        window.location.href = '/auth';
+      } else if (res.status === 403) {
+        toast.error('관리자 권한이 없습니다. ADMIN 계정으로 로그인해주세요.');
+      } else {
+        toast.error('유저 목록을 불러오지 못했습니다.');
       }
     } catch {
+      toast.error('서버에 연결할 수 없습니다.');
       setUsers([]);
     }
     setLoading(false);
