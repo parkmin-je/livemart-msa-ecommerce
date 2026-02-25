@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "livemart-frontend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["./node_modules/.bin/next", "dev", "--turbopack", "-p", "3002"],
+      "port": 3002
+    },
+    {
+      "name": "livemart-user-service",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "D:\\project\\livemart-clean\\gradlew.bat", "-p", "D:\\project\\livemart-clean", ":user-service:bootRun", "--args=--spring.profiles.active=local", "--no-build-cache"],
+      "port": 8085
+    }
+  ]
+}

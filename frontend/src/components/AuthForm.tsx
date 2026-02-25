@@ -109,8 +109,7 @@ export function AuthForm() {
       localStorage.setItem('userId', String(data.userId || data.id || ''));
       localStorage.setItem('userName', data.name || data.username || form.email.split('@')[0]);
       toast.success('로그인되었습니다!');
-      router.push('/');
-      window.location.reload();
+      window.location.href = '/';
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : '로그인 실패');
     }
