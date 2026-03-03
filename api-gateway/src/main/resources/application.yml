@@ -13,6 +13,16 @@ spring:
     enabled: false
   cloud:
     gateway:
+      # X-Forwarded 헤더 전달 - user-service가 {baseUrl}을 api-gateway URL로 인식
+      forwarded:
+        enabled: true
+      x-forwarded:
+        enabled: true
+        for-enabled: true
+        host-enabled: true
+        port-enabled: true
+        proto-enabled: true
+        prefix-enabled: true
       routes:
         # User Service - API
         - id: user-service
