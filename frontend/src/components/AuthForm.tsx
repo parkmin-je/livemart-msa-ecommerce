@@ -4,8 +4,8 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
-// user-service 포트: 8085 (OAuth2는 게이트웨이가 아닌 user-service 직접)
-const USER_SERVICE = 'http://localhost:8085';
+// OAuth2: Next.js rewrite → api-gateway(8080) → user-service
+const USER_SERVICE = '';
 // API 프록시 (Next.js next.config.js → localhost:8080 → user-service)
 const API_BASE = '/api/users';
 

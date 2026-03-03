@@ -105,6 +105,7 @@ spring:
 
 server:
   port: 8085
+  forward-headers-strategy: framework
 
 jwt:
   secret: ${JWT_SECRET:your-secret-key-must-be-at-least-256-bits-long-for-HS256-algorithm-security}
