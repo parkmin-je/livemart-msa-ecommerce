@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
-const API_BASE = 'http://localhost:8085';
+const API_BASE = '';
 
 interface User {
   id: number;
