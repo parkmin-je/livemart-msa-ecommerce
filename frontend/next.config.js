@@ -13,16 +13,21 @@ const nextConfig = {
     // reactCompiler: true,  // babel-plugin-react-compiler 필요
   },
   async rewrites() {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     return [
-      // user-service 이메일 인증 직접 프록시 (user-service: 8085)
+      // OAuth2 소셜 로그인 → api-gateway → user-service
       {
-        source: '/api/users/:path*',
-        destination: 'http://localhost:8085/api/users/:path*',
+        source: '/oauth2/:path*',
+        destination: `${apiBase}/oauth2/:path*`,
       },
-      // 그 외 모든 API → API Gateway (8080)
+      {
+        source: '/login/:path*',
+        destination: `${apiBase}/login/:path*`,
+      },
+      // 모든 API → API Gateway (8080)
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8080/api/:path*',
+        destination: `${apiBase}/api/:path*`,
       },
     ];
   },
