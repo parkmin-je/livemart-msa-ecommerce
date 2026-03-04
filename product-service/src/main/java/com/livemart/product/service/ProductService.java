@@ -23,7 +23,11 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageRequest;
+
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -122,8 +126,15 @@ public class ProductService {
     }
 
     public Page<ProductResponse> searchProducts(String keyword, Pageable pageable) {
-        return productRepository.searchByKeyword(keyword, pageable)
-                .map(ProductResponse::from);
+        try {
+            return productSearchRepository
+                    .findByNameContainingOrDescriptionContaining(keyword, keyword, pageable)
+                    .map(ProductResponse::from);
+        } catch (Exception e) {
+            log.warn("Elasticsearch 검색 실패, DB fallback 사용: keyword={}, error={}", keyword, e.getMessage());
+            return productRepository.searchByKeyword(keyword, pageable)
+                    .map(ProductResponse::from);
+        }
     }
 
     @Transactional
@@ -231,5 +242,31 @@ public class ProductService {
 
         stockKafkaTemplate.send(STOCK_TOPIC, productId.toString(), event);
         log.info("Stock event published: productId={}, old={}, new={}", productId, oldStock, newStock);
+    }
+
+    /**
+     * DB의 모든 상품을 Elasticsearch에 일괄 인덱싱 (초기화/재구축용)
+     */
+    @Transactional(readOnly = true)
+    public int reindexAllProducts() {
+        AtomicInteger count = new AtomicInteger(0);
+        int pageSize = 100;
+        int page = 0;
+
+        while (true) {
+            List<Product> products = productRepository.findAll(PageRequest.of(page, pageSize)).getContent();
+            if (products.isEmpty()) break;
+
+            products.forEach(p -> {
+                syncToElasticsearch(p);
+                count.incrementAndGet();
+            });
+
+            log.info("Elasticsearch 재인덱싱 진행: {}건 완료", count.get());
+            page++;
+        }
+
+        log.info("Elasticsearch 재인덱싱 완료: 총 {}건", count.get());
+        return count.get();
     }
 }
