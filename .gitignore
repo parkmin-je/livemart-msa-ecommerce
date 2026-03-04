@@ -1,10 +1,11 @@
-﻿# IDE
+# IDE
 .idea/
 .vscode/
 *.iml
 *.iws
 *.ipr
 .DS_Store
+Thumbs.db
 
 # Build
 target/
@@ -18,9 +19,19 @@ out/
 
 # Environment
 .env
+.env.*
 *.log
 
-# 로컬 OAuth/SMTP 시크릿 (절대 커밋 금지)
+# Node
+node_modules/
+npm-debug.log*
+.npm
+
+# Next.js
+frontend/.next/
+frontend/out/
+
+# 로컬 시크릿 (절대 커밋 금지)
 application-local.yml
 **/application-local.yml
 
@@ -28,8 +39,9 @@ application-local.yml
 *secret*.yaml
 *secret*.yml
 
-# Gradle wrapper download placeholder
-gradle/wrapper/gradle-wrapper.jar.download
-
-# AI conversation files
+# Temp / AI
 .ai/
+.claude/
+*.tmp
+scripts/
+package-lock.json
