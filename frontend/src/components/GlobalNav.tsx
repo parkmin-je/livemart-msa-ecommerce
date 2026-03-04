@@ -42,7 +42,7 @@ export function GlobalNav() {
   const handleLogout = async () => {
     // 1. Spring Security 서버 세션 무효화 (OAuth2 자동 재인증 방지)
     try {
-      await fetch('http://localhost:8085/api/users/session-logout', {
+      await fetch('/api/users/session-logout', {
         method: 'POST',
         credentials: 'include',  // JSESSIONID 쿠키 전송
       });
