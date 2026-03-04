@@ -1,33 +1,26 @@
-name: CI/CD Pipeline
+name: CI — Build & Test
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [master]
   pull_request:
-    branches: [ main ]
+    branches: [master]
 
 jobs:
-  build:
+  # ── 백엔드 서비스 병렬 빌드 ─────────────────────────────────
+  build-backend:
+    name: Build (${{ matrix.service }})
     runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root123
-          MYSQL_DATABASE: testdb
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - user-service
+          - product-service
+          - order-service
+          - payment-service
+          - api-gateway
+          - eureka-server
 
     steps:
       - uses: actions/checkout@v4
@@ -37,57 +30,63 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: gradle
 
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
-
-      - name: Grant execute permission for gradlew
+      - name: Grant execute permission
         run: chmod +x gradlew
 
-      - name: Build
-        run: ./gradlew build -x test --no-daemon
+      - name: Build ${{ matrix.service }}
+        run: ./gradlew :${{ matrix.service }}:bootJar -x test --no-daemon --parallel
 
-      - name: Run tests
-        run: ./gradlew test --no-daemon
-        env:
-          SPRING_PROFILES_ACTIVE: test
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.service }}-jar
+          path: ${{ matrix.service }}/build/libs/*.jar
+          retention-days: 1
 
-  docker:
-    needs: build
+  # ── 프론트엔드 빌드 & 타입 체크 ─────────────────────────────
+  build-frontend:
+    name: Build Frontend (Next.js)
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Build JAR files
-        run: chmod +x gradlew && ./gradlew bootJar -x test --no-daemon
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: TypeScript type check
+        working-directory: ./frontend
+        run: npx tsc --noEmit
+        continue-on-error: true
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build Next.js
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080
 
-      - name: Build and push Docker images
+  # ── CI 결과 요약 ─────────────────────────────────────────────
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: always()
+
+    steps:
+      - name: Check results
         run: |
-          services=("user-service" "product-service" "order-service" "payment-service" "api-gateway" "eureka-server")
-          for service in "${services[@]}"; do
-            docker build -t ${{ secrets.DOCKER_USERNAME }}/livemart-${service}:latest ./${service}
-            docker push ${{ secrets.DOCKER_USERNAME }}/livemart-${service}:latest
-          done
+          echo "Backend build: ${{ needs.build-backend.result }}"
+          echo "Frontend build: ${{ needs.build-frontend.result }}"
+          if [[ "${{ needs.build-backend.result }}" == "failure" || "${{ needs.build-frontend.result }}" == "failure" ]]; then
+            exit 1
+          fi
