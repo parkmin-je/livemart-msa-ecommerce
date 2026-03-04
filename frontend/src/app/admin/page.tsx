@@ -61,8 +61,8 @@ export default function AdminPage() {
       fetch('/api/users', { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([s, o, c, u]) => {
       setStats({ ...s, totalUsers: Array.isArray(u) ? u.length : (u.content?.length || 0) });
-      setOrders(o.content || o || []);
-      setCoupons(c.content || c || []);
+      setOrders(Array.isArray(o) ? o : (Array.isArray(o?.content) ? o.content : []));
+      setCoupons(Array.isArray(c) ? c : (Array.isArray(c?.content) ? c.content : []));
     }).finally(() => setLoading(false));
   }, []);
 
