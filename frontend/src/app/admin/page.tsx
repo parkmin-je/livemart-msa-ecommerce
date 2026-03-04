@@ -143,7 +143,7 @@ export default function AdminPage() {
                       <span className="text-sm font-medium text-gray-900">주문 #{o.id}</span>
                       <span className={`ml-2 text-xs ${STATUS_COLOR[o.status] || 'badge-gray'}`}>{o.status}</span>
                     </div>
-                    <span className="text-sm font-bold text-gray-900">{o.totalAmount.toLocaleString()}원</span>
+                    <span className="text-sm font-bold text-gray-900">{(o.totalAmount || 0).toLocaleString()}원</span>
                   </div>
                 ))}
               </div>
@@ -186,7 +186,7 @@ export default function AdminPage() {
                       <p className="text-xs text-gray-400 mt-0.5">{new Date(o.createdAt).toLocaleString('ko-KR')}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-gray-900">{o.totalAmount.toLocaleString()}원</p>
+                      <p className="font-bold text-gray-900">{(o.totalAmount || 0).toLocaleString()}원</p>
                       {o.userId && <p className="text-xs text-gray-400">사용자 #{o.userId}</p>}
                     </div>
                     <button onClick={() => router.push(`/orders/${o.id}`)}
