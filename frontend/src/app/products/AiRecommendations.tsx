@@ -1,6 +1,6 @@
 async function getAiRecommendations() {
   try {
-    const res = await fetch('http://localhost:8080/api/ai/recommendations?userId=1', {
+    const res = await fetch('/api/ai/recommendations?userId=1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify([1, 2, 3]),
