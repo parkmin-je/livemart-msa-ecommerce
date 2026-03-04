@@ -58,8 +58,9 @@ export default function AdminPage() {
       fetch('/api/orders/query/statistics', { headers }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       fetch('/api/orders?page=0&size=20', { headers }).then(r => r.json()).catch(() => ({ content: [] })),
       fetch('/api/coupons', { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
-    ]).then(([s, o, c]) => {
-      setStats(s);
+      fetch('/api/users', { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
+    ]).then(([s, o, c, u]) => {
+      setStats({ ...s, totalUsers: Array.isArray(u) ? u.length : (u.content?.length || 0) });
       setOrders(o.content || o || []);
       setCoupons(c.content || c || []);
     }).finally(() => setLoading(false));
@@ -286,7 +287,10 @@ export default function AdminPage() {
             <div className="text-5xl mb-4">👥</div>
             <h2 className="text-lg font-bold text-gray-900 mb-2">회원 관리</h2>
             <p className="text-gray-500 text-sm">관리자 권한으로 회원을 관리할 수 있습니다</p>
-            <p className="text-xs text-gray-400 mt-2">총 회원 수: {stats.totalUsers || 0}명</p>
+            <p className="text-sm font-semibold text-gray-800 mt-2">총 회원 수: {stats.totalUsers || 0}명</p>
+            <a href="/admin/users" className="inline-block mt-4 px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+              전체 회원 목록 보기 →
+            </a>
           </div>
         )}
       </div>
