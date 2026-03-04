@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:8085';
+const API_BASE = '';
 
 export default function OnboardingPage() {
   const [name, setName] = useState('');
