@@ -22,13 +22,12 @@ export default function NotificationsPage() {
   const [connected, setConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
 
     // 기존 알림 조회
-    fetch(`/api/notifications/user/${userId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    fetch(`/api/notifications/user/${userId}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setNotifications(d.content || d || []))
       .catch(() => {})
@@ -53,7 +52,7 @@ export default function NotificationsPage() {
     setNotifications(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
     try {
       await fetch(`/api/notifications/${id}/read`, {
-        method: 'PUT', headers: token ? { Authorization: `Bearer ${token}` } : {},
+        method: 'PUT', credentials: 'include',
       });
     } catch {}
   };
@@ -62,7 +61,7 @@ export default function NotificationsPage() {
     setNotifications(ns => ns.map(n => ({ ...n, read: true })));
     try {
       await fetch(`/api/notifications/user/${userId}/read-all`, {
-        method: 'PUT', headers: token ? { Authorization: `Bearer ${token}` } : {},
+        method: 'PUT', credentials: 'include',
       });
     } catch {}
   };
@@ -70,7 +69,7 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[700px] mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">

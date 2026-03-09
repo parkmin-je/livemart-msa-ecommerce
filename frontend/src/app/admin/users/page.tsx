@@ -24,14 +24,13 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token') || '';
       if (!token) {
         toast.error('로그인이 필요합니다. 관리자 계정으로 로그인해주세요.');
         setLoading(false);
         return;
       }
       const res = await fetch(`${API_BASE}/api/users`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (res.ok) {
         const data = await res.json();
@@ -55,10 +54,9 @@ export default function AdminUsersPage() {
 
   const handleRoleChange = async (userId: number, newRole: string) => {
     try {
-      const token = localStorage.getItem('token') || '';
       const res = await fetch(`${API_BASE}/api/users/${userId}/role`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
       });
       if (res.ok) {
@@ -75,10 +73,9 @@ export default function AdminUsersPage() {
   const handleDeactivate = async (userId: number) => {
     if (!confirm('이 사용자를 비활성화하시겠습니까?')) return;
     try {
-      const token = localStorage.getItem('token') || '';
       await fetch(`${API_BASE}/api/users/${userId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       toast.success('사용자가 비활성화되었습니다.');
       fetchUsers();
@@ -111,7 +108,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">

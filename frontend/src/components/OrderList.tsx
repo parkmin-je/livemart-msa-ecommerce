@@ -45,11 +45,8 @@ export function OrderList() {
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
-    const token = localStorage.getItem('token');
     if (!userId) { setLoading(false); return; }
-    fetch(`/api/orders/user/${userId}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    fetch(`/api/orders/user/${userId}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setOrders(d.content || d || []))
       .catch(() => setOrders([]))
