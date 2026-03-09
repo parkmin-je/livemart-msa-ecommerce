@@ -50,15 +50,12 @@ export default function AdminPage() {
   });
   const [savingCoupon, setSavingCoupon] = useState(false);
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
   useEffect(() => {
     Promise.all([
-      fetch('/api/orders/query/statistics', { headers }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-      fetch('/api/orders?page=0&size=20', { headers }).then(r => r.json()).catch(() => ({ content: [] })),
-      fetch('/api/coupons', { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch('/api/users', { headers }).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch('/api/orders/query/statistics', { credentials: 'include' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch('/api/orders?page=0&size=20', { credentials: 'include' }).then(r => r.json()).catch(() => ({ content: [] })),
+      fetch('/api/coupons', { credentials: 'include' }).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch('/api/users', { credentials: 'include' }).then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([s, o, c, u]) => {
       setStats({ ...s, totalUsers: Array.isArray(u) ? u.length : (u.content?.length || 0) });
       setOrders(Array.isArray(o) ? o : (Array.isArray(o?.content) ? o.content : []));
@@ -72,7 +69,8 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/coupons', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newCoupon),
       });
       if (!res.ok) throw new Error('쿠폰 생성 실패');
@@ -100,7 +98,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">

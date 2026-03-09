@@ -13,7 +13,6 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     if (!token) {
       window.location.href = '/auth';
       return;
@@ -52,12 +51,10 @@ export default function OnboardingPage() {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/users/me`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ name, phoneNumber: phone }),
       });
@@ -67,7 +64,6 @@ export default function OnboardingPage() {
         if (data.name) localStorage.setItem('userName', data.name);
         // 온보딩 완료 후 role 재확인 저장 (token에서 파싱)
         try {
-          const tok = localStorage.getItem('token') || '';
           const payload = JSON.parse(atob(tok.split('.')[1]));
           localStorage.setItem('userRole', payload.role || 'USER');
         } catch { /* ignore */ }

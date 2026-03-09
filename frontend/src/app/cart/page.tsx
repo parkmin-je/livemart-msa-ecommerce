@@ -63,7 +63,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <main className="min-h-screen bg-gray-100">
+      <main className="min-h-screen bg-gray-100 pb-28 md:pb-0">
         <GlobalNav />
         <div className="max-w-[1280px] mx-auto px-4 py-16 text-center">
           <div className="bg-white rounded-2xl border border-gray-100 py-24 px-8 max-w-md mx-auto">
@@ -78,7 +78,7 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-28 md:pb-0">
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">장바구니</h1>
@@ -219,6 +219,20 @@ export default function CartPage() {
             </div>
           </div>
 
+          {/* 모바일 하단 고정 결제 바 */}
+          <div className="fixed bottom-14 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200 shadow-2xl px-4 py-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-gray-500">{selectedItems.size > 0 ? `${selectedItems.size}개 선택` : '상품을 선택하세요'}</div>
+              <div className="text-lg font-black text-gray-900 tabular-nums">
+                {total > 0 ? <>{total.toLocaleString()}<span className="text-sm font-normal text-gray-500 ml-0.5">원</span></> : '-'}
+              </div>
+            </div>
+            <button onClick={handleCheckout} disabled={selectedItems.size === 0}
+              className="flex-shrink-0 bg-red-600 text-white font-bold px-6 py-3 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700 transition-colors active:scale-[0.97]">
+              주문하기 →
+            </button>
+          </div>
+
           {/* 오른쪽: 주문 요약 */}
           <div className="w-80 flex-shrink-0 sticky top-[156px]">
             <div className="bg-white rounded-xl border border-gray-100 p-5">
@@ -262,6 +276,31 @@ export default function CartPage() {
               <p className="text-xs text-red-600">💳 카드결제 최대 5% 할인</p>
               <p className="text-xs text-red-600">🎁 신규회원 3,000원 쿠폰 증정</p>
             </div>
+          </div>
+        </div>
+
+        {/* 함께 구매하면 좋은 상품 */}
+        <div className="mt-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">🛍️ 함께 구매하면 좋은 상품</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+            {[
+              { id: 101, name: 'USB-C 충전케이블 3m', price: 12900, emoji: '🔌', badge: '베스트' },
+              { id: 102, name: '노트북 파우치 15인치', price: 24900, emoji: '💼', badge: '인기' },
+              { id: 103, name: '무선 마우스', price: 19900, emoji: '🖱️', badge: '-20%' },
+              { id: 104, name: '모니터 클리너 세트', price: 8900, emoji: '🧹', badge: '신상' },
+              { id: 105, name: '케이블 정리 클립', price: 5900, emoji: '📎', badge: '추천' },
+              { id: 106, name: '스마트폰 거치대', price: 15900, emoji: '📱', badge: '-15%' },
+            ].map(item => (
+              <a key={item.id} href={`/products/${item.id}`}
+                className="bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md hover:border-gray-200 transition-all group text-center">
+                <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center text-3xl mb-2 group-hover:scale-105 transition-transform">
+                  {item.emoji}
+                </div>
+                <span className="inline-block text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded mb-1">{item.badge}</span>
+                <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug mb-1">{item.name}</p>
+                <p className="text-sm font-black text-gray-900">{item.price.toLocaleString()}원</p>
+              </a>
+            ))}
           </div>
         </div>
       </div>

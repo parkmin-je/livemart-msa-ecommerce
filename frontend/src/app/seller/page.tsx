@@ -35,14 +35,12 @@ export default function SellerPage() {
   const [newProduct, setNewProduct] = useState<NewProduct>({ name: '', description: '', price: '', stockQuantity: '', categoryId: '1', imageUrl: '' });
   const [saving, setSaving] = useState(false);
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
 
   useEffect(() => {
-    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     Promise.all([
-      fetch(`/api/sellers/${userId || 1}/dashboard`, { headers }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-      fetch('/api/products?page=0&size=50', { headers }).then(r => r.json()).catch(() => ({ content: [] })),
+      fetch(`/api/sellers/${userId || 1}/dashboard`, { credentials: 'include' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch('/api/products?page=0&size=50', { credentials: 'include' }).then(r => r.json()).catch(() => ({ content: [] })),
     ]).then(([dash, prods]) => {
       setData(dash);
       setProducts(prods.content || []);
@@ -55,7 +53,8 @@ export default function SellerPage() {
     try {
       const res = await fetch('/api/products', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newProduct.name, description: newProduct.description,
           price: Number(newProduct.price), stockQuantity: Number(newProduct.stockQuantity),
@@ -76,7 +75,7 @@ export default function SellerPage() {
   const deleteProduct = async (id: number) => {
     if (!confirm('상품을 삭제하시겠습니까?')) return;
     try {
-      await fetch(`/api/products/${id}`, { method: 'DELETE', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      await fetch(`/api/products/${id}`, { method: 'DELETE', credentials: 'include' });
       setProducts(prev => prev.filter(p => p.id !== id));
       toast.success('삭제됐습니다');
     } catch { toast.error('삭제 실패'); }
@@ -89,7 +88,7 @@ export default function SellerPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">

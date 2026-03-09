@@ -16,11 +16,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
-    const token = localStorage.getItem('token');
     const name = localStorage.getItem('userName') || '';
     setProfile(p => ({ ...p, name }));
     if (!userId) { router.push('/auth'); return; }
-    fetch(`/api/users/${userId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    fetch(`/api/users/${userId}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setProfile({ name: d.name || name, email: d.email || '', phone: d.phone || '', username: d.username || '' }))
       .catch(() => {});
@@ -30,10 +29,9 @@ export default function ProfilePage() {
     e.preventDefault();
     setLoading(true);
     const userId = localStorage.getItem('userId');
-    const token = localStorage.getItem('token');
     try {
       await fetch(`/api/users/${userId}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profile),
       });
       localStorage.setItem('userName', profile.name);
@@ -47,10 +45,9 @@ export default function ProfilePage() {
     if (pw.next !== pw.confirm) { toast.error('새 비밀번호가 일치하지 않습니다'); return; }
     setLoading(true);
     const userId = localStorage.getItem('userId');
-    const token = localStorage.getItem('token');
     try {
       const res = await fetch(`/api/users/${userId}/password`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }),
       });
       if (!res.ok) throw new Error('현재 비밀번호가 올바르지 않습니다');
@@ -67,10 +64,58 @@ export default function ProfilePage() {
   ];
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[900px] mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">내 정보</h1>
+
+        {/* ── 마이 대시보드 ── */}
+        <div className="bg-gradient-to-r from-red-600 to-rose-500 rounded-2xl p-5 mb-6 text-white">
+          <div className="flex items-center gap-4 mb-5">
+            <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-2xl font-black">
+              {profile.name ? profile.name[0].toUpperCase() : '?'}
+            </div>
+            <div>
+              <p className="font-bold text-lg">{profile.name || '사용자'}님</p>
+              <p className="text-white/70 text-sm">{profile.email || '이메일 미설정'}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-center">
+            {[
+              { label: '보유 포인트', value: '1,200P', icon: '💎' },
+              { label: '사용가능 쿠폰', value: '3장', icon: '🎟️' },
+              { label: '배송중', value: '1건', icon: '🚚' },
+              { label: '구매완료', value: '12건', icon: '✅' },
+            ].map(item => (
+              <div key={item.label} className="bg-white/15 rounded-xl py-3 px-1">
+                <div className="text-xl mb-1">{item.icon}</div>
+                <div className="font-black text-sm">{item.value}</div>
+                <div className="text-white/60 text-[10px] mt-0.5">{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── 빠른 바로가기 ── */}
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-6">
+          {[
+            { href: '/my-orders', icon: '📋', label: '주문내역' },
+            { href: '/wishlist', icon: '❤️', label: '위시리스트' },
+            { href: '/returns', icon: '🔄', label: '반품/교환' },
+            { href: '/notifications', icon: '🔔', label: '알림' },
+            { href: '/cart', icon: '🛒', label: '장바구니' },
+            { href: '/delivery', icon: '📦', label: '배송조회' },
+            { href: '/admin/coupons', icon: '🎟️', label: '쿠폰함' },
+            { href: '/seller', icon: '🏪', label: '판매자' },
+          ].map(item => (
+            <a key={item.href} href={item.href}
+              className="bg-white rounded-xl p-3 flex flex-col items-center gap-1.5 hover:shadow-md hover:border-red-200 border border-gray-100 transition-all group">
+              <span className="text-2xl group-hover:scale-110 transition-transform">{item.icon}</span>
+              <span className="text-xs font-medium text-gray-600 group-hover:text-red-600 transition-colors">{item.label}</span>
+            </a>
+          ))}
+        </div>
+
+        <h1 className="text-xl font-bold text-gray-900 mb-4">내 정보 설정</h1>
         <div className="flex gap-6 items-start">
           {/* 사이드 탭 */}
           <aside className="w-48 flex-shrink-0">
