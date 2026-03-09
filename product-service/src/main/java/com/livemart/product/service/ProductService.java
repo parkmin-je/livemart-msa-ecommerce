@@ -102,7 +102,7 @@ public class ProductService {
         return ProductResponse.from(product);
     }
 
-    // @Cacheable(value = "product-detail", key = "#productId")  // ClassCastException 발생으로 임시 비활성화
+    @Cacheable(value = "product-detail", key = "#productId")
     public ProductResponse getProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));

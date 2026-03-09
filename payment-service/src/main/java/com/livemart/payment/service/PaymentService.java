@@ -1,36 +1,39 @@
 package com.livemart.payment.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.livemart.common.event.DomainEvent;
-import com.livemart.common.event.EventPublisher;
 import com.livemart.payment.domain.*;
 import com.livemart.payment.dto.*;
+import com.livemart.payment.event.PaymentEvent;
 import com.livemart.payment.repository.*;
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Slf4j
 @Service
 public class PaymentService {
 
+    private static final String PAYMENT_TOPIC = "payment-events";
+
     private final PaymentRepository paymentRepository;
     private final PaymentEventRepository eventRepository;
-    private final EventPublisher eventPublisher;
+    private final KafkaTemplate<String, PaymentEvent> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
     public PaymentService(PaymentRepository paymentRepository,
                          PaymentEventRepository eventRepository,
-                         java.util.Optional<EventPublisher> eventPublisher,
+                         @Qualifier("paymentKafkaTemplate") KafkaTemplate<String, PaymentEvent> kafkaTemplate,
                          java.util.Optional<ObjectMapper> objectMapper) {
         this.paymentRepository = paymentRepository;
         this.eventRepository = eventRepository;
-        this.eventPublisher = eventPublisher.orElse(null);
-        this.objectMapper = objectMapper.orElse(new com.fasterxml.jackson.databind.ObjectMapper());
+        this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = objectMapper.orElse(new ObjectMapper());
     }
 
     @Transactional
@@ -52,16 +55,16 @@ public class PaymentService {
             payment = paymentRepository.save(payment);
 
             saveEvent(payment, "PAYMENT_COMPLETED");
-            publishPaymentEvent(payment, "PAYMENT_COMPLETED");
+            publishPaymentEvent(payment, PaymentEvent.EventType.PAYMENT_COMPLETED);
 
-            log.info("Payment completed: txn={}, order={}, amount={}",
+            log.info("결제 완료: txn={}, order={}, amount={}",
                     transactionId, request.getOrderNumber(), request.getAmount());
         } catch (Exception e) {
             payment.fail(e.getMessage());
             payment = paymentRepository.save(payment);
             saveEvent(payment, "PAYMENT_FAILED");
-            publishPaymentEvent(payment, "PAYMENT_FAILED");
-            log.error("Payment failed: txn={}, reason={}", transactionId, e.getMessage());
+            publishPaymentEvent(payment, PaymentEvent.EventType.PAYMENT_FAILED);
+            log.error("결제 실패: txn={}, reason={}", transactionId, e.getMessage());
         }
 
         return PaymentResponse.from(payment);
@@ -79,9 +82,10 @@ public class PaymentService {
         }
 
         payment = paymentRepository.save(payment);
-        saveEvent(payment, "PAYMENT_REFUNDED");
-        publishPaymentEvent(payment, "PAYMENT_REFUNDED");
+        saveEvent(payment, "PAYMENT_CANCELLED");
+        publishPaymentEvent(payment, PaymentEvent.EventType.PAYMENT_CANCELLED);
 
+        log.info("환불 완료: txn={}", request.getTransactionId());
         return PaymentResponse.from(payment);
     }
 
@@ -100,35 +104,41 @@ public class PaymentService {
     }
 
     private String executePayment(Payment payment, PaymentRequest.Create request) {
-        log.info("Executing payment via {}: amount={}", payment.getPaymentMethod(), payment.getAmount());
+        log.info("결제 실행 ({}): amount={}", payment.getPaymentMethod(), payment.getAmount());
+        // 실제 PG사 연동 로직 (현재는 시뮬레이션)
         return "APR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
     private void saveEvent(Payment payment, String eventType) {
         try {
-            eventRepository.save(PaymentEvent.builder()
+            eventRepository.save(com.livemart.payment.domain.PaymentEvent.builder()
                     .transactionId(payment.getTransactionId())
                     .eventType(eventType)
                     .payload(objectMapper.writeValueAsString(PaymentResponse.from(payment)))
                     .build());
         } catch (Exception e) {
-            log.error("Failed to save payment event", e);
+            log.error("결제 이벤트 DB 저장 실패", e);
         }
     }
 
-    private void publishPaymentEvent(Payment payment, String eventType) {
-        if (eventPublisher != null) {
-            eventPublisher.publish("payment-events", DomainEvent.builder()
-                    .aggregateType("Payment")
-                    .aggregateId(payment.getTransactionId())
+    private void publishPaymentEvent(Payment payment, PaymentEvent.EventType eventType) {
+        try {
+            PaymentEvent event = PaymentEvent.builder()
                     .eventType(eventType)
-                    .payload("{\"transactionId\":\"" + payment.getTransactionId() +
-                             "\",\"orderNumber\":\"" + payment.getOrderNumber() +
-                             "\",\"amount\":" + payment.getAmount() +
-                             ",\"status\":\"" + payment.getStatus() + "\"}")
-                    .build());
-        } else {
-            log.debug("EventPublisher not available, skipping event publish for: {}", eventType);
+                    .transactionId(payment.getTransactionId())
+                    .orderNumber(payment.getOrderNumber())
+                    .userId(payment.getUserId())
+                    .amount(payment.getAmount())
+                    .status(payment.getStatus())
+                    .approvalNumber(payment.getApprovalNumber())
+                    .occurredAt(LocalDateTime.now())
+                    .build();
+
+            kafkaTemplate.send(PAYMENT_TOPIC, payment.getOrderNumber(), event);
+            log.info("Kafka 이벤트 발행: topic={}, eventType={}, txn={}",
+                    PAYMENT_TOPIC, eventType, payment.getTransactionId());
+        } catch (Exception e) {
+            log.error("Kafka 이벤트 발행 실패: eventType={}", eventType, e);
         }
     }
 }

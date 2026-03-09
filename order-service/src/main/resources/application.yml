@@ -82,11 +82,16 @@ resilience4j:
         maxAttempts: 3
         waitDuration: 1000
   timelimiter:
+    configs:
+      default:
+        timeoutDuration: 30s
     instances:
       productService:
-        timeoutDuration: 5s
+        baseConfig: default
+        timeoutDuration: 30s
       paymentService:
-        timeoutDuration: 10s
+        baseConfig: default
+        timeoutDuration: 30s
 
 management:
   endpoints:
