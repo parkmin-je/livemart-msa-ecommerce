@@ -1,6 +1,7 @@
 package com.livemart.user.controller;
 
 import com.livemart.user.dto.*;
+import com.livemart.user.security.JwtTokenProvider;
 import com.livemart.user.service.EmailVerificationService;
 import com.livemart.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +33,7 @@ public class UserController {
 
     private final UserService userService;
     private final EmailVerificationService emailVerificationService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${app.cookie.secure:false}")
     private boolean cookieSecure;
@@ -84,14 +86,35 @@ public class UserController {
         ));
     }
 
-    @Operation(summary = "로그아웃 — 쿠키 삭제 + Redis 토큰 제거")
+    @Operation(summary = "로그아웃 — 쿠키 삭제 + Redis 토큰 제거 + 블랙리스트 등록")
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(Authentication authentication, HttpServletResponse response) {
+    public ResponseEntity<Void> logout(Authentication authentication,
+                                       HttpServletRequest request,
+                                       HttpServletResponse response) {
+        // access token 블랙리스트 등록 (만료 전 재사용 차단)
+        if (request.getCookies() != null) {
+            Arrays.stream(request.getCookies())
+                    .filter(c -> "access_token".equals(c.getName()))
+                    .map(Cookie::getValue)
+                    .filter(v -> v != null && !v.isBlank())
+                    .findFirst()
+                    .ifPresent(jwtTokenProvider::blacklistToken);
+        }
         if (authentication != null) {
             Long userId = (Long) authentication.getPrincipal();
             userService.logout(userId);
         }
+        // HTTP 세션 무효화 (JSESSIONID 재사용 차단)
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
         clearAuthCookies(response);
+        // JSESSIONID 쿠키도 제거
+        ResponseCookie sessionCookie = ResponseCookie.from("JSESSIONID", "")
+                .httpOnly(true).path("/").maxAge(0).build();
+        response.addHeader(HttpHeaders.SET_COOKIE, sessionCookie.toString());
         return ResponseEntity.noContent().build();
     }
 
