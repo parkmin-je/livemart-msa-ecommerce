@@ -105,6 +105,14 @@ public class JwtTokenProvider {
         redisTemplate.delete(REFRESH_TOKEN_PREFIX + userId);
     }
 
+    public long getAccessTokenExpiration() {
+        return accessTokenExpiration;
+    }
+
+    public long getRefreshTokenExpiration() {
+        return refreshTokenExpiration;
+    }
+
     private Claims parseClaims(String token) {
         return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
     }

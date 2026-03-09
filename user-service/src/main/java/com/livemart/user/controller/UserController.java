@@ -5,14 +5,22 @@ import com.livemart.user.service.EmailVerificationService;
 import com.livemart.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -25,31 +33,69 @@ public class UserController {
     private final UserService userService;
     private final EmailVerificationService emailVerificationService;
 
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
+
+    // ─── 인증 ──────────────────────────────────────────────────────
+
     @Operation(summary = "회원가입")
     @PostMapping("/signup")
     public ResponseEntity<UserResponse> signup(@Valid @RequestBody SignupRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.signup(request));
     }
 
-    @Operation(summary = "로그인")
+    @Operation(summary = "로그인 — 토큰은 httpOnly 쿠키로만 전달")
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(userService.login(request));
+    public ResponseEntity<Map<String, Object>> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletResponse response) {
+
+        LoginResult result = userService.login(request);
+        setAuthCookies(response, result);
+
+        return ResponseEntity.ok(Map.of(
+                "userId", result.getUserId(),
+                "email", result.getEmail(),
+                "name", result.getName(),
+                "role", result.getRole()
+        ));
     }
 
-    @Operation(summary = "토큰 갱신")
+    @Operation(summary = "토큰 갱신 — refresh_token 쿠키 사용")
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(userService.refresh(request));
+    public ResponseEntity<Map<String, Object>> refresh(
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        String refreshToken = resolveRefreshToken(request);
+        if (refreshToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Refresh token not found"));
+        }
+
+        LoginResult result = userService.refresh(refreshToken);
+        setAuthCookies(response, result);
+
+        return ResponseEntity.ok(Map.of(
+                "userId", result.getUserId(),
+                "email", result.getEmail(),
+                "name", result.getName(),
+                "role", result.getRole()
+        ));
     }
 
-    @Operation(summary = "로그아웃")
+    @Operation(summary = "로그아웃 — 쿠키 삭제 + Redis 토큰 제거")
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
-        userService.logout(userId);
+    public ResponseEntity<Void> logout(Authentication authentication, HttpServletResponse response) {
+        if (authentication != null) {
+            Long userId = (Long) authentication.getPrincipal();
+            userService.logout(userId);
+        }
+        clearAuthCookies(response);
         return ResponseEntity.noContent().build();
     }
+
+    // ─── 내 정보 ──────────────────────────────────────────────────
 
     @Operation(summary = "내 정보 조회")
     @GetMapping("/me")
@@ -145,5 +191,59 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("verified", false, "message", "인증 코드가 올바르지 않거나 만료되었습니다"));
         }
+    }
+
+    // ─── 쿠키 헬퍼 ───────────────────────────────────────────────
+
+    private void setAuthCookies(HttpServletResponse response, LoginResult result) {
+        ResponseCookie accessCookie = ResponseCookie.from("access_token", result.getAccessToken())
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ofMillis(result.getAccessTokenExpiry()))
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", result.getRefreshToken())
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("Lax")
+                .path("/api/users/refresh")
+                .maxAge(Duration.ofMillis(result.getRefreshTokenExpiry()))
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+    }
+
+    private void clearAuthCookies(HttpServletResponse response) {
+        ResponseCookie accessCookie = ResponseCookie.from("access_token", "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("Lax")
+                .path("/api/users/refresh")
+                .maxAge(0)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+    }
+
+    private String resolveRefreshToken(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+        return Arrays.stream(request.getCookies())
+                .filter(c -> "refresh_token".equals(c.getName()))
+                .map(Cookie::getValue)
+                .filter(v -> v != null && !v.isBlank())
+                .findFirst()
+                .orElse(null);
     }
 }

@@ -116,6 +116,11 @@ jwt:
 oauth2:
   redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3002/auth/callback}
 
+# 쿠키 보안 설정 (개발: false, 프로덕션 HTTPS: true)
+app:
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+
 management:
   endpoints:
     web:
