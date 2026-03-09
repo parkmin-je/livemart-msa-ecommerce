@@ -85,7 +85,7 @@ spring:
           predicates:
             - Path=/api/payments/**
           filters:
-            - RewritePath=/api/payments/(?<segment>.*), /api/payments/${segment}
+            - RewritePath=/api/payments/(?<segment>.*), /api/v1/payments/${segment}
 
         # Inventory Service (미구현 - 라우팅만 유지)
         - id: inventory-service
@@ -132,6 +132,9 @@ spring:
               - Content-Type
               - X-API-Key
               - X-Requested-With
+              - Cookie
+            exposedHeaders:
+              - Set-Cookie
             allowCredentials: true
             maxAge: 3600
 
