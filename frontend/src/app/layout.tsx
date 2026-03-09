@@ -1,13 +1,17 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Noto_Sans_KR } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-const inter = Inter({ subsets: ['latin'] });
+const notoSansKR = Noto_Sans_KR({
+  subsets: ['latin'],
+  weight: ['400', '500', '700', '900'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: 'LiveMart - 엔터프라이즈 MSA E-Commerce',
-  description: '완전한 프로덕션 레벨의 마이크로서비스 기반 전자상거래 플랫폼',
+  title: 'LiveMart — 최저가 쇼핑몰 | 로켓배송',
+  description: '인기 상품을 최저가로! 오늘 주문하면 내일 도착하는 빠른 배송 서비스',
 };
 
 export default function RootLayout({
@@ -17,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className={inter.className}>
+      <body className={notoSansKR.className}>
         <Providers>{children}</Providers>
       </body>
     </html>

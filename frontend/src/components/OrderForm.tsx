@@ -57,7 +57,6 @@ export function OrderForm() {
     setLoading(true);
     try {
       const userId = localStorage.getItem('userId');
-      const token = localStorage.getItem('token');
 
       const orderPayload = {
         userId: userId ? Number(userId) : 1,
@@ -73,7 +72,8 @@ export function OrderForm() {
 
       const orderRes = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderPayload),
       });
 
@@ -85,7 +85,8 @@ export function OrderForm() {
       try {
         await fetch('/api/v1/payments', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ orderId, amount: total, paymentMethod }),
         });
       } catch { /* 결제 실패해도 주문은 완료 */ }

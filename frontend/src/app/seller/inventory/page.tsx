@@ -55,17 +55,16 @@ export default function SellerInventoryPage() {
 
   const handleStockUpdate = async (productId: number, quantity: number) => {
     try {
-      const token = localStorage.getItem('token') || '';
       const res = await fetch(`${API_BASE}/api/products/${productId}/stock`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stockQuantity: quantity }),
       });
       if (!res.ok) {
         // Try alternative endpoint
         await fetch(`${API_BASE}/api/products/${productId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          credentials: 'include', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ stockQuantity: quantity }),
         });
       }
@@ -104,7 +103,7 @@ export default function SellerInventoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
