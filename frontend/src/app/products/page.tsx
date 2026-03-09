@@ -19,7 +19,7 @@ export default function ProductsPage() {
   const [selectedCat, setSelectedCat] = useState<number | undefined>(undefined);
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-5">
         <div className="flex gap-6 items-start">

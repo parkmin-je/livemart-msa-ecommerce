@@ -31,11 +31,10 @@ export default function ReturnsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
-    fetch(`/api/returns?userId=${userId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    fetch(`/api/returns?userId=${userId}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setReturns(d.content || d || []))
       .catch(() => {})
@@ -49,7 +48,7 @@ export default function ReturnsPage() {
     try {
       const res = await fetch('/api/returns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId: Number(form.orderId), reason: `${form.reason}: ${form.detail}`, userId: Number(userId) }),
       });
       if (!res.ok) throw new Error('신청 실패');
@@ -57,7 +56,7 @@ export default function ReturnsPage() {
       setTab('list');
       setForm({ orderId: '', reason: REASONS[0], detail: '' });
       // 목록 새로고침
-      const d = await fetch(`/api/returns?userId=${userId}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).then(r => r.json());
+      const d = await fetch(`/api/returns?userId=${userId}`, { credentials: 'include' }).then(r => r.json());
       setReturns(d.content || d || []);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : '오류 발생');
@@ -66,7 +65,7 @@ export default function ReturnsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[700px] mx-auto px-4 py-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">반품/교환</h1>

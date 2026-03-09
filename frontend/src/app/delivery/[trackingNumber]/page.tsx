@@ -30,10 +30,9 @@ export default function DeliveryPage() {
   const router = useRouter();
   const [info, setInfo] = useState<DeliveryInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
-    fetch(`/api/delivery/${trackingNumber}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    fetch(`/api/delivery/${trackingNumber}`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then(d => setInfo(d))
       .catch(() => setInfo(null))
@@ -48,7 +47,7 @@ export default function DeliveryPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[700px] mx-auto px-4 py-6">
         <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-red-600 mb-4 flex items-center gap-1 transition-colors">

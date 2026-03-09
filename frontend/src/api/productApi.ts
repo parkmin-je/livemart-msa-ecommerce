@@ -5,30 +5,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
+  withCredentials: true,  // httpOnly 쿠키 자동 전송
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-// Request Interceptor (API Key, JWT 추가)
-apiClient.interceptors.request.use(
-  (config) => {
-    // API Key 추가
-    const apiKey = localStorage.getItem('apiKey');
-    if (apiKey) {
-      config.headers['X-API-Key'] = apiKey;
-    }
-
-    // JWT 추가
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
 
 // Response Interceptor (에러 처리)
 apiClient.interceptors.response.use(
@@ -36,7 +17,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // 인증 실패 시 로그인 페이지로 리다이렉트
-      window.location.href = '/login';
+      window.location.href = '/auth';
     }
     return Promise.reject(error);
   }
@@ -155,11 +136,9 @@ export const authApi = {
     return response.data;
   },
 
-  // 토큰 갱신
-  refresh: async (refreshToken: string) => {
-    const response = await apiClient.post('/api/users/refresh', {
-      refreshToken,
-    });
+  // 토큰 갱신 (refresh_token 쿠키 자동 전송)
+  refresh: async () => {
+    const response = await apiClient.post('/api/users/refresh');
     return response.data;
   },
 

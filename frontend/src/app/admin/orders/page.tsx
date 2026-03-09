@@ -43,7 +43,7 @@ export default function AdminOrdersPage() {
         ? `${API_BASE}/api/orders/status/${statusFilter}?page=${page}&size=20`
         : `${API_BASE}/api/orders/user/1?page=${page}&size=20`;
       const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+        credentials: 'include',
       });
       const data = await res.json();
       setOrders(data.content || []);
@@ -64,7 +64,7 @@ export default function AdminOrdersPage() {
         : `${API_BASE}/api/orders/${orderId}/${action}`;
       await fetch(url, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+        credentials: 'include',
       });
       fetchOrders();
     } catch {
@@ -78,7 +78,7 @@ export default function AdminOrdersPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
