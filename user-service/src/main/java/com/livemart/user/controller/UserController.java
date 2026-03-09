@@ -104,7 +104,17 @@ public class UserController {
             Long userId = (Long) authentication.getPrincipal();
             userService.logout(userId);
         }
+        // HTTP 세션 무효화 (JSESSIONID 재사용 차단)
+        jakarta.servlet.http.HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
         clearAuthCookies(response);
+        // JSESSIONID 쿠키도 제거
+        ResponseCookie sessionCookie = ResponseCookie.from("JSESSIONID", "")
+                .httpOnly(true).path("/").maxAge(0).build();
+        response.addHeader(HttpHeaders.SET_COOKIE, sessionCookie.toString());
         return ResponseEntity.noContent().build();
     }
 
