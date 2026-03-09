@@ -45,7 +45,11 @@ public class UserService {
         return UserResponse.from(savedUser);
     }
 
-    public TokenResponse login(LoginRequest request) {
+    /**
+     * 로그인 — 토큰은 httpOnly 쿠키로만 전달하므로 LoginResult에 포함하지만
+     * Controller에서 쿠키에만 설정하고 body에는 사용자 정보만 반환
+     */
+    public LoginResult login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다"));
 
@@ -62,17 +66,22 @@ public class UserService {
 
         log.info("User logged in: userId={}, role={}", user.getId(), user.getRole());
 
-        return TokenResponse.builder()
+        return LoginResult.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(86400L)
+                .accessTokenExpiry(jwtTokenProvider.getAccessTokenExpiration())
+                .refreshTokenExpiry(jwtTokenProvider.getRefreshTokenExpiration())
+                .userId(user.getId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .role(user.getRole().name())
                 .build();
     }
 
-    public TokenResponse refresh(RefreshTokenRequest request) {
-        String refreshToken = request.getRefreshToken();
-
+    /**
+     * 리프레시 토큰으로 새 토큰 발급 — 쿠키에서 읽어 문자열로 전달
+     */
+    public LoginResult refresh(String refreshToken) {
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다");
         }
@@ -91,11 +100,15 @@ public class UserService {
 
         log.info("Token refreshed: userId={}", userId);
 
-        return TokenResponse.builder()
+        return LoginResult.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
-                .tokenType("Bearer")
-                .expiresIn(86400L)
+                .accessTokenExpiry(jwtTokenProvider.getAccessTokenExpiration())
+                .refreshTokenExpiry(jwtTokenProvider.getRefreshTokenExpiration())
+                .userId(user.getId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .role(user.getRole().name())
                 .build();
     }
 

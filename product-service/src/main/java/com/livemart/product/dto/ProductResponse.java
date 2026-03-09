@@ -1,10 +1,12 @@
 package com.livemart.product.dto;
 
+import com.livemart.product.document.ProductDocument;
 import com.livemart.product.domain.Product;
 import com.livemart.product.domain.ProductStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,6 +14,7 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class ProductResponse {
 
     private Long id;
@@ -26,6 +29,27 @@ public class ProductResponse {
     private Long sellerId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public static ProductResponse from(ProductDocument doc) {
+        ProductStatus status = null;
+        try {
+            if (doc.getStatus() != null) {
+                status = ProductStatus.valueOf(doc.getStatus());
+            }
+        } catch (IllegalArgumentException ignored) {}
+
+        return ProductResponse.builder()
+                .id(doc.getId() != null ? Long.parseLong(doc.getId()) : null)
+                .name(doc.getName())
+                .description(doc.getDescription())
+                .price(doc.getPrice())
+                .stockQuantity(doc.getStockQuantity())
+                .categoryName(doc.getCategoryName())
+                .status(status)
+                .imageUrl(doc.getImageUrl())
+                .sellerId(doc.getSellerId())
+                .build();
+    }
 
     public static ProductResponse from(Product product) {
         return ProductResponse.builder()

@@ -6,6 +6,7 @@ import { productApi, reviewApi } from '@/api/productApi';
 import { useCartStore } from '@/store/cartStore';
 import { GlobalNav } from '@/components/GlobalNav';
 import { CartSummary } from '@/components/CartSummary';
+import { ProductCard } from '@/components/ProductCard';
 import toast from 'react-hot-toast';
 
 interface Product {
@@ -52,6 +53,29 @@ function Stars({ rating, size = 'sm', interactive = false, onRate }: {
   );
 }
 
+// Generate gallery images from product imageUrl + picsum variants
+function getGalleryImages(imageUrl: string | undefined, productId: number): string[] {
+  const images: string[] = [];
+  if (imageUrl) images.push(imageUrl);
+  // Add 3 picsum variant images
+  [productId * 7 + 1, productId * 11 + 3, productId * 13 + 7].forEach(seed => {
+    images.push(`https://picsum.photos/seed/${seed}/600/600`);
+  });
+  return images;
+}
+
+// Save to recently viewed
+function saveRecentlyViewed(product: Product) {
+  try {
+    const stored = localStorage.getItem('recentlyViewed');
+    const list: Pick<Product, 'id' | 'name' | 'price' | 'imageUrl'>[] = stored ? JSON.parse(stored) : [];
+    const filtered = list.filter(p => p.id !== product.id);
+    const entry = { id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl };
+    filtered.unshift(entry);
+    localStorage.setItem('recentlyViewed', JSON.stringify(filtered.slice(0, 20)));
+  } catch {}
+}
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -61,20 +85,32 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description'|'reviews'>('description');
-  const [imageError, setImageError] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', content: '' });
   const [submitting, setSubmitting] = useState(false);
   const [wished, setWished] = useState(false);
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   const discountRate = [0,0,5,10,10,15,15,20,20,25,30,0,10,15][productId % 14];
 
   useEffect(() => {
     Promise.all([
-      productApi.getProduct(productId).then(setProduct).catch(()=>null),
+      productApi.getProduct(productId).then(p => {
+        setProduct(p);
+        const imgs = getGalleryImages(p.imageUrl, productId);
+        setGalleryImages(imgs);
+        saveRecentlyViewed(p);
+        // Load related products by category
+        return productApi.getProducts({ page: 0, size: 12 }).then(data => {
+          const related = (data.content || []).filter((r: Product) => r.id !== productId && r.categoryId === p.categoryId).slice(0, 8);
+          setRelatedProducts(related.length > 0 ? related : (data.content || []).filter((r: Product) => r.id !== productId).slice(0, 8));
+        }).catch(() => null);
+      }).catch(()=>null),
       reviewApi.getReviews(productId).then(d=>setReviews(d.content||[])).catch(()=>null),
       reviewApi.getReviewSummary(productId).then(setSummary).catch(()=>null),
     ]).finally(()=>setLoading(false));
@@ -129,7 +165,7 @@ export default function ProductDetailPage() {
   const reviewCount = summary?.totalCount || 0;
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-5">
         {/* 브레드크럼 */}
@@ -146,12 +182,44 @@ export default function ProductDetailPage() {
 
         {/* 상품 메인 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-2xl overflow-hidden aspect-square shadow-sm border border-gray-100">
-            {product.imageUrl && !imageError ? (
-              <img src={product.imageUrl} alt={product.name} onError={()=>setImageError(true)}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"/>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-9xl bg-gradient-to-br from-gray-50 to-gray-100">📦</div>
+          {/* 이미지 갤러리 */}
+          <div className="flex flex-col gap-3">
+            <div className="bg-white rounded-2xl overflow-hidden aspect-square shadow-sm border border-gray-100 relative group">
+              {galleryImages.length > 0 ? (
+                <img src={galleryImages[selectedImageIdx]} alt={product.name}
+                  className="w-full h-full object-cover transition-all duration-300"
+                  onError={(e) => {
+                    const t = e.target as HTMLImageElement;
+                    if (selectedImageIdx === 0 && product.imageUrl) {
+                      // skip
+                    } else {
+                      t.style.display = 'none';
+                    }
+                  }}/>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-9xl bg-gradient-to-br from-gray-50 to-gray-100">📦</div>
+              )}
+              {/* 좌우 화살표 */}
+              {galleryImages.length > 1 && (
+                <>
+                  <button onClick={() => setSelectedImageIdx(i => (i - 1 + galleryImages.length) % galleryImages.length)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-gray-700 text-xl">‹</button>
+                  <button onClick={() => setSelectedImageIdx(i => (i + 1) % galleryImages.length)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-gray-700 text-xl">›</button>
+                </>
+              )}
+            </div>
+            {/* 썸네일 */}
+            {galleryImages.length > 1 && (
+              <div className="flex gap-2">
+                {galleryImages.map((img, i) => (
+                  <button key={i} onClick={() => setSelectedImageIdx(i)}
+                    className={`flex-1 aspect-square rounded-xl overflow-hidden border-2 transition-all ${selectedImageIdx === i ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <img src={img} alt={`${product.name} ${i+1}`} className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}/>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
@@ -325,6 +393,29 @@ export default function ProductDetailPage() {
             )}
           </div>
         </div>
+
+        {/* 연관 상품 */}
+        {relatedProducts.length > 0 && (
+          <section className="bg-white rounded-2xl p-6 mt-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">함께 보면 좋은 상품</h2>
+                <p className="text-sm text-gray-500 mt-0.5">같은 카테고리의 인기 상품</p>
+              </div>
+              <a href="/products" className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors flex items-center gap-1">
+                전체보기
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {relatedProducts.map((p: Product) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
       <CartSummary/>
     </main>

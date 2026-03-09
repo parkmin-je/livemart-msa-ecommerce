@@ -42,8 +42,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch(`/api/orders/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    fetch(`/api/orders/${id}`, { credentials: 'include' })
       .then(r => r.json())
       .then(setOrder)
       .catch(() => setOrder(null))
@@ -51,7 +50,7 @@ export default function OrderDetailPage() {
   }, [id]);
 
   if (loading) return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-6 space-y-4">
         {[1,2,3].map(i => <div key={i} className="bg-white rounded-xl h-32 animate-pulse border border-gray-100"/>)}
@@ -60,7 +59,7 @@ export default function OrderDetailPage() {
   );
 
   if (!order) return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-16 text-center">
         <div className="text-5xl mb-4">❌</div>
@@ -74,7 +73,7 @@ export default function OrderDetailPage() {
   const isActive = !['CANCELLED', 'RETURN_REQUESTED'].includes(order.status);
 
   return (
-    <main className="min-h-screen bg-gray-100">
+    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
       <GlobalNav />
       <div className="max-w-[900px] mx-auto px-4 py-6 space-y-4">
         {/* 헤더 */}

@@ -3,6 +3,8 @@ package com.livemart.product.controller;
 import com.livemart.product.dto.ProductCreateRequest;
 import com.livemart.product.dto.ProductResponse;
 import com.livemart.product.dto.ProductUpdateRequest;
+import com.livemart.product.search.AdvancedSearchService;
+import com.livemart.product.search.SearchCriteria;
 import com.livemart.product.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,6 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Product API", description = "상품 관리 API")
 @RestController
@@ -22,6 +27,7 @@ import jakarta.validation.Valid;
 public class ProductController {
 
     private final ProductService productService;
+    private final AdvancedSearchService advancedSearchService;
 
     @Operation(summary = "상품 등록", description = "새로운 상품을 등록합니다")
     @PostMapping
@@ -93,5 +99,67 @@ public class ProductController {
             @Parameter(description = "재고 수량") @RequestParam("stockQuantity") Integer stockQuantity) {
         productService.updateStock(id, stockQuantity);
         return ResponseEntity.ok().build();
+    }
+
+    // ── Elasticsearch 고급 검색 엔드포인트 ──────────────────────────────
+
+    @Operation(summary = "퍼지 검색", description = "오타를 허용하는 Elasticsearch 퍼지 검색")
+    @GetMapping("/search/fuzzy")
+    public ResponseEntity<List<ProductResponse>> fuzzySearch(
+            @Parameter(description = "검색 키워드") @RequestParam String keyword,
+            @Parameter(description = "오타 허용 범위 (0~2)") @RequestParam(defaultValue = "1") int fuzziness) {
+        return ResponseEntity.ok(advancedSearchService.fuzzySearch(keyword, fuzziness));
+    }
+
+    @Operation(summary = "고급 필터 검색", description = "가격 범위, 카테고리, 재고 여부로 필터링하는 Elasticsearch 검색")
+    @GetMapping("/search/advanced")
+    public ResponseEntity<List<ProductResponse>> advancedSearch(
+            @Parameter(description = "검색 키워드") @RequestParam(required = false) String keyword,
+            @Parameter(description = "최소 가격") @RequestParam(required = false) BigDecimal minPrice,
+            @Parameter(description = "최대 가격") @RequestParam(required = false) BigDecimal maxPrice,
+            @Parameter(description = "카테고리 ID") @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "재고 있는 상품만") @RequestParam(defaultValue = "false") boolean inStockOnly,
+            @Parameter(description = "정렬 기준 (price, stockQuantity)") @RequestParam(defaultValue = "_score") String sortBy,
+            @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size) {
+        SearchCriteria criteria = SearchCriteria.builder()
+                .keyword(keyword)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .categoryId(categoryId)
+                .inStockOnly(inStockOnly)
+                .sortBy(sortBy)
+                .page(page)
+                .size(size)
+                .build();
+        return ResponseEntity.ok(advancedSearchService.advancedSearch(criteria));
+    }
+
+    @Operation(summary = "검색어 자동완성", description = "prefix 기반 Elasticsearch 자동완성")
+    @GetMapping("/search/autocomplete")
+    public ResponseEntity<List<String>> autocomplete(
+            @Parameter(description = "검색어 prefix") @RequestParam String prefix) {
+        return ResponseEntity.ok(advancedSearchService.autocomplete(prefix));
+    }
+
+    @Operation(summary = "유사 상품 추천", description = "특정 상품과 유사한 상품 목록 (More Like This)")
+    @GetMapping("/{id}/related")
+    public ResponseEntity<List<ProductResponse>> getRelatedProducts(
+            @Parameter(description = "상품 ID") @PathVariable Long id,
+            @Parameter(description = "추천 수") @RequestParam(defaultValue = "6") int size) {
+        return ResponseEntity.ok(advancedSearchService.getRelatedProducts(id, size));
+    }
+
+    @Operation(summary = "검색 통계", description = "카테고리별 상품 수, 가격 통계 (Elasticsearch Aggregation)")
+    @GetMapping("/search/aggregations")
+    public ResponseEntity<Map<String, Object>> getAggregations() {
+        return ResponseEntity.ok(advancedSearchService.getAggregations());
+    }
+
+    @Operation(summary = "ES 재인덱싱", description = "DB의 모든 상품을 Elasticsearch에 재인덱싱합니다 (관리자용)")
+    @PostMapping("/search/reindex")
+    public ResponseEntity<Map<String, Object>> reindex() {
+        int count = productService.reindexAllProducts();
+        return ResponseEntity.ok(Map.of("indexed", count, "message", "재인덱싱 완료"));
     }
 }

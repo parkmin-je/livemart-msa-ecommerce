@@ -11,10 +11,9 @@ function CallbackContent() {
   const [message, setMessage] = useState('소셜 로그인 처리 중...');
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const refreshToken = searchParams.get('refreshToken');
     const userId = searchParams.get('userId');
     const name = searchParams.get('name');
+    const role = searchParams.get('role') || 'USER';
     const error = searchParams.get('error');
 
     if (error) {
@@ -28,19 +27,11 @@ function CallbackContent() {
       return;
     }
 
-    if (token && userId) {
-      localStorage.setItem('token', token);
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    if (userId) {
+      // 토큰은 httpOnly 쿠키로 이미 설정됨 — 비민감 정보만 localStorage에 저장
       localStorage.setItem('userId', userId);
       if (name) localStorage.setItem('userName', decodeURIComponent(name));
-
-      // JWT payload에서 role 추출 후 저장 (관리자 메뉴 표시 용도)
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        localStorage.setItem('userRole', payload.role || 'USER');
-      } catch {
-        localStorage.setItem('userRole', 'USER');
-      }
+      localStorage.setItem('userRole', role);
 
       const needOnboarding = searchParams.get('needOnboarding') === 'true';
 
@@ -60,7 +51,7 @@ function CallbackContent() {
       }
     } else {
       setStatus('error');
-      setMessage('토큰 정보가 없습니다. 다시 시도해주세요.');
+      setMessage('로그인 정보가 없습니다. 다시 시도해주세요.');
       setTimeout(() => router.push('/auth'), 2500);
     }
   }, []);
