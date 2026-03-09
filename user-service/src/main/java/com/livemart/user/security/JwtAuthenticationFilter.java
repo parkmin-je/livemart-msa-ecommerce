@@ -30,7 +30,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String token = resolveToken(request);
 
-        if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+        if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)
+                && !jwtTokenProvider.isBlacklisted(token)) {
             Long userId = jwtTokenProvider.getUserIdFromToken(token);
             String role = jwtTokenProvider.getRoleFromToken(token);
 
@@ -54,12 +55,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private String resolveToken(HttpServletRequest request) {
         // 1. httpOnly 쿠키에서 추출 (XSS 안전)
         if (request.getCookies() != null) {
-            return Arrays.stream(request.getCookies())
+            String fromCookie = Arrays.stream(request.getCookies())
                     .filter(c -> "access_token".equals(c.getName()))
                     .map(Cookie::getValue)
                     .filter(StringUtils::hasText)
                     .findFirst()
                     .orElse(null);
+            if (fromCookie != null) return fromCookie;
         }
 
         // 2. Authorization 헤더 폴백 (Swagger, 외부 API 클라이언트)
