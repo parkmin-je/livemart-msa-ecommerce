@@ -21,6 +21,7 @@ public class JwtTokenProvider {
     private final StringRedisTemplate redisTemplate;
 
     private static final String REFRESH_TOKEN_PREFIX = "RT:";
+    private static final String BLACKLIST_PREFIX     = "BL:";
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
@@ -103,6 +104,29 @@ public class JwtTokenProvider {
 
     public void deleteRefreshToken(Long userId) {
         redisTemplate.delete(REFRESH_TOKEN_PREFIX + userId);
+    }
+
+    /** 로그아웃된 access token을 Redis 블랙리스트에 등록 (남은 TTL 동안 유지) */
+    public void blacklistToken(String token) {
+        try {
+            Date expiry = parseClaims(token).getExpiration();
+            long remaining = expiry.getTime() - System.currentTimeMillis();
+            if (remaining > 0) {
+                redisTemplate.opsForValue().set(
+                        BLACKLIST_PREFIX + token,
+                        "logout",
+                        remaining,
+                        TimeUnit.MILLISECONDS
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Failed to blacklist token: {}", e.getMessage());
+        }
+    }
+
+    /** 블랙리스트 여부 확인 */
+    public boolean isBlacklisted(String token) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + token));
     }
 
     public long getAccessTokenExpiration() {
