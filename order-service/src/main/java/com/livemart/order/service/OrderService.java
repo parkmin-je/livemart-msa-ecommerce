@@ -10,6 +10,7 @@ import com.livemart.order.dto.*;
 import com.livemart.order.event.OrderEvent;
 import com.livemart.common.event.DomainEvent;
 import com.livemart.common.event.EventPublisher;
+import com.livemart.common.exception.BusinessException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -72,7 +73,7 @@ public class OrderService {
             ProductInfo product = productFeignClient.getProductWithLock(itemRequest.getProductId());
 
             if (product.getStockQuantity() < itemRequest.getQuantity()) {
-                throw new RuntimeException("재고가 부족합니다: " + product.getName());
+                throw BusinessException.insufficientStock(product.getId());
             }
 
             BigDecimal itemTotal = product.getPrice().multiply(new BigDecimal(itemRequest.getQuantity()));
@@ -118,7 +119,7 @@ public class OrderService {
         } catch (Exception e) {
             log.error("Failed to update stock. Rolling back order: {}", orderNumber, e);
             orderRepository.delete(order);
-            throw new RuntimeException("재고 업데이트 실패. 주문이 취소되었습니다.");
+            throw BusinessException.conflict("재고 업데이트 실패. 주문이 취소되었습니다.");
         }
 
         // 4. 결제 처리
@@ -142,7 +143,7 @@ public class OrderService {
         } catch (Exception e) {
             log.error("결제 실패. 주문 롤백: {}", order.getOrderNumber(), e);
             orderRepository.delete(order);
-            throw new RuntimeException("결제 처리 실패");
+            throw BusinessException.paymentFailed("결제 처리 실패: " + e.getMessage());
         }
 
         // 5. 주문 이벤트 발행
@@ -154,7 +155,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public OrderResponse getOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
+                .orElseThrow(() -> BusinessException.notFound("Order", orderId));
         return toResponse(order);
     }
 
@@ -252,7 +253,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public OrderResponse getOrderByOrderNumber(String orderNumber) {
         Order order = orderRepository.findByOrderNumber(orderNumber)
-                .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
+                .orElseThrow(() -> BusinessException.notFound("Order", orderNumber));
         return toResponse(order);
     }
 
@@ -271,7 +272,7 @@ public class OrderService {
     @Transactional
     public OrderResponse confirmOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
+                .orElseThrow(() -> BusinessException.notFound("Order", orderId));
         order.confirm();
         publishOrderEvent(order, OrderEvent.EventType.ORDER_CONFIRMED, null);
         return toResponse(order);
@@ -280,7 +281,7 @@ public class OrderService {
     @Transactional
     public OrderResponse shipOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
+                .orElseThrow(() -> BusinessException.notFound("Order", orderId));
         order.ship();
         publishOrderEvent(order, OrderEvent.EventType.ORDER_SHIPPED, null);
         return toResponse(order);
@@ -289,7 +290,7 @@ public class OrderService {
     @Transactional
     public OrderResponse deliverOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
+                .orElseThrow(() -> BusinessException.notFound("Order", orderId));
         order.deliver();
         publishOrderEvent(order, OrderEvent.EventType.ORDER_DELIVERED, null);
         return toResponse(order);
@@ -300,14 +301,14 @@ public class OrderService {
         log.info("Cancelling order: orderId={}, reason={}", orderId, reason);
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("주문을 찾을 수 없습니다."));
-
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
-            throw new RuntimeException("취소할 수 없는 주문 상태입니다: " + order.getStatus());
-        }
+                .orElseThrow(() -> BusinessException.notFound("Order", orderId));
 
         if (order.getStatus() == OrderStatus.CANCELLED) {
-            throw new RuntimeException("이미 취소된 주문입니다.");
+            throw BusinessException.conflict("이미 취소된 주문입니다.");
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CONFIRMED) {
+            throw BusinessException.conflict("취소할 수 없는 주문 상태입니다: " + order.getStatus());
         }
 
         try {
@@ -326,9 +327,11 @@ public class OrderService {
             log.info("Order cancelled successfully: orderId={}, orderNumber={}", orderId, order.getOrderNumber());
             return toResponse(order);
 
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to cancel order: orderId={}", orderId, e);
-            throw new RuntimeException("주문 취소에 실패했습니다: " + e.getMessage());
+            throw BusinessException.conflict("주문 취소에 실패했습니다: " + e.getMessage());
         }
     }
 }

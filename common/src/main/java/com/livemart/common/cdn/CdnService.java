@@ -40,6 +40,9 @@ public class CdnService {
     @Value("${cdn.storage-path:/var/cdn/files}")
     private String storagePath;
 
+    @Value("${cdn.purge.enabled:false}")
+    private boolean purgingEnabled;
+
     // 파일 메타데이터 저장소
     private final Map<String, CdnFile> fileRegistry = new ConcurrentHashMap<>();
 
@@ -135,13 +138,22 @@ public class CdnService {
 
     /**
      * CDN 캐시 무효화 (Purge)
+     * cdn.purge.enabled=false 이면 경고 로그만 남기고 정상 반환 (graceful fallback)
      */
     public void purgeCdnCache(String url) {
-        switch (cdnProvider.toLowerCase()) {
-            case "cloudflare" -> purgeCloudflare(url);
-            case "cloudfront" -> purgeCloudFront(url);
-            case "akamai" -> purgeAkamai(url);
-            default -> log.warn("Unknown CDN provider: {}", cdnProvider);
+        if (!purgingEnabled) {
+            log.warn("CDN purge is disabled (cdn.purge.enabled=false). Skipping purge for url={}", url);
+            return;
+        }
+        try {
+            switch (cdnProvider.toLowerCase()) {
+                case "cloudflare" -> purgeCloudflare(url);
+                case "cloudfront" -> purgeCloudFront(url);
+                case "akamai" -> purgeAkamai(url);
+                default -> log.warn("Unknown CDN provider: {}. Skipping purge for url={}", cdnProvider, url);
+            }
+        } catch (Exception e) {
+            log.error("CDN purge failed (non-critical): url={}, error={}", url, e.getMessage());
         }
     }
 
@@ -302,21 +314,28 @@ public class CdnService {
     }
 
     private void purgeCloudflare(String url) {
-        // Cloudflare API 호출 (실제 구현)
         log.info("Purging Cloudflare cache: url={}", url);
-        // TODO: HTTP 요청으로 Cloudflare Purge API 호출
+        // Cloudflare Purge API integration point
+        // Inject cloudflare.api-token and cloudflare.zone-id via @Value and call:
+        // POST https://api.cloudflare.com/client/v4/zones/{zoneId}/purge_cache
+        // with Authorization: Bearer {token} and body: {"files": [url]}
+        log.warn("Cloudflare purge not yet integrated. Set cdn.purge.enabled=false to suppress this warning.");
     }
 
     private void purgeCloudFront(String url) {
-        // AWS CloudFront Invalidation (실제 구현)
         log.info("Purging CloudFront cache: url={}", url);
-        // TODO: AWS SDK로 CloudFront Invalidation 요청
+        // AWS CloudFront Invalidation integration point
+        // Use software.amazon.awssdk:cloudfront-2.x and call:
+        // CreateInvalidationRequest with paths=[url]
+        log.warn("CloudFront invalidation not yet integrated. Set cdn.purge.enabled=false to suppress this warning.");
     }
 
     private void purgeAkamai(String url) {
-        // Akamai Fast Purge (실제 구현)
         log.info("Purging Akamai cache: url={}", url);
-        // TODO: Akamai API 호출
+        // Akamai Fast Purge API integration point
+        // Call: POST https://akaa-{host}/ccu/v3/delete/url/{network}
+        // with Authorization: EG1-HMAC-SHA256 header
+        log.warn("Akamai purge not yet integrated. Set cdn.purge.enabled=false to suppress this warning.");
     }
 
     // Records

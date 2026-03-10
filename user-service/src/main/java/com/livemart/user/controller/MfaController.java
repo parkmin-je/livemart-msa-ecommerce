@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -20,6 +21,7 @@ public class MfaController {
 
     private final MfaService mfaService;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * MFA 설정 시작
@@ -70,6 +72,7 @@ public class MfaController {
 
     /**
      * MFA 비활성화
+     * 보안: 현재 비밀번호 + TOTP 코드 이중 검증 필수
      */
     @PostMapping("/disable")
     public ResponseEntity<MfaDisableResponse> disableMfa(
@@ -85,10 +88,15 @@ public class MfaController {
             return ResponseEntity.badRequest().build();
         }
 
-        // 현재 비밀번호 검증 (보안)
-        // TODO: PasswordEncoder로 검증
+        // 현재 비밀번호 검증 (계정 탈취 방지)
+        if (request.currentPassword() == null || request.currentPassword().isBlank()) {
+            return ResponseEntity.ok(new MfaDisableResponse(false, "Current password is required"));
+        }
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            return ResponseEntity.ok(new MfaDisableResponse(false, "Invalid password"));
+        }
 
-        // 코드 검증
+        // TOTP 코드 검증
         boolean isValid = mfaService.verifyCode(user.getMfaSecretKey(), request.verificationCode());
 
         if (!isValid) {
@@ -197,6 +205,7 @@ public class MfaController {
     ) {}
 
     public record MfaDisableRequest(
+        String currentPassword,
         String verificationCode
     ) {}
 

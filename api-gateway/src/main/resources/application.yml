@@ -180,7 +180,7 @@ management:
   # Distributed Tracing (OTLP → Zipkin/Jaeger)
   tracing:
     sampling:
-      probability: 1.0
+      probability: 0.1
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://zipkin:9411/api/v2/spans}

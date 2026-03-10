@@ -1,7 +1,9 @@
 package com.livemart.order.batch;
 
+import com.livemart.order.domain.DailySettlement;
 import com.livemart.order.domain.Order;
 import com.livemart.order.domain.OrderStatus;
+import com.livemart.order.repository.DailySettlementRepository;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -42,6 +45,7 @@ public class DailySettlementJobConfig {
     private final EntityManagerFactory entityManagerFactory;
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
+    private final DailySettlementRepository dailySettlementRepository;
 
     @Bean
     public Job dailySettlementJob() {
@@ -106,6 +110,7 @@ public class DailySettlementJobConfig {
     public ItemWriter<DailySettlementDto> settlementWriter() {
         AtomicInteger orderCount = new AtomicInteger(0);
         AtomicReference<BigDecimal> totalRevenue = new AtomicReference<>(BigDecimal.ZERO);
+        LocalDate settlementDate = LocalDate.now().minusDays(1);
 
         return items -> {
             for (DailySettlementDto dto : items) {
@@ -113,15 +118,32 @@ public class DailySettlementJobConfig {
                 totalRevenue.updateAndGet(current -> current.add(dto.getTotalAmount()));
             }
 
-            log.info("=== 일일 정산 중간 집계 ===");
+            log.info("=== 일일 정산 중간 집계 (settlementDate={}) ===", settlementDate);
             log.info("처리 건수: {} 건", orderCount.get());
             log.info("누적 매출: {} 원", totalRevenue.get());
 
-            if (orderCount.get() > 0) {
-                BigDecimal avgAmount = totalRevenue.get()
-                        .divide(BigDecimal.valueOf(orderCount.get()), 2, java.math.RoundingMode.HALF_UP);
+            int count = orderCount.get();
+            BigDecimal revenue = totalRevenue.get();
+            BigDecimal avgAmount = count > 0
+                    ? revenue.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+
+            if (count > 0) {
                 log.info("평균 주문금액: {} 원", avgAmount);
             }
+
+            // DB에 정산 결과 저장 (Upsert: 이미 존재하면 업데이트)
+            DailySettlement settlement = dailySettlementRepository
+                    .findBySettlementDate(settlementDate)
+                    .orElse(DailySettlement.builder()
+                            .settlementDate(settlementDate)
+                            .build());
+
+            settlement.updateAggregates(count, revenue, avgAmount);
+            dailySettlementRepository.save(settlement);
+
+            log.info("=== 일일 정산 DB 저장 완료: date={}, orders={}, revenue={}, avg={} ===",
+                    settlementDate, count, revenue, avgAmount);
         };
     }
 }
