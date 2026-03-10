@@ -79,13 +79,11 @@ fix: Redis Cluster 설정으로 인한 서비스 기동 실패 해결
 
 - 이슈 트래커 ID 연결
 - Breaking Change 명시
-- Co-Authored-By 명시 (페어 프로그래밍, AI 협업 시)
 
 ```
 Resolves: #123
 See also: #456, #789
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+BREAKING CHANGE: API 응답 구조 변경
 ```
 
 ## 실전 예시
@@ -185,24 +183,6 @@ commit 3: feat: 회원가입 API 구현
 **Bad:**
 ```
 commit 1: 회원가입 기능 전부 추가 (Entity, Repository, Service, Controller, Test 한꺼번에)
-```
-
-## AI 도구 활용 시
-
-AI (Claude, GPT 등)를 활용하여 코드를 작성한 경우:
-
-```
-feat: Kafka 이벤트 발행 기능 추가
-
-Order 생성 시 order-created 이벤트를 Kafka에 발행.
-Payment Service와 Inventory Service가 해당 이벤트를 구독.
-
-구현:
-- DomainEvent DTO 정의
-- EventPublisher 인터페이스 및 구현체
-- OrderService에서 이벤트 발행 로직 추가
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 ```
 
 ## 체크리스트
