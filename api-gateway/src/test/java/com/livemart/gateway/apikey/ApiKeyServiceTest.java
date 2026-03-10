@@ -154,8 +154,7 @@ class ApiKeyServiceTest {
                     List.of("192.168.0.1"), null);  // 특정 IP만 허용
             ApiKeyService.ApiKeyInfo created = apiKeyService.createApiKey(request);
 
-            // Rate Limit: 현재 0
-            given(valueOperations.get(anyString())).willReturn(null);
+            // IP 차단은 rate limit 체크 이전에 발생하므로 valueOperations stub 불필요
 
             // when
             ApiKeyService.ValidationResult result =
