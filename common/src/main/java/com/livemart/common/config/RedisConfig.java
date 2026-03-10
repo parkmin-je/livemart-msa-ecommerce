@@ -39,7 +39,9 @@ public class RedisConfig {
         template.setValueSerializer(jsonSerializer);
         template.setHashValueSerializer(jsonSerializer);
 
-        template.setEnableTransactionSupport(true);
+        // setEnableTransactionSupport(true) 제거:
+        // @Transactional(readOnly=true) 컨텍스트에서 MULTI/EXEC 래핑으로 인해
+        // get() 결과가 null 반환되는 Cache-Aside 버그 유발
         template.afterPropertiesSet();
 
         log.info("RedisTemplate configured with JSON serialization (Standalone mode)");

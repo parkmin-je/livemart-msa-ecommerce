@@ -1,0 +1,101 @@
+# PodDisruptionBudget (PDB) — 서비스별 가용성 보장
+#
+# HPA 스케일다운 또는 노드 드레인(kubectl drain) 시
+# 최소 1개 Pod가 항상 Running 상태를 유지하도록 보장
+# replicas >= 2인 환경에서 true zero-downtime 달성
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-order-service
+  namespace: livemart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: order-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-product-service
+  namespace: livemart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: product-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-payment-service
+  namespace: livemart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: payment-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-user-service
+  namespace: livemart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: user-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-api-gateway
+  namespace: livemart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-notification-service
+  namespace: livemart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: notification-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-analytics-service
+  namespace: livemart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: analytics-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-inventory-service
+  namespace: livemart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: inventory-service

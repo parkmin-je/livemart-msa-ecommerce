@@ -489,23 +489,4 @@ public class SecurityAuditService {
         int uniqueUsers
     ) {}
 
-    private static class Duration {
-        public static Duration ofHours(int hours) {
-            return new Duration(hours * 3600);
-        }
-
-        public static Duration ofMinutes(int minutes) {
-            return new Duration(minutes * 60);
-        }
-
-        private final long seconds;
-
-        private Duration(long seconds) {
-            this.seconds = seconds;
-        }
-
-        public long getSeconds() {
-            return seconds;
-        }
-    }
 }
