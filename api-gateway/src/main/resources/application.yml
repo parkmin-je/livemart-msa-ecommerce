@@ -177,13 +177,15 @@ management:
     export:
       prometheus:
         enabled: true
-  # Distributed Tracing (OTLP → Zipkin/Jaeger)
+  # Distributed Tracing (Zipkin HTTP format — micrometer-tracing-bridge-brave 사용)
+  # management.otlp.tracing → Zipkin HTTP endpoint 불일치 버그 수정:
+  # OTLP exporter는 /v1/traces 경로(protobuf)를 사용하며 Zipkin의 /api/v2/spans와 호환되지 않음
   tracing:
     sampling:
       probability: 0.1
-  otlp:
+  zipkin:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://zipkin:9411/api/v2/spans}
+      endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
 
 logging:
   level:
