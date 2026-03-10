@@ -17,9 +17,9 @@
 |------|------|------|
 | 분산 트랜잭션 (주문→결제→재고) | **Saga Choreography** | 서비스 독립성, 2PC 블로킹 회피 |
 | Kafka 이벤트 유실 방지 | **Transactional Outbox** | 주문 저장 + 이벤트 발행을 단일 DB 트랜잭션 처리 |
-| 서비스 간 저지연 통신 | **gRPC** (상품 조회) | REST 대비 **5~7배 빠름** (HTTP/2 + Protobuf) |
+| 서비스 간 저지연 통신 | **gRPC** (상품 조회) | HTTP/2 + Protobuf 바이너리 직렬화로 REST 대비 페이로드 최소화 |
 | 상품 검색 | **Elasticsearch** + nori 형태소 | 한국어 검색·Fuzzy·패싯 집계 |
-| 읽기 성능 | **Redis Cache-Aside** | 캐시 히트율 91%, DB 부하 74% 감소 |
+| 읽기 성능 | **Redis Cache-Aside** | 반복 조회 DB 부하 분산, TTL 계층화로 일관성 유지 |
 | 동시성 제어 | **Redisson 분산 락** | 동시 주문 시 재고 초과 차감 방지 |
 
 > 설계 근거 전문 → [`docs/adr/`](docs/adr/) (ADR 5건)
@@ -54,19 +54,6 @@ order  product        user             payment
    │
 [Prometheus → Grafana]  [OTLP → Zipkin]
 ```
-
----
-
-## 성능 지표
-
-| 항목 | 수치 |
-|------|------|
-| 상품 상세 p95 (Redis 캐시 히트) | **3ms** |
-| Elasticsearch 검색 p95 | **200ms 이하** |
-| 주문 생성 p99 (Saga 완료 포함) | **2,000ms 이하** |
-| Redis 캐시 히트율 | **91%** |
-| DB 연결 사용률 피크 | **23%** (캐싱 전 87%) |
-| gRPC vs REST (상품 10건 조회) | **7.2배 빠름** (25ms vs 180ms) |
 
 ---
 
@@ -132,8 +119,7 @@ order  product        user             payment
 
 ### Saga + Transactional Outbox
 ```java
-// OutboxProcessor.java — Kafka 이벤트 유실 0% 보장
-// DB 트랜잭션 내에 이벤트 저장 → 별도 스레드에서 동기 발행
+// OutboxProcessor.java — DB 트랜잭션 내에 이벤트 저장 → 별도 스레드에서 동기 발행
 kafkaTemplate.send(topic, key, payload).get(5, TimeUnit.SECONDS);
 outboxEvent.setStatus(OutboxStatus.PUBLISHED);
 ```
