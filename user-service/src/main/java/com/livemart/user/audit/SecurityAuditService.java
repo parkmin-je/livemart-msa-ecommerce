@@ -82,6 +82,9 @@ public class SecurityAuditService {
 
         // 로그인 실패 카운터 초기화
         clearFailedLoginAttempts(ipAddress);
+
+        // 비정상 시간대 탐지 (로그인 성공 후 체크)
+        detectUnusualHourAnomaly(userId, ipAddress);
     }
 
     /**
@@ -190,8 +193,105 @@ public class SecurityAuditService {
             }
         }
 
-        // 2. 비정상적인 접근 패턴
-        // TODO: 머신러닝 기반 이상 탐지
+        // 2. 규칙 기반 이상 탐지
+        if (auditLog.userId() != null) {
+            detectMultipleIpAnomaly(auditLog.userId(), auditLog.ipAddress());
+            detectRapidRequestAnomaly(auditLog.userId(), auditLog.ipAddress());
+        }
+    }
+
+    /**
+     * 이상 탐지 규칙 1 — 다중 IP 탐지
+     *
+     * 동일 userId가 15분 내 3개 이상 서로 다른 IP에서 접근하면 보안 이벤트 기록.
+     * 계정 공유 또는 크리덴셜 탈취 의심.
+     */
+    private void detectMultipleIpAnomaly(Long userId, String ipAddress) {
+        String key = "ip_history:" + userId;
+        redisTemplate.opsForSet().add(key, ipAddress);
+        redisTemplate.expire(key, 15 * 60, TimeUnit.SECONDS);  // 15분 TTL
+
+        Long distinctIpCount = redisTemplate.opsForSet().size(key);
+        if (distinctIpCount != null && distinctIpCount >= 3) {
+            log.warn("[SecurityAudit] Multi-IP anomaly detected: userId={}, distinctIps={} in 15min",
+                    userId, distinctIpCount);
+
+            AuditLog anomalyLog = new AuditLog(
+                    UUID.randomUUID().toString(),
+                    userId,
+                    AuditEventType.SECURITY_EVENT,
+                    "MULTI_IP_LOGIN",
+                    AuditResult.FAILURE,
+                    ipAddress,
+                    null,
+                    "Multiple IPs (" + distinctIpCount + ") detected within 15 minutes",
+                    LocalDateTime.now(),
+                    Map.of("distinctIpCount", String.valueOf(distinctIpCount))
+            );
+            log(anomalyLog);
+        }
+    }
+
+    /**
+     * 이상 탐지 규칙 2 — 비정상 시간대 탐지
+     *
+     * 새벽 2~5시 사이 로그인 성공 시 보안 경고 플래그 기록.
+     * 자동화 공격 또는 계정 탈취 후 접근 의심.
+     */
+    public void detectUnusualHourAnomaly(Long userId, String ipAddress) {
+        int hour = LocalDateTime.now().getHour();
+        if (hour >= 2 && hour < 5) {
+            log.warn("[SecurityAudit] Unusual-hour access detected: userId={}, hour={}:xx, ip={}",
+                    userId, hour, ipAddress);
+
+            AuditLog anomalyLog = new AuditLog(
+                    UUID.randomUUID().toString(),
+                    userId,
+                    AuditEventType.SECURITY_EVENT,
+                    "UNUSUAL_HOUR_ACCESS",
+                    AuditResult.SUCCESS,
+                    ipAddress,
+                    null,
+                    "Login at unusual hour: " + hour + ":xx",
+                    LocalDateTime.now(),
+                    Map.of("hour", String.valueOf(hour))
+            );
+            log(anomalyLog);
+        }
+    }
+
+    /**
+     * 이상 탐지 규칙 3 — 빠른 연속 요청 탐지
+     *
+     * 60초 내 동일 userId에서 20회 이상 요청 시 자동화 도구(봇) 의심.
+     */
+    private void detectRapidRequestAnomaly(Long userId, String ipAddress) {
+        String key = "req_count:" + userId;
+        Long requestCount = redisTemplate.opsForValue().increment(key);
+
+        // 첫 요청 시 60초 TTL 설정
+        if (requestCount != null && requestCount == 1) {
+            redisTemplate.expire(key, 60, TimeUnit.SECONDS);
+        }
+
+        if (requestCount != null && requestCount >= 20) {
+            log.warn("[SecurityAudit] Rapid request anomaly detected: userId={}, requests={}/60s, ip={}",
+                    userId, requestCount, ipAddress);
+
+            AuditLog anomalyLog = new AuditLog(
+                    UUID.randomUUID().toString(),
+                    userId,
+                    AuditEventType.SECURITY_EVENT,
+                    "RAPID_REQUEST_DETECTED",
+                    AuditResult.FAILURE,
+                    ipAddress,
+                    null,
+                    "Automated tool suspected: " + requestCount + " requests in 60s",
+                    LocalDateTime.now(),
+                    Map.of("requestCount", String.valueOf(requestCount))
+            );
+            log(anomalyLog);
+        }
     }
 
     /**

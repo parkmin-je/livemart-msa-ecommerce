@@ -196,20 +196,101 @@ public class ShardingService {
     }
 
     /**
-     * Shard 재분배 (Rebalancing)
+     * Shard 재분배 계획 생성 (Dry-Run)
+     *
+     * 실제 데이터 이동은 수행하지 않고 재분배 계획만 계산하여 반환합니다.
+     * 운영 환경에서의 실제 마이그레이션은 계획 검토 후 수동으로 실행해야 합니다.
+     *
+     * 재분배 기준: 평균 레코드 수 대비 ±30% 초과 shard를 불균형으로 판단
+     *
+     * @return 재분배 계획 목록 (이동 대상 shard 정보)
      */
-    public void rebalanceShards(String tableName) {
-        log.info("Starting shard rebalancing for table: {}", tableName);
+    public List<RebalancePlan> rebalanceShards(String tableName) {
+        log.info("[Rebalance] Analyzing shard distribution for table: {}", tableName);
 
-        // 1. 전체 데이터 조회
-        // 2. 새로운 Shard 키 계산
-        // 3. 데이터 이동
-        // 4. 기존 데이터 삭제
+        // 1. 각 shard 통계 수집
+        Map<String, ShardStats> statsMap = getShardStats(tableName);
+        if (statsMap.isEmpty()) {
+            log.warn("[Rebalance] No shards found for table: {}", tableName);
+            return List.of();
+        }
 
-        // TODO: 실제 구현 (운영 중 실행 시 주의!)
+        // 2. 전체 레코드 수 및 평균 계산
+        long totalRecords = statsMap.values().stream()
+                .mapToLong(ShardStats::recordCount)
+                .sum();
+        long shardCount = statsMap.values().stream()
+                .filter(s -> !"UNAVAILABLE".equals(s.status()))
+                .count();
 
-        log.info("Shard rebalancing completed");
+        if (shardCount == 0) {
+            log.warn("[Rebalance] All shards unavailable for table: {}", tableName);
+            return List.of();
+        }
+
+        double avgRecords = (double) totalRecords / shardCount;
+        double threshold = avgRecords * 0.30;  // ±30% 기준
+
+        log.info("[Rebalance] Total records={}, shard count={}, avg={}, threshold=±{}",
+                totalRecords, shardCount, (long) avgRecords, (long) threshold);
+
+        // 3. 불균형 shard 탐지
+        List<ShardStats> overloaded = statsMap.values().stream()
+                .filter(s -> s.recordCount() > avgRecords + threshold)
+                .sorted(Comparator.comparingLong(ShardStats::recordCount).reversed())
+                .toList();
+
+        List<ShardStats> underloaded = statsMap.values().stream()
+                .filter(s -> s.recordCount() < avgRecords - threshold)
+                .sorted(Comparator.comparingLong(ShardStats::recordCount))
+                .toList();
+
+        if (overloaded.isEmpty() && underloaded.isEmpty()) {
+            log.info("[Rebalance] All shards are balanced. No rebalancing needed.");
+            return List.of();
+        }
+
+        // 4. 재분배 계획 생성 (실제 데이터 이동 없이 계획만 출력)
+        List<RebalancePlan> plans = new ArrayList<>();
+
+        int fromIdx = 0;
+        int toIdx = 0;
+        while (fromIdx < overloaded.size() && toIdx < underloaded.size()) {
+            ShardStats from = overloaded.get(fromIdx);
+            ShardStats to   = underloaded.get(toIdx);
+
+            long moveCount = Math.min(
+                    from.recordCount() - (long) avgRecords,
+                    (long) avgRecords - to.recordCount()
+            );
+
+            RebalancePlan plan = new RebalancePlan(
+                    from.shardKey(), to.shardKey(), tableName, moveCount);
+            plans.add(plan);
+
+            log.info("[Rebalance] Plan: MOVE {} records from shard '{}' ({} records) → shard '{}' ({} records)",
+                    moveCount, from.shardKey(), from.recordCount(),
+                    to.shardKey(), to.recordCount());
+
+            fromIdx++;
+            toIdx++;
+        }
+
+        log.info("[Rebalance] Dry-run complete. {} migration plan(s) generated. " +
+                "Execute manually after review.", plans.size());
+
+        return plans;
     }
+
+    /**
+     * 재분배 계획 레코드
+     */
+    public record RebalancePlan(
+            String sourceShardKey,
+            String targetShardKey,
+            String tableName,
+            long recordsToMove
+    ) {}
 
     // Interfaces & Records
 
