@@ -1,19 +1,21 @@
 package com.livemart.order.event;
 
 import com.livemart.order.domain.OrderStatus;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;  // ✅ Getter만 있던 것을 Data로 변경
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data  // ✅ @Getter 대신 @Data 사용
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OrderEvent {
 
     private EventType eventType;
@@ -34,10 +36,11 @@ public class OrderEvent {
         ORDER_CANCELLED
     }
 
-    @Data  // ✅ @Getter 대신 @Data 사용
+    @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class OrderItemInfo {
         private Long productId;
         private String productName;

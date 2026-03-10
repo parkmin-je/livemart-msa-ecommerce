@@ -114,13 +114,13 @@ public class ImageOptimizationService {
     }
 
     /**
-     * WebP 변환 (시뮬레이션)
-     * 실제로는 외부 라이브러리(webp-imageio) 또는 FFmpeg 사용
-     * 여기서는 고품질 JPEG로 대체
+     * WebP 변환
+     * WebP 네이티브 지원이 없으므로 고품질 JPEG로 fallback.
+     * 실제 WebP 지원 시: com.luciad.imageio:webp-imageio 또는 net.coobird:thumbnailator + ffmpeg 연동 필요.
      */
     public byte[] convertToWebP(BufferedImage image) throws IOException {
-        // TODO: 실제 WebP 변환 라이브러리 통합
-        // 임시: 고품질 JPEG로 변환
+        log.debug("WebP conversion not natively supported — falling back to high-quality JPEG. " +
+                  "Add webp-imageio dependency and native WebP support for production use.");
         return compressImage(image, "jpg", 0.85f);
     }
 

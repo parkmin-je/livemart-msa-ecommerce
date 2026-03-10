@@ -5,15 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import toast from 'react-hot-toast';
 
-declare global {
-  interface Window {
-    daum: {
-      Postcode: new (options: {
-        oncomplete: (data: { zonecode: string; roadAddress: string; jibunAddress: string }) => void;
-      }) => { open: () => void };
-    };
-  }
-}
 
 const PAYMENT_METHODS = [
   { id: 'CREDIT_CARD', label: '신용/체크카드' },
@@ -69,7 +60,7 @@ export function OrderForm() {
       const container = document.getElementById('postcode-container');
       if (!container) return;
       container.innerHTML = '';
-      new window.daum.Postcode({
+      new window.daum!.Postcode({
         oncomplete: (data) => {
           setAddress(a => ({
             ...a,
@@ -80,8 +71,7 @@ export function OrderForm() {
           setShowPostcode(false);
           setTimeout(() => document.getElementById('address-detail')?.focus(), 50);
         },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any).embed(container);
+      }).embed(container);
     }, 50);
   };
 

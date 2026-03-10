@@ -1,5 +1,6 @@
 package com.livemart.payment.event;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.livemart.payment.domain.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PaymentEvent {
     private EventType eventType;
     private String transactionId;

@@ -9,9 +9,9 @@ interface ProductCardProps {
   product: {
     id: number;
     name: string;
-    description: string;
+    description?: string;
     price: number;
-    stockQuantity: number;
+    stockQuantity?: number;
     imageUrl?: string;
     category?: string;
     categoryId?: number;
@@ -85,8 +85,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const originalPrice = getOriginalPrice(product.price, discountRate);
   const rating = getRating(product.id);
   const reviewCount = getReviewCount(product.id);
-  const isOutOfStock = product.stockQuantity === 0;
-  const isLowStock = product.stockQuantity > 0 && product.stockQuantity < 10;
+  const isOutOfStock = (product.stockQuantity ?? 1) === 0;
+  const isLowStock = (product.stockQuantity ?? 1) > 0 && (product.stockQuantity ?? 1) < 10;
   const isFreeShipping = product.price >= 50000;
   const isRocket = product.price >= 100000;
   const gradient = getCategoryGradient(product.categoryId);

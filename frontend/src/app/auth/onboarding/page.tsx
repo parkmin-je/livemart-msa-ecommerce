@@ -13,10 +13,6 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!token) {
-      window.location.href = '/auth';
-      return;
-    }
     const savedName = localStorage.getItem('userName');
     if (savedName) setName(savedName);
   }, []);
@@ -53,6 +49,7 @@ export default function OnboardingPage() {
     try {
       const res = await fetch(`${API_BASE}/api/users/me`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -62,11 +59,6 @@ export default function OnboardingPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.name) localStorage.setItem('userName', data.name);
-        // 온보딩 완료 후 role 재확인 저장 (token에서 파싱)
-        try {
-          const payload = JSON.parse(atob(tok.split('.')[1]));
-          localStorage.setItem('userRole', payload.role || 'USER');
-        } catch { /* ignore */ }
         window.location.href = '/';
       } else if (res.status === 401) {
         window.location.href = '/auth';

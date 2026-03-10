@@ -24,11 +24,6 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      if (!token) {
-        toast.error('로그인이 필요합니다. 관리자 계정으로 로그인해주세요.');
-        setLoading(false);
-        return;
-      }
       const res = await fetch(`${API_BASE}/api/users`, {
         credentials: 'include',
       });

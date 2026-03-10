@@ -9,6 +9,7 @@ interface OrderItem {
   quantity: number;
   productPrice: number;
   totalPrice: number;
+  imageUrl?: string;
 }
 
 interface Order {
