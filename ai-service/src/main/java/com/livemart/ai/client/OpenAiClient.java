@@ -8,17 +8,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.time.Duration;
 
 /**
- * OpenAI Chat Completions API 클라이언트
+ * OpenAI Chat Completions API 클라이언트 (WebFlux 전용)
  *
- * Spring AI SDK 대신 순수 RestClient/WebClient 직접 호출.
- * - 동기: RestClient (추천, 설명 생성)
- * - 비동기 스트리밍: WebClient + SSE (챗봇)
+ * build.gradle에서 spring-boot-starter-web 제거 → RestClient 사용 불가
+ * → WebClient 단일 클라이언트로 통일:
+ * - 동기 호출: Mono.block() 사용 (추천, 설명 생성) — 30s 타임아웃
+ * - 스트리밍: Flux (챗봇 SSE)
  */
 @Slf4j
 @Component
@@ -26,22 +29,26 @@ import reactor.core.publisher.Flux;
 public class OpenAiClient {
 
     private static final String CHAT_PATH = "/chat/completions";
+    private static final Duration SYNC_TIMEOUT = Duration.ofSeconds(30);
 
-    private final RestClient openAiRestClient;
     private final WebClient openAiWebClient;
     private final ObjectMapper objectMapper;
 
     /**
-     * 동기 Chat Completions 호출
+     * 동기 Chat Completions 호출 (추천, 설명 생성)
+     * WebClient.block()으로 동기화 — WebFlux 컨텍스트에서 사용 시 별도 Scheduler 필요
      */
     public OpenAiResponse chat(OpenAiRequest request) {
         long start = System.currentTimeMillis();
         try {
-            var response = openAiRestClient.post()
+            OpenAiResponse response = openAiWebClient.post()
                     .uri(CHAT_PATH)
-                    .body(request)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(request)
                     .retrieve()
-                    .body(OpenAiResponse.class);
+                    .bodyToMono(OpenAiResponse.class)
+                    .timeout(SYNC_TIMEOUT)
+                    .block();
 
             log.info("OpenAI response: model={}, tokens={}, latency={}ms",
                     response != null ? response.model() : "null",
@@ -50,10 +57,10 @@ public class OpenAiClient {
 
             return response;
 
-        } catch (HttpClientErrorException.TooManyRequests e) {
+        } catch (WebClientResponseException.TooManyRequests e) {
             log.warn("OpenAI rate limit exceeded");
             throw new AiServiceException("AI 서비스 요청 한도 초과. 잠시 후 다시 시도해주세요.", e);
-        } catch (HttpClientErrorException.Unauthorized e) {
+        } catch (WebClientResponseException.Unauthorized e) {
             log.error("OpenAI API key invalid");
             throw new AiServiceException("AI 서비스 인증 오류", e);
         } catch (Exception e) {
@@ -63,8 +70,8 @@ public class OpenAiClient {
     }
 
     /**
-     * 스트리밍 Chat Completions (SSE)
-     * stream=true 모드로 호출, delta 텍스트를 Flux로 방출
+     * 비동기 스트리밍 Chat Completions (챗봇 SSE)
+     * stream=true 모드, delta 텍스트를 Flux<String>으로 방출
      */
     public Flux<String> chatStream(OpenAiRequest request) {
         return openAiWebClient.post()
@@ -87,6 +94,7 @@ public class OpenAiClient {
                     }
                 })
                 .filter(content -> content != null && !content.isEmpty())
-                .doOnError(e -> log.error("OpenAI stream error: {}", e.getMessage()));
+                .doOnError(e -> log.error("OpenAI stream error: {}", e.getMessage()))
+                .onErrorResume(e -> Mono.empty()); // 스트리밍 오류 시 종료
     }
 }

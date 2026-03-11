@@ -18,6 +18,12 @@ interface NewProduct {
   name: string; description: string; price: string; stockQuantity: string; categoryId: string; imageUrl: string;
 }
 
+interface AiDescription {
+  oneLiner: string;
+  bodyText: string;
+  seoTags: string[];
+}
+
 const KPI_CARDS = (d: DashboardData) => [
   { label: '총 매출', value: `${(d.totalRevenue || 0).toLocaleString()}원`, emoji: '💰', color: 'bg-green-50 border-green-200 text-green-700' },
   { label: '총 주문', value: `${(d.totalOrders || 0).toLocaleString()}건`, emoji: '📋', color: 'bg-blue-50 border-blue-200 text-blue-700' },
@@ -34,6 +40,8 @@ export default function SellerPage() {
   const [showForm, setShowForm] = useState(false);
   const [newProduct, setNewProduct] = useState<NewProduct>({ name: '', description: '', price: '', stockQuantity: '', categoryId: '1', imageUrl: '' });
   const [saving, setSaving] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiDesc, setAiDesc] = useState<AiDescription | null>(null);
 
   const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
 
@@ -70,6 +78,31 @@ export default function SellerPage() {
       setNewProduct({ name: '', description: '', price: '', stockQuantity: '', categoryId: '1', imageUrl: '' });
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '오류'); }
     setSaving(false);
+  };
+
+  const generateAiDescription = async () => {
+    if (!newProduct.name.trim()) { toast.error('상품명을 먼저 입력하세요'); return; }
+    setAiGenerating(true);
+    setAiDesc(null);
+    try {
+      const res = await fetch('/api/ai/description', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: newProduct.name,
+          keywords: newProduct.name.split(' ').filter(Boolean),
+          tone: 'professional',
+        }),
+      });
+      if (!res.ok) throw new Error('AI 서비스 연결 실패');
+      const data: AiDescription = await res.json();
+      setAiDesc(data);
+      // 생성된 설명을 폼에 자동 적용
+      setNewProduct(p => ({ ...p, description: `${data.oneLiner}\n\n${data.bodyText}` }));
+      toast.success('AI가 상품 설명을 생성했습니다');
+    } catch { toast.error('AI 설명 생성 실패. 직접 입력해주세요.'); }
+    setAiGenerating(false);
   };
 
   const deleteProduct = async (id: number) => {
@@ -174,9 +207,32 @@ export default function SellerPage() {
                       className="form-input" required placeholder="상품명을 입력하세요" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="form-label">상품 설명</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="form-label mb-0">상품 설명</label>
+                      <button
+                        type="button"
+                        onClick={generateAiDescription}
+                        disabled={aiGenerating}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <svg className={`w-3.5 h-3.5 ${aiGenerating ? 'animate-spin' : ''}`} fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        {aiGenerating ? 'AI 생성중...' : 'AI 자동 생성'}
+                      </button>
+                    </div>
                     <textarea value={newProduct.description} onChange={e => setNewProduct(p => ({ ...p, description: e.target.value }))}
-                      className="form-input resize-none" rows={3} placeholder="상품 설명을 입력하세요" />
+                      className="form-input resize-none" rows={4} placeholder="상품 설명을 입력하거나 AI 자동 생성을 사용하세요" />
+                    {aiDesc && (
+                      <div className="mt-2 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                        <p className="text-[11px] font-semibold text-purple-700 mb-1">SEO 태그</p>
+                        <div className="flex flex-wrap gap-1">
+                          {aiDesc.seoTags.map((tag, i) => (
+                            <span key={i} className="text-[10px] bg-white text-purple-600 border border-purple-200 px-2 py-0.5 rounded-full">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="form-label">가격 (원) *</label>

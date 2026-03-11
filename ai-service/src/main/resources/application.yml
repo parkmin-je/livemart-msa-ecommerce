@@ -5,6 +5,8 @@ server:
 spring:
   application:
     name: ai-service
+  main:
+    web-application-type: reactive   # Reactor Netty로 기동 (WebFlux SSE 스트리밍 지원)
   threads:
     virtual:
       enabled: true

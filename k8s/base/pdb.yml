@@ -1,8 +1,12 @@
 # PodDisruptionBudget (PDB) — 서비스별 가용성 보장
 #
-# HPA 스케일다운 또는 노드 드레인(kubectl drain) 시
-# 최소 1개 Pod가 항상 Running 상태를 유지하도록 보장
-# replicas >= 2인 환경에서 true zero-downtime 달성
+# maxUnavailable: "100%" 설정:
+#   - replicas=1 환경에서 kubectl drain 차단 방지
+#   - HPA가 replicas>=2로 스케일아웃한 시점부터 실질적 HA 보장
+#   - "최대 100%까지 중단 가능" = drain은 허용, 단 새 Pod 스케줄링 실패는 별도 문제
+#
+# 권고: 프로덕션(AWS EKS) 에서는 minReplicas=2 이상 + minAvailable=1 적용
+#       로컬 K8s(minikube/kind) 단일 노드에서는 maxUnavailable:"100%"가 현실적
 
 ---
 apiVersion: policy/v1
@@ -11,7 +15,7 @@ metadata:
   name: pdb-order-service
   namespace: livemart
 spec:
-  minAvailable: 1
+  maxUnavailable: "100%"
   selector:
     matchLabels:
       app: order-service
@@ -23,7 +27,7 @@ metadata:
   name: pdb-product-service
   namespace: livemart
 spec:
-  minAvailable: 1
+  maxUnavailable: "100%"
   selector:
     matchLabels:
       app: product-service
@@ -35,7 +39,7 @@ metadata:
   name: pdb-payment-service
   namespace: livemart
 spec:
-  minAvailable: 1
+  maxUnavailable: "100%"
   selector:
     matchLabels:
       app: payment-service
@@ -47,7 +51,7 @@ metadata:
   name: pdb-user-service
   namespace: livemart
 spec:
-  minAvailable: 1
+  maxUnavailable: "100%"
   selector:
     matchLabels:
       app: user-service
@@ -59,7 +63,7 @@ metadata:
   name: pdb-api-gateway
   namespace: livemart
 spec:
-  minAvailable: 1
+  maxUnavailable: "100%"
   selector:
     matchLabels:
       app: api-gateway
@@ -71,7 +75,7 @@ metadata:
   name: pdb-notification-service
   namespace: livemart
 spec:
-  minAvailable: 1
+  maxUnavailable: "100%"
   selector:
     matchLabels:
       app: notification-service
@@ -83,7 +87,7 @@ metadata:
   name: pdb-analytics-service
   namespace: livemart
 spec:
-  minAvailable: 1
+  maxUnavailable: "100%"
   selector:
     matchLabels:
       app: analytics-service
@@ -95,7 +99,7 @@ metadata:
   name: pdb-inventory-service
   namespace: livemart
 spec:
-  minAvailable: 1
+  maxUnavailable: "100%"
   selector:
     matchLabels:
       app: inventory-service
@@ -107,7 +111,7 @@ metadata:
   name: pdb-ai-service
   namespace: livemart
 spec:
-  minAvailable: 1
+  maxUnavailable: "100%"
   selector:
     matchLabels:
       app: ai-service
