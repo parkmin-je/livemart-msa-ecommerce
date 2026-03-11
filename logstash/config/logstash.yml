@@ -1,0 +1,9 @@
+http.host: "0.0.0.0"
+xpack.monitoring.enabled: false
+
+# 파이프라인 배치 설정
+pipeline.batch.size: 125
+pipeline.batch.delay: 50
+
+# 로그 레벨
+log.level: warn

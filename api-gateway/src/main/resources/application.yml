@@ -132,13 +132,27 @@ spring:
           filters:
             - RewritePath=/api/notifications/(?<segment>.*), /api/notifications/${segment}
 
-        # Analytics Service (미구현 - 라우팅만 유지)
+        # Analytics Service
         - id: analytics-service
           uri: lb://analytics-service
           predicates:
             - Path=/api/analytics/**
           filters:
             - RewritePath=/api/analytics/(?<segment>.*), /api/analytics/${segment}
+
+        # AI Service - 추천/설명생성/챗봇 (인증 필요 엔드포인트)
+        - id: ai-service
+          uri: lb://ai-service
+          predicates:
+            - Path=/api/ai/**
+          filters:
+            - RewritePath=/api/ai/(?<segment>.*), /api/ai/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10    # LLM API 비용 보호: 초당 10건
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
 
       # CORS 설정 - 프로덕션에서는 환경변수로 관리
       globalcors:

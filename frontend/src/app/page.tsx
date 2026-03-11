@@ -19,6 +19,7 @@ import { HeroBanner } from './_components/HeroBanner.client';
 import { FlashSaleSection } from './_components/FlashSaleSection.client';
 import { WelcomeCouponBanner } from './_components/WelcomeCouponBanner.client';
 import { RecentlyViewedSection } from './_components/RecentlyViewedSection.client';
+import { AiRecommendations } from './_components/AiRecommendations.client';
 
 // ── 타입 ─────────────────────────────────────────────
 interface Product {
@@ -189,6 +190,9 @@ export default async function Home() {
             ))}
           </div>
         </section>
+
+        {/* ── AI 개인화 추천 (Client Component — 로그인 시만 노출) ── */}
+        <AiRecommendations />
 
         {/* ── 에디터 추천 ── */}
         <section className="bg-white overflow-hidden">

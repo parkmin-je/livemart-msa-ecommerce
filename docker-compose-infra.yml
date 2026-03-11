@@ -164,6 +164,22 @@ services:
     ports:
       - "9411:9411"
 
+  # ── ELK: Logstash (중앙 집중 로그 파이프라인) ──────────────────
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: livemart-logstash
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5044:5044"   # Beats input
+      - "5001:5001"   # TCP input (logback-logstash)
+      - "9600:9600"   # API
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    environment:
+      LS_JAVA_OPTS: "-Xmx512m -Xms512m"
+
 volumes:
   postgres-user-data:
   postgres-product-data:

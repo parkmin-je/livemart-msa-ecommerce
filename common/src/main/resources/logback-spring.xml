@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="livemart"/>
+    <springProperty scope="context" name="LOGSTASH_HOST" source="logstash.host" defaultValue="localhost"/>
+    <springProperty scope="context" name="LOGSTASH_PORT" source="logstash.port" defaultValue="5001"/>
 
     <!-- Console Appender (개발 환경) -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -9,10 +11,10 @@
         </encoder>
     </appender>
 
-    <!-- JSON Structured Logging (운영 환경) -->
+    <!-- JSON Structured Logging (콘솔 출력 — 운영 환경) -->
     <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <customFields>{"service":"${APP_NAME}"}</customFields>
+            <customFields>{"service_name":"${APP_NAME}"}</customFields>
             <fieldNames>
                 <timestamp>@timestamp</timestamp>
                 <version>[ignore]</version>
@@ -24,7 +26,34 @@
         </encoder>
     </appender>
 
-    <!-- 개발 환경: 콘솔 출력 -->
+    <!--
+        Logstash TCP Appender — 중앙 집중 로그 파이프라인
+        로그 → Logstash(TCP 5001) → Elasticsearch → Kibana
+        비동기 처리: 로그 I/O가 애플리케이션 성능에 영향 주지 않도록 AsyncAppender 적용
+    -->
+    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <destination>${LOGSTASH_HOST}:${LOGSTASH_PORT}</destination>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service_name":"${APP_NAME}"}</customFields>
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>spanId</includeMdcKeyName>
+            <includeMdcKeyName>userId</includeMdcKeyName>
+        </encoder>
+        <!-- 연결 실패 시 재시도 -->
+        <reconnectionDelay>10 seconds</reconnectionDelay>
+        <!-- Logstash 다운 시 로그 유실 방지: 큐 버퍼 -->
+        <writeBufferSize>8192</writeBufferSize>
+    </appender>
+
+    <!-- 비동기 래퍼 — Logstash 전송이 블로킹되지 않도록 -->
+    <appender name="ASYNC_LOGSTASH" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="LOGSTASH"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>   <!-- 큐 80% 이상에도 ALL 레벨 유지 -->
+        <neverBlock>true</neverBlock>                   <!-- 큐 포화 시 블로킹 대신 드롭 -->
+    </appender>
+
+    <!-- 개발 환경: 콘솔 출력만 -->
     <springProfile name="default,dev,local">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
@@ -33,10 +62,11 @@
         <logger name="org.springframework.web" level="DEBUG"/>
     </springProfile>
 
-    <!-- 운영 환경: JSON 구조화 로깅 -->
-    <springProfile name="prod,staging">
+    <!-- 운영 환경: JSON 콘솔 + Logstash 동시 전송 -->
+    <springProfile name="prod,staging,k8s">
         <root level="INFO">
             <appender-ref ref="JSON"/>
+            <appender-ref ref="ASYNC_LOGSTASH"/>
         </root>
         <logger name="com.livemart" level="INFO"/>
         <logger name="org.hibernate.SQL" level="WARN"/>
