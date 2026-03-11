@@ -25,9 +25,9 @@ public class RateLimiterConfig {
 
     /**
      * 기본 KeyResolver: Authorization 헤더의 JWT subject(userId) 또는 IP 기반
+     * bean name 명시 + @Primary 제거 (Spring Cloud Gateway SpEL 이름 조회 충돌 방지)
      */
-    @Bean
-    @Primary
+    @Bean("userKeyResolver")
     public KeyResolver userKeyResolver() {
         return exchange -> {
             String auth = exchange.getRequest().getHeaders().getFirst("Authorization");
@@ -52,9 +52,11 @@ public class RateLimiterConfig {
     }
 
     /**
-     * 일반 API Rate Limiter: 100 req/s, burst 200
+     * 기본 RateLimiter: 100 req/s, burst 200
+     * @Primary: RequestRateLimiterGatewayFilterFactory 단일 빈 autowiring 보장
      */
     @Bean
+    @Primary
     public RedisRateLimiter defaultRateLimiter() {
         return new RedisRateLimiter(100, 200, 1);
     }
@@ -63,7 +65,7 @@ public class RateLimiterConfig {
      * 주문/결제 API Rate Limiter: 20 req/s, burst 40
      * 중복 주문, 결제 남용 방지
      */
-    @Bean
+    @Bean("orderRateLimiter")
     public RedisRateLimiter orderRateLimiter() {
         return new RedisRateLimiter(20, 40, 1);
     }
