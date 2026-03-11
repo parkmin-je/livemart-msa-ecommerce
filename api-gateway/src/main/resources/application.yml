@@ -30,15 +30,14 @@ spring:
         prefix-enabled: true
 
       # 전역 기본 필터: 모든 라우트에 Rate Limiting 적용
-      # - replenishRate: 초당 토큰 충전 수 (정상 처리량)
-      # - burstCapacity: 버킷 최대 용량 (순간 최대)
+      # - key-resolver 미지정: RequestRateLimiterGatewayFilterFactory가 @Autowired KeyResolver(userKeyResolver) 자동 사용
+      # - SpEL #{@userKeyResolver} 제거: 빈 초기화 순서 충돌 방지
       default-filters:
         - name: RequestRateLimiter
           args:
             redis-rate-limiter.replenishRate: 100
             redis-rate-limiter.burstCapacity: 200
             redis-rate-limiter.requestedTokens: 1
-            key-resolver: "#{@userKeyResolver}"
 
       routes:
         # User Service - API
@@ -85,7 +84,6 @@ spring:
                 redis-rate-limiter.replenishRate: 20
                 redis-rate-limiter.burstCapacity: 40
                 redis-rate-limiter.requestedTokens: 1
-                key-resolver: "#{@userKeyResolver}"
 
         # Coupon & Return Service (Order Service)
         - id: coupon-service
@@ -114,7 +112,6 @@ spring:
                 redis-rate-limiter.replenishRate: 20
                 redis-rate-limiter.burstCapacity: 40
                 redis-rate-limiter.requestedTokens: 1
-                key-resolver: "#{@userKeyResolver}"
 
         # Inventory Service (미구현 - 라우팅만 유지)
         - id: inventory-service
@@ -152,7 +149,6 @@ spring:
                 redis-rate-limiter.replenishRate: 10    # LLM API 비용 보호: 초당 10건
                 redis-rate-limiter.burstCapacity: 20
                 redis-rate-limiter.requestedTokens: 1
-                key-resolver: "#{@userKeyResolver}"
 
       # CORS 설정 - 프로덕션에서는 환경변수로 관리
       globalcors:
