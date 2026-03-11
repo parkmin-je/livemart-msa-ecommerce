@@ -128,11 +128,12 @@ type MetricsCollector struct {
 }
 
 func newRedisClient() *redis.Client {
-	redisHost := getEnv("REDIS_HOST", "localhost")
-	redisPort := getEnv("REDIS_PORT", "6379")
+	// K8s manifest에서 REDIS_ADDR=redis:6379 으로 주입
+	// docker-compose 로컬에서는 REDIS_ADDR=localhost:6379
+	redisAddr := getEnv("REDIS_ADDR", "localhost:6379")
 
 	return redis.NewClient(&redis.Options{
-		Addr:         redisHost + ":" + redisPort,
+		Addr:         redisAddr,
 		Password:     getEnv("REDIS_PASSWORD", ""),
 		DB:           0,
 		DialTimeout:  5 * time.Second,
@@ -144,53 +145,59 @@ func newRedisClient() *redis.Client {
 // ── 메트릭 수집 로직 ────────────────────────────────────────
 
 func (mc *MetricsCollector) collect() {
+	today := time.Now().Format("2006-01-02")
+
 	// 1. 활성 사용자 (Redis 세션 키 카운트)
-	if count, err := mc.rdb.Keys(mc.ctx, "session:*").Result(); err == nil {
-		activeUsers.Set(float64(len(count)))
+	// user-service가 login 시 session:{userId} 키 저장
+	if keys, err := mc.rdb.Keys(mc.ctx, "session:*").Result(); err == nil {
+		activeUsers.Set(float64(len(keys)))
 	} else {
 		log.Printf("Redis session count error: %v", err)
 		scrapeErrors.Inc()
 	}
 
-	// 2. 주문 상태별 카운터
-	statuses := []string{"PENDING", "CONFIRMED", "PAYMENT_COMPLETED", "DELIVERING", "DELIVERED", "CANCELLED"}
-	for _, status := range statuses {
-		key := "metrics:orders:status:" + status
-		if val, err := mc.rdb.Get(mc.ctx, key).Result(); err == nil {
-			if count, err := strconv.ParseFloat(val, 64); err == nil {
-				ordersTotal.WithLabelValues(status).Set(count)
-			}
+	// 2. 오늘 일별 주문 수 → ordersTotal gauge로 노출
+	// SalesEventConsumer가 ORDER_CREATED/ORDER_CONFIRMED 때 metrics:orders:daily:{date} 증가
+	if val, err := mc.rdb.Get(mc.ctx, "metrics:orders:daily:"+today).Result(); err == nil {
+		if count, err := strconv.ParseFloat(val, 64); err == nil {
+			ordersTotal.WithLabelValues("daily").Set(count)
 		}
 	}
 
-	// 3. 누적 매출액
+	// 3. 누적 매출액 (metrics:revenue:total — SalesEventConsumer가 누적)
 	if val, err := mc.rdb.Get(mc.ctx, "metrics:revenue:total").Result(); err == nil {
 		if amount, err := strconv.ParseFloat(val, 64); err == nil {
 			revenueTotal.Set(amount)
 		}
 	}
 
+	// 오늘 일별 매출 (보조 지표)
+	if val, err := mc.rdb.Get(mc.ctx, "metrics:revenue:daily:"+today).Result(); err == nil {
+		if amount, err := strconv.ParseFloat(val, 64); err == nil {
+			ordersTotal.WithLabelValues("revenue_today_krw").Set(amount)
+		}
+	}
+
 	// 4. 카테고리별 상품 조회 수
+	// product-service가 상품 조회 시 metrics:views:category:{name} 증가 기록
 	categories := []string{"전자기기", "패션", "식품", "홈/리빙", "뷰티", "스포츠"}
 	for _, cat := range categories {
-		key := "metrics:views:category:" + cat
-		if val, err := mc.rdb.Get(mc.ctx, key).Result(); err == nil {
+		if val, err := mc.rdb.Get(mc.ctx, "metrics:views:category:"+cat).Result(); err == nil {
 			if count, err := strconv.ParseFloat(val, 64); err == nil {
 				productViewsTotal.WithLabelValues(cat).Set(count)
 			}
 		}
 	}
 
-	// 5. AI 서비스 통계 (ai-service가 Redis에 기록한 카운터)
+	// 5. AI 서비스 통계
+	// ai-service가 RecommendationService/ChatbotService 호출 시 Redis INCR 기록
 	aiFeatures := []string{"recommend", "describe", "chat"}
 	for _, feat := range aiFeatures {
-		// 요청 수
 		if val, err := mc.rdb.Get(mc.ctx, "metrics:ai:requests:"+feat).Result(); err == nil {
 			if count, err := strconv.ParseFloat(val, 64); err == nil {
 				aiRequestsTotal.WithLabelValues(feat).Add(count)
 			}
 		}
-		// 평균 응답 시간
 		if val, err := mc.rdb.Get(mc.ctx, "metrics:ai:latency_ms:"+feat).Result(); err == nil {
 			if ms, err := strconv.ParseFloat(val, 64); err == nil {
 				aiResponseTimeMs.WithLabelValues(feat).Observe(ms)
@@ -199,6 +206,7 @@ func (mc *MetricsCollector) collect() {
 	}
 
 	// 6. Rate Limit 초과 횟수
+	// api-gateway의 RateLimiterConfig가 429 응답 시 Redis INCR
 	services := []string{"order-service", "payment-service", "ai-service"}
 	for _, svc := range services {
 		if val, err := mc.rdb.Get(mc.ctx, "metrics:ratelimit:hits:"+svc).Result(); err == nil {
@@ -209,6 +217,7 @@ func (mc *MetricsCollector) collect() {
 	}
 
 	// 7. 장바구니 이탈률 (Redis Hash)
+	// cart-service 또는 order-service가 주기적으로 갱신
 	if val, err := mc.rdb.HGet(mc.ctx, "metrics:cart", "abandonment_rate").Result(); err == nil {
 		if rate, err := strconv.ParseFloat(val, 64); err == nil {
 			cartAbandonmentRate.Set(rate)

@@ -17,13 +17,28 @@ interface RecommendationResponse {
   latencyMs: number;
 }
 
+interface OrderItem {
+  productId: number;
+  productName: string;
+  categoryId?: number;
+}
+
+interface Order {
+  items?: OrderItem[];
+}
+
+interface Product {
+  id: number;
+  name: string;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 /**
- * AI 개인화 상품 추천 섹션
- * 로그인한 사용자에게만 노출
- * - 구매 이력 기반 GPT-4o-mini 추천
- * - 10분 Redis 캐싱 (cached badge 표시)
+ * AI 개인화 상품 추천 섹션 — 구매 이력 + 실제 상품 목록 기반
+ * - GET /api/orders/user/{userId}?page=0&size=10  → 최근 주문에서 productIds, categories 추출
+ * - GET /api/products?page=0&size=50              → 추천 후보 상품 목록
+ * - POST /api/ai/recommend                        → GPT-4o-mini 추천 (10분 Redis 캐시)
  */
 export function AiRecommendations() {
   const [recommendations, setRecommendations] = useState<RecommendedItem[]>([]);
@@ -41,20 +56,51 @@ export function AiRecommendations() {
   const loadRecommendations = async (uid: string) => {
     setLoading(true);
     try {
+      // 1. 구매 이력 + 상품 목록 병렬 fetch
+      const [ordersRes, productsRes] = await Promise.all([
+        fetch(`${API_URL}/api/orders/user/${uid}?page=0&size=10`, { credentials: 'include' }),
+        fetch(`${API_URL}/api/products?page=0&size=50`, { credentials: 'include' }),
+      ]);
+
+      const ordersData = ordersRes.ok ? await ordersRes.json() : { content: [] };
+      const productsData = productsRes.ok ? await productsRes.json() : { content: [] };
+
+      const orders: Order[] = ordersData.content || [];
+      const products: Product[] = productsData.content || [];
+
+      // 2. 주문 이력에서 구매 상품 ID / 카테고리 추출 (중복 제거)
+      const purchasedProductIds: number[] = [];
+      const purchasedCategories: string[] = [];
+      orders.forEach((order) => {
+        (order.items || []).forEach((item) => {
+          if (!purchasedProductIds.includes(item.productId)) {
+            purchasedProductIds.push(item.productId);
+          }
+          if (item.categoryId && !purchasedCategories.includes(String(item.categoryId))) {
+            purchasedCategories.push(String(item.categoryId));
+          }
+        });
+      });
+
+      // 3. 실제 상품 이름 목록 (최대 30개, 이미 구매한 상품 제외)
+      const availableProductNames = products
+        .filter((p) => !purchasedProductIds.includes(p.id))
+        .slice(0, 30)
+        .map((p) => p.name);
+
+      // 상품이 없으면 추천 불가
+      if (availableProductNames.length === 0) return;
+
+      // 4. AI 추천 요청
       const res = await fetch(`${API_URL}/api/ai/recommend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           userId: parseInt(uid),
-          purchasedProductIds: [],       // 실제로는 구매 이력 API에서 가져와야 함
-          purchasedCategories: [],
-          availableProductNames: [       // 실제로는 상품 API에서 가져와야 함
-            '삼성 갤럭시 S25', '애플 아이폰 16', '소니 WH-1000XM5', '애플 에어팟 Pro',
-            '나이키 에어맥스', '아디다스 울트라부스트', '뉴발란스 990v6',
-            '아모레퍼시픽 쿠션', '설화수 자음생 크림', '이니스프리 그린티 세럼',
-            '비비고 왕교자', '오뚜기 진라면', '농심 신라면',
-          ],
+          purchasedProductIds,
+          purchasedCategories,
+          availableProductNames,
           count: 4,
         }),
       });
@@ -65,7 +111,7 @@ export function AiRecommendations() {
       setReasoning(data.reasoning);
       setCached(data.cached);
     } catch {
-      // AI 서비스 불가 시 섹션 숨김
+      // AI 서비스 불가 시 섹션 숨김 (정상 폴백)
     } finally {
       setLoading(false);
     }
@@ -120,12 +166,10 @@ export function AiRecommendations() {
               href={`/search?keyword=${encodeURIComponent(item.productName)}`}
               className="group block"
             >
-              {/* 상품 이미지 플레이스홀더 */}
               <div className="aspect-square bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg mb-2 flex items-center justify-center border border-purple-100 group-hover:border-purple-300 transition-colors relative overflow-hidden">
                 <span className="text-2xl font-black text-purple-300">
                   {item.productName[0]}
                 </span>
-                {/* 연관도 배지 */}
                 <span className="absolute top-1.5 right-1.5 text-[10px] font-bold text-purple-700 bg-white/80 px-1 py-0.5 rounded-sm">
                   {Math.round(item.relevanceScore * 100)}%
                 </span>
@@ -139,7 +183,6 @@ export function AiRecommendations() {
         </div>
       )}
 
-      {/* 안내 텍스트 */}
       <p className="text-[10px] text-gray-400 mt-3 text-right">
         구매 이력을 학습해 개인화된 추천을 제공합니다
       </p>
