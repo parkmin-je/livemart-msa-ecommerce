@@ -99,3 +99,15 @@ spec:
   selector:
     matchLabels:
       app: inventory-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-ai-service
+  namespace: livemart
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-service

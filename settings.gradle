@@ -18,3 +18,5 @@ include 'api-gateway'
 include 'payment-service'
 include 'eureka-server'
 include 'config-server'
+include 'ai-service'
+// metrics-exporter is a Go service (not Gradle) — built separately via Docker

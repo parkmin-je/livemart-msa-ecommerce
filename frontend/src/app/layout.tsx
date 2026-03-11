@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Noto_Sans_KR } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
+import { AiChatbot } from './_components/AiChatbot.client';
 
 const notoSansKR = Noto_Sans_KR({
   subsets: ['latin'],
@@ -23,6 +24,8 @@ export default function RootLayout({
     <html lang="ko">
       <body className={notoSansKR.className}>
         <Providers>{children}</Providers>
+        {/* AI CS 챗봇 — 전역 플로팅 위젯 (모든 페이지에 표시) */}
+        <AiChatbot />
       </body>
     </html>
   );
