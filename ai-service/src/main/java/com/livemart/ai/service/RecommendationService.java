@@ -41,10 +41,41 @@ public class RecommendationService {
     @Value("${openai.model.recommendation:gpt-4o-mini}")
     private String model;
 
+    @Value("${openai.api.key:}")
+    private String apiKey;
+
+    private boolean isDemoMode() {
+        return apiKey == null || apiKey.isBlank();
+    }
+
+    /** 데모 모드: OpenAI API Key 없을 때 샘플 추천 반환 */
+    private RecommendationResponse buildDemoRecommendations(RecommendationRequest req, long start) {
+        int count = Math.min(req.count() != null ? req.count() : 4, 5);
+        var demoItems = List.of(
+            new RecommendedItem("프리미엄 무선 블루투스 이어버드", "전자기기", "최근 구매 패턴 기반 고관련 상품", 0.95),
+            new RecommendedItem("스마트 워치 실리콘 밴드 세트", "전자기기", "구매한 카테고리의 베스트셀러", 0.90),
+            new RecommendedItem("제주 유기농 감귤 5kg", "식품", "신선식품 시즌 추천 상품", 0.85),
+            new RecommendedItem("편안한 캐주얼 스니커즈", "패션", "현재 트렌딩 상품", 0.80),
+            new RecommendedItem("고효율 공기청정기 필터", "가전", "환경/위생 관심 고객 추천", 0.75)
+        );
+        return new RecommendationResponse(
+            req.userId(),
+            demoItems.subList(0, Math.min(count, demoItems.size())),
+            "구매 이력 및 트렌드 기반 맞춤 추천 (데모)",
+            false, System.currentTimeMillis() - start
+        );
+    }
+
     @SuppressWarnings("unchecked")
     public RecommendationResponse recommend(RecommendationRequest req) {
         long start = System.currentTimeMillis();
         String cacheKey = CACHE_KEY + req.userId();
+
+        // 데모 모드: OpenAI API Key 없으면 샘플 추천 반환
+        if (isDemoMode()) {
+            log.info("Demo mode: returning sample recommendations for user={}", req.userId());
+            return buildDemoRecommendations(req, start);
+        }
 
         // 캐시 히트
         Object cached = redisTemplate.opsForValue().get(cacheKey);

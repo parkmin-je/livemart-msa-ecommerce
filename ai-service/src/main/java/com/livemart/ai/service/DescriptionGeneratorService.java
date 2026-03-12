@@ -35,8 +35,34 @@ public class DescriptionGeneratorService {
     @Value("${openai.model.description:gpt-4o-mini}")
     private String model;
 
+    @Value("${openai.api.key:}")
+    private String apiKey;
+
+    private boolean isDemoMode() {
+        return apiKey == null || apiKey.isBlank();
+    }
+
     public DescriptionResponse generate(DescriptionRequest req) {
         long start = System.currentTimeMillis();
+
+        // 데모 모드: OpenAI API Key 없으면 템플릿 기반 설명 반환
+        if (isDemoMode()) {
+            log.info("Demo mode: generating template description for product={}", req.productName());
+            String keywords = req.keywords() != null ? String.join(", ", req.keywords()) : "";
+            String category = req.category() != null ? req.category() : "상품";
+            return new DescriptionResponse(
+                req.productName(),
+                req.productName() + " — 최고의 " + category + " 상품",
+                req.productName() + "은(는) 고객 만족을 최우선으로 설계된 " + category + " 상품입니다. "
+                    + "엄선된 재료와 첨단 기술로 제작되어 높은 품질을 보장합니다. "
+                    + "LiveMart에서 합리적인 가격으로 만나보세요.",
+                "최고 품질, 합리적인 가격의 " + req.productName(),
+                keywords.isEmpty()
+                    ? new String[]{category, req.productName(), "LiveMart", "추천상품", "베스트셀러"}
+                    : (keywords + ", LiveMart, 추천상품").split(",\\s*"),
+                System.currentTimeMillis() - start
+            );
+        }
 
         var prompt = buildPrompt(req);
         var request = OpenAiRequest.builder()
