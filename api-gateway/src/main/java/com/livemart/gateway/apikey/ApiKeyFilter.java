@@ -49,6 +49,8 @@ public class ApiKeyFilter implements GlobalFilter, Ordered {
         "/api/categories",
         // 쿠폰 조회 (공개)
         "/api/coupons",
+        // AI 서비스 (챗봇, 추천, 설명생성 — 비로그인 사용자도 사용 가능)
+        "/api/ai",
         // 결제 웹훅 (외부 PG사 콜백)
         "/api/v1/payments/webhook",
         // 헬스체크 & 모니터링

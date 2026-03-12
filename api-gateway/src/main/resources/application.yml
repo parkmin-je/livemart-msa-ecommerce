@@ -9,6 +9,9 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      # API Gateway는 자체 ApiKeyFilter로 인증 처리 → Spring Security 비활성화
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration
   flyway:
     enabled: false
   # Redis (Rate Limiting 전용)
@@ -32,12 +35,13 @@ spring:
       # 전역 기본 필터: 모든 라우트에 Rate Limiting 적용
       # - key-resolver 미지정: RequestRateLimiterGatewayFilterFactory가 @Autowired KeyResolver(userKeyResolver) 자동 사용
       # - SpEL #{@userKeyResolver} 제거: 빈 초기화 순서 충돌 방지
-      default-filters:
-        - name: RequestRateLimiter
-          args:
-            redis-rate-limiter.replenishRate: 100
-            redis-rate-limiter.burstCapacity: 200
-            redis-rate-limiter.requestedTokens: 1
+      # NOTE: Redis 연결 문제로 인해 default Rate Limiter 임시 제거 (각 라우트에 개별 설정)
+      # default-filters:
+      #   - name: RequestRateLimiter
+      #     args:
+      #       redis-rate-limiter.replenishRate: 100
+      #       redis-rate-limiter.burstCapacity: 200
+      #       redis-rate-limiter.requestedTokens: 1
 
       routes:
         # User Service - API
@@ -72,18 +76,13 @@ spring:
           filters:
             - RewritePath=/api/(?<segment>.*), /api/${segment}
 
-        # Order Service - 주문 생성/조회 (낮은 rate limit: 20 req/s)
+        # Order Service - 주문 생성/조회
         - id: order-service
           uri: lb://order-service
           predicates:
             - Path=/api/orders/**
           filters:
             - RewritePath=/api/orders/(?<segment>.*), /api/orders/${segment}
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 20
-                redis-rate-limiter.burstCapacity: 40
-                redis-rate-limiter.requestedTokens: 1
 
         # Coupon & Return Service (Order Service)
         - id: coupon-service
@@ -100,18 +99,13 @@ spring:
           filters:
             - RewritePath=/api/returns/(?<segment>.*), /api/returns/${segment}
 
-        # Payment Service - 결제 (낮은 rate limit: 20 req/s)
+        # Payment Service - 결제
         - id: payment-service
           uri: lb://payment-service
           predicates:
             - Path=/api/payments/**
           filters:
             - RewritePath=/api/payments/(?<segment>.*), /api/v1/payments/${segment}
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 20
-                redis-rate-limiter.burstCapacity: 40
-                redis-rate-limiter.requestedTokens: 1
 
         # Inventory Service (미구현 - 라우팅만 유지)
         - id: inventory-service
@@ -137,18 +131,13 @@ spring:
           filters:
             - RewritePath=/api/analytics/(?<segment>.*), /api/analytics/${segment}
 
-        # AI Service - 추천/설명생성/챗봇 (인증 필요 엔드포인트)
+        # AI Service - 추천/설명생성/챗봇
         - id: ai-service
           uri: lb://ai-service
           predicates:
             - Path=/api/ai/**
           filters:
             - RewritePath=/api/ai/(?<segment>.*), /api/ai/${segment}
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 10    # LLM API 비용 보호: 초당 10건
-                redis-rate-limiter.burstCapacity: 20
-                redis-rate-limiter.requestedTokens: 1
 
       # CORS 설정 - 프로덕션에서는 환경변수로 관리
       globalcors:
@@ -183,6 +172,10 @@ management:
     web:
       exposure:
         include: health,info,gateway,prometheus,metrics
+  health:
+    redis:
+      # Redis는 Rate Limiter가 비활성화되어 있어 필수 의존성 아님 → 헬스체크 제외
+      enabled: false
   metrics:
     export:
       prometheus:

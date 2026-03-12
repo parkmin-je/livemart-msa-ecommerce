@@ -40,9 +40,35 @@ public class ChatbotService {
     @Value("${openai.model.chat:gpt-4o-mini}")
     private String model;
 
+    @Value("${openai.api.key:}")
+    private String apiKey;
+
+    private boolean isDemoMode() {
+        return apiKey == null || apiKey.isBlank();
+    }
+
+    /** 데모 모드: OpenAI API Key 없을 때 규칙 기반 응답 */
+    private String buildDemoResponse(String message, String intent) {
+        return switch (intent) {
+            case "order_inquiry" -> "안녕하세요! 주문/배송 관련 문의를 주셨군요. 정확한 배송 현황은 마이페이지 > 주문내역에서 실시간으로 확인하실 수 있습니다. 추가 문의가 있으시면 언제든지 알려주세요.";
+            case "refund" -> "반품/환불 문의를 주셨군요. 상품 수령 후 7일 이내에 반품 신청이 가능하며, 환불은 신청 후 영업일 기준 3~5일 내 처리됩니다. 마이페이지 > 주문내역에서 반품 신청을 진행해 주세요.";
+            case "product_info" -> "상품 관련 문의를 주셨군요. 상품 상세 페이지에서 사양, 재고, 판매자 정보를 확인하실 수 있습니다. 궁금하신 상품명을 알려주시면 더 자세히 안내해 드리겠습니다.";
+            default -> "안녕하세요! LiveMart 고객 서비스 AI 상담원입니다. 주문 조회, 반품/환불, 상품 문의 등 다양한 도움을 드릴 수 있습니다. 어떤 점이 궁금하신가요?";
+        };
+    }
+
     /** 동기 응답 */
     public ChatResponse chat(ChatRequest req) {
         String sessionId = req.sessionId() != null ? req.sessionId() : UUID.randomUUID().toString();
+
+        // 데모 모드: OpenAI API Key가 없으면 규칙 기반 응답
+        if (isDemoMode()) {
+            String intent = detectIntent(req.message());
+            boolean escalate = shouldEscalate("", req.message());
+            log.info("Demo mode chatbot response: session={}, intent={}", sessionId, intent);
+            return new ChatResponse(sessionId, buildDemoResponse(req.message(), intent), intent, escalate);
+        }
+
         var messages = buildMessages(req, sessionId);
 
         var request = OpenAiRequest.builder()
@@ -70,6 +96,15 @@ public class ChatbotService {
     /** 스트리밍 SSE 응답 */
     public Flux<String> chatStream(ChatRequest req) {
         String sessionId = req.sessionId() != null ? req.sessionId() : UUID.randomUUID().toString();
+
+        // 데모 모드: 데모 텍스트를 단어 단위로 스트리밍
+        if (isDemoMode()) {
+            String intent = detectIntent(req.message());
+            String demoText = buildDemoResponse(req.message(), intent);
+            return Flux.fromArray(demoText.split("(?<=\\s)|(?=\\s)"))
+                    .filter(s -> !s.isEmpty());
+        }
+
         var messages = buildMessages(req, sessionId);
 
         var request = OpenAiRequest.builder()
