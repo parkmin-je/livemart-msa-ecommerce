@@ -87,21 +87,39 @@ export function AiChatbot() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
+      let sseBuffer = ''; // 미완성 SSE 라인 버퍼
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
 
-        setMessages(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            content: accumulated,
-          };
-          return updated;
-        });
+        sseBuffer += decoder.decode(value, { stream: true });
+
+        // 완성된 SSE 라인만 처리 (개행 기준 분리)
+        const lines = sseBuffer.split('\n');
+        sseBuffer = lines.pop() ?? ''; // 마지막 미완성 라인은 버퍼에 보관
+
+        let hasNewContent = false;
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            // "data:" 접두사(5자) 제거 → 실제 토큰 추출
+            const token = line.slice(5);
+            if (token === '[DONE]') continue;
+            accumulated += token;
+            hasNewContent = true;
+          }
+        }
+
+        if (hasNewContent) {
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              content: accumulated,
+            };
+            return updated;
+          });
+        }
       }
 
       // 세션 ID가 없으면 서버에서 새로 받기
