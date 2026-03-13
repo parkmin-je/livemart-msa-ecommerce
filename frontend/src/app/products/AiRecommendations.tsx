@@ -23,7 +23,6 @@ export async function AiRecommendations() {
   return (
     <section className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 mb-8">
       <div className="flex items-center mb-4">
-        <span className="text-2xl mr-2">✨</span>
         <h2 className="text-xl font-bold text-gray-900">AI Recommendations</h2>
         <span className="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
           Powered by Spring AI

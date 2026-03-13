@@ -93,7 +93,7 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
   if (error) {
     return (
       <div className="text-center py-16 bg-white rounded-xl border border-gray-100">
-        <div className="text-5xl mb-4">😢</div>
+        <div className="flex justify-center mb-4"><svg className="w-14 h-14 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
         <p className="text-gray-600 font-medium mb-2">상품을 불러오지 못했습니다</p>
         <p className="text-gray-400 text-sm mb-6">잠시 후 다시 시도해주세요</p>
         <button onClick={() => window.location.reload()} className="btn-primary btn-sm">다시 시도</button>
@@ -144,7 +144,7 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
       {/* 상품 그리드 */}
       {products.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
-          <div className="text-6xl mb-4">🔍</div>
+          <div className="flex justify-center mb-4"><svg className="w-14 h-14 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
           <p className="text-gray-600 font-medium text-lg mb-2">상품이 없습니다</p>
           <p className="text-gray-400 text-sm">다른 카테고리를 선택하거나 검색어를 바꿔보세요</p>
         </div>
@@ -218,7 +218,7 @@ function ListProductCard({ product }: { product: Product }) {
         {product.imageUrl ? (
           <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+          <div className="w-full h-full flex items-center justify-center"><svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
         )}
       </div>
       <div className="flex-1 min-w-0">
