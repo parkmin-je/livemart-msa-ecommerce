@@ -269,6 +269,12 @@ public class OrderService {
                 .map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getAllOrders(Pageable pageable) {
+        return orderRepository.findAllBy(pageable)
+                .map(this::toResponse);
+    }
+
     @Transactional
     public OrderResponse confirmOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
