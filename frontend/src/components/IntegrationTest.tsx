@@ -180,7 +180,7 @@ export function IntegrationTest() {
         console.log('[Test 10] Order cancellation response:', response);
       });
 
-      toast.success('모든 테스트가 성공적으로 완료되었습니다! 🎉');
+      toast.success('모든 테스트가 성공적으로 완료되었습니다!');
     } catch (error) {
       toast.error('테스트 중 오류가 발생했습니다.');
       console.error('Test failed:', error);
@@ -193,15 +193,15 @@ export function IntegrationTest() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return '⏸️';
+        return '—';
       case 'running':
-        return '⏳';
+        return '···';
       case 'success':
-        return '✅';
+        return '✓';
       case 'error':
-        return '❌';
+        return '✗';
       default:
-        return '⏸️';
+        return '—';
     }
   };
 
@@ -223,7 +223,7 @@ export function IntegrationTest() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold mb-2">🧪 MSA 통합 테스트</h1>
+        <h1 className="text-3xl font-bold mb-2">MSA 통합 테스트</h1>
         <p className="text-gray-600 mb-6">
           모든 마이크로서비스의 기능을 자동으로 테스트합니다.
         </p>
@@ -239,7 +239,7 @@ export function IntegrationTest() {
                 : 'bg-blue-600 hover:bg-blue-700'
             }`}
           >
-            {running ? '테스트 실행 중...' : '🚀 전체 테스트 실행'}
+            {running ? '테스트 실행 중...' : '전체 테스트 실행'}
           </button>
         </div>
 
@@ -274,7 +274,7 @@ export function IntegrationTest() {
 
         {/* Architecture Info */}
         <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">🏗️ 테스트하는 MSA 아키텍처</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">테스트하는 MSA 아키텍처</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <h4 className="font-semibold text-blue-900 mb-2">마이크로서비스</h4>

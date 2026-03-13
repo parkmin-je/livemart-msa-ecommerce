@@ -38,13 +38,13 @@ function CallbackContent() {
       if (needOnboarding) {
         // 최초 소셜 로그인 → 추가 정보 입력 페이지로 이동
         setStatus('success');
-        setMessage('추가 정보를 입력해주세요 ✍️');
+        setMessage('추가 정보를 입력해주세요.');
         setTimeout(() => {
           window.location.href = '/auth/onboarding';
         }, 800);
       } else {
         setStatus('success');
-        setMessage(`환영합니다, ${decodeURIComponent(name || '회원')}님! 🎉`);
+        setMessage(`환영합니다, ${decodeURIComponent(name || '회원')}님!`);
         setTimeout(() => {
           window.location.href = '/';
         }, 1200);
@@ -67,7 +67,7 @@ function CallbackContent() {
         )}
         {status === 'success' && (
           <>
-            <div className="text-5xl mb-4">🎉</div>
+            <div className="flex justify-center mb-4"><svg className="w-14 h-14 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">로그인 성공!</h2>
             <p className="text-gray-500 text-sm">{message}</p>
             <p className="text-xs text-gray-400 mt-2">홈으로 이동 중...</p>
@@ -75,7 +75,7 @@ function CallbackContent() {
         )}
         {status === 'error' && (
           <>
-            <div className="text-5xl mb-4">❌</div>
+            <div className="flex justify-center mb-4"><svg className="w-14 h-14 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">로그인 실패</h2>
             <p className="text-gray-500 text-sm">{message}</p>
             <p className="text-xs text-gray-400 mt-2">잠시 후 로그인 페이지로...</p>

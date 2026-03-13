@@ -21,8 +21,8 @@ interface DeliveryInfo {
   shippingAddress?: string;
 }
 
-const STATUS_EMOJI: Record<string, string> = {
-  PICKED_UP: '📦', IN_TRANSIT: '🚚', OUT_FOR_DELIVERY: '🛵', DELIVERED: '🎉',
+const STATUS_ICON: Record<string, string> = {
+  PICKED_UP: '○', IN_TRANSIT: '→', OUT_FOR_DELIVERY: '↗', DELIVERED: '✓',
 };
 
 export default function DeliveryPage() {
@@ -70,14 +70,14 @@ export default function DeliveryPage() {
                   <p className="font-bold text-gray-900 text-lg font-mono">{trackingNumber}</p>
                 </div>
                 <span className="bg-red-600 text-white text-sm font-bold px-4 py-2 rounded-full">
-                  {info?.status === 'DELIVERED' ? '🎉 배송완료' : '🚚 배송중'}
+                  {info?.status === 'DELIVERED' ? '배송완료' : '배송중'}
                 </span>
               </div>
               {info?.carrier && <p className="text-sm text-gray-500">택배사: {info.carrier}</p>}
               {info?.estimatedDelivery && (
                 <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                   <p className="text-sm text-blue-700 font-medium">
-                    📅 예상 배송일: {new Date(info.estimatedDelivery).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
+                    예상 배송일: {new Date(info.estimatedDelivery).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}
                   </p>
                 </div>
               )}
@@ -102,7 +102,7 @@ export default function DeliveryPage() {
                         <div className="absolute left-4 top-8 bottom-0 w-0.5 bg-gray-100" />
                       )}
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm z-10 ${i === 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
-                        {STATUS_EMOJI[ev.status] || '📍'}
+                        {STATUS_ICON[ev.status] || '·'}
                       </div>
                       <div className="flex-1 pb-5">
                         <div className="flex items-start justify-between gap-2">
@@ -127,10 +127,10 @@ export default function DeliveryPage() {
               <h3 className="font-semibold text-gray-900 mb-3">배송 문의</h3>
               <div className="grid grid-cols-2 gap-3">
                 <button className="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                  📞 택배사 문의
+                  택배사 문의
                 </button>
                 <button className="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                  💬 LiveMart 고객센터
+                  LiveMart 고객센터
                 </button>
               </div>
             </div>

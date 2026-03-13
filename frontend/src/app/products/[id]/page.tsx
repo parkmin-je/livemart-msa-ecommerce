@@ -119,7 +119,7 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (!product) return;
     addItem({ productId: product.id, name: product.name, price: product.price, quantity, imageUrl: product.imageUrl });
-    toast.success(`장바구니에 ${quantity}개 추가됐습니다!`, { icon: '🛒' });
+    toast.success(`장바구니에 ${quantity}개 추가됐습니다!`);
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -150,7 +150,7 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-gray-100"><GlobalNav />
       <div className="flex items-center justify-center pt-20">
         <div className="text-center card p-12">
-          <div className="text-5xl mb-4">😢</div>
+          <div className="flex justify-center mb-4"><svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
           <h2 className="text-xl font-bold text-gray-700 mb-4">상품을 찾을 수 없습니다</h2>
           <button onClick={()=>router.push('/products')} className="btn-primary">상품 목록으로</button>
         </div>
@@ -197,7 +197,7 @@ export default function ProductDetailPage() {
                     }
                   }}/>
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-9xl bg-gradient-to-br from-gray-50 to-gray-100">📦</div>
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100"><svg className="w-24 h-24 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
               )}
               {/* 좌우 화살표 */}
               {galleryImages.length > 1 && (
@@ -253,11 +253,11 @@ export default function ProductDetailPage() {
 
             <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
               {isFreeShipping
-                ? <div className="flex items-center gap-2"><span className="font-bold text-blue-600">🚀 로켓배송</span><span className="text-gray-500">· 무료배송</span></div>
-                : <div className="flex items-center gap-2 text-gray-600"><span>📦 일반배송</span><span className="text-gray-500">· 3,000원</span></div>
+                ? <div className="flex items-center gap-2"><span className="font-bold text-blue-600">로켓배송</span><span className="text-gray-500">· 무료배송</span></div>
+                : <div className="flex items-center gap-2 text-gray-600"><span>일반배송</span><span className="text-gray-500">· 3,000원</span></div>
               }
-              <div className="flex items-center gap-2 text-gray-600"><span>🔄</span><span>7일 이내 무료 반품</span></div>
-              <div className="flex items-center gap-2 text-gray-600"><span>🛡️</span><span>안전결제 보장</span></div>
+              <div className="flex items-center gap-2 text-gray-600"><span>7일 이내 무료 반품</span></div>
+              <div className="flex items-center gap-2 text-gray-600"><span>안전결제 보장</span></div>
             </div>
 
             <div className="flex items-center gap-4">
@@ -360,7 +360,7 @@ export default function ProductDetailPage() {
 
                 {reviews.length===0 ? (
                   <div className="text-center py-12 text-gray-400">
-                    <div className="text-4xl mb-3">💬</div>
+                    <div className="flex justify-center mb-3"><svg className="w-12 h-12 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></div>
                     <p>아직 리뷰가 없습니다. 첫 번째 리뷰를 작성해보세요!</p>
                   </div>
                 ) : (
@@ -383,7 +383,7 @@ export default function ProductDetailPage() {
                         <p className="text-gray-700 text-sm leading-relaxed">{review.content}</p>
                         <button onClick={()=>reviewApi.markHelpful(productId,review.id)}
                           className="mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                          👍 도움이 됐어요 ({review.helpfulCount||0})
+                          도움이 됐어요 ({review.helpfulCount||0})
                         </button>
                       </div>
                     ))}
