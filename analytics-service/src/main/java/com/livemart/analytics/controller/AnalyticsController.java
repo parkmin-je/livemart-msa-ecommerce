@@ -5,16 +5,19 @@ import com.livemart.analytics.service.SalesAnalyticsService.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
 /**
  * 데이터 분석 & BI API
+ * 전체 엔드포인트 ADMIN 전용 (민감한 매출/고객 데이터)
  */
 @RestController
 @RequestMapping("/api/v1/analytics")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AnalyticsController {
 
     private final SalesAnalyticsService salesAnalyticsService;
