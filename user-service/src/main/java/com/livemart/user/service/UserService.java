@@ -144,6 +144,10 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    public long getUserCount() {
+        return userRepository.count();
+    }
+
     @Transactional
     public UserResponse updateUserRole(Long userId, String roleName) {
         User user = userRepository.findById(userId)

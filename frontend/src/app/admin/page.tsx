@@ -56,13 +56,26 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELLED: 'bg-gray-100 text-gray-500 border border-gray-200',
 };
 
+function SkeletonCard() {
+  return (
+    <div className="bg-white border border-gray-200 p-5 animate-pulse">
+      <div className="w-9 h-9 rounded bg-gray-100 mb-3" />
+      <div className="h-3 w-16 bg-gray-100 rounded mb-2" />
+      <div className="h-7 w-24 bg-gray-100 rounded mb-2" />
+      <div className="h-3 w-20 bg-gray-100 rounded" />
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [tab, setTab] = useState<'dashboard' | 'orders' | 'coupons' | 'users'>('dashboard');
   const [stats, setStats] = useState<Stats>({});
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [couponsLoading, setCouponsLoading] = useState(true);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [newCoupon, setNewCoupon] = useState<Coupon>({
     code: '', discountType: 'PERCENTAGE', discountValue: 10, minOrderAmount: 0, maxUses: 100, expiresAt: '',
@@ -70,28 +83,38 @@ export default function AdminPage() {
   const [savingCoupon, setSavingCoupon] = useState(false);
 
   useEffect(() => {
-    const fetchStats = fetch('/api/orders/query/statistics', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : {}).catch(() => ({}));
-    const fetchOrders = fetch('/api/orders?page=0&size=20&sort=createdAt,desc', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : { content: [] }).catch(() => ({ content: [] }));
-    const fetchProducts = fetch('/api/products?page=0&size=1', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : { totalElements: 0 }).catch(() => ({ totalElements: 0 }));
-    const fetchCoupons = fetch('/api/coupons', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : []).catch(() => []);
-    const fetchUsers = fetch('/api/users', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : []).catch(() => []);
+    // Fetch statistics independently
+    Promise.all([
+      fetch('/api/orders/query/statistics', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch('/api/products?page=0&size=1', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : { totalElements: 0 }).catch(() => ({ totalElements: 0 })),
+      fetch('/api/users/count', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : { count: 0 }).catch(() => ({ count: 0 })),
+    ]).then(([s, p, u]) => {
+      setStats({
+        ...s,
+        totalProducts: p?.totalElements ?? 0,
+        totalUsers: u?.count ?? 0,
+      });
+      setStatsLoading(false);
+    });
 
-    Promise.all([fetchStats, fetchOrders, fetchProducts, fetchCoupons, fetchUsers])
-      .then(([s, o, p, c, u]) => {
-        setStats({
-          ...s,
-          totalProducts: p?.totalElements ?? 0,
-          totalUsers: Array.isArray(u) ? u.length : (u.content?.length || 0),
-        });
+    // Fetch orders independently
+    fetch('/api/orders?page=0&size=20&sort=createdAt,desc', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { content: [] }).catch(() => ({ content: [] }))
+      .then(o => {
         setOrders(Array.isArray(o) ? o : (Array.isArray(o?.content) ? o.content : []));
+        setOrdersLoading(false);
+      });
+
+    // Fetch coupons independently
+    fetch('/api/coupons', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : []).catch(() => [])
+      .then(c => {
         setCoupons(Array.isArray(c) ? c : (Array.isArray(c?.content) ? c.content : []));
-      })
-      .finally(() => setLoading(false));
+        setCouponsLoading(false);
+      });
   }, []);
 
   const createCoupon = async (e: React.FormEvent) => {
@@ -229,18 +252,21 @@ export default function AdminPage() {
                 <p className="text-sm text-gray-500 mt-0.5">LiveMart 전체 현황</p>
               </div>
 
-              {/* KPI Cards */}
+              {/* KPI Cards — show skeleton while loading, data when ready */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {KPI.map(k => (
-                  <div key={k.label} className="bg-white border border-gray-200 p-5">
-                    <div className={`inline-flex items-center justify-center w-9 h-9 rounded ${k.bg} ${k.accent} mb-3`}>
-                      {k.icon}
+                {statsLoading
+                  ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+                  : KPI.map(k => (
+                    <div key={k.label} className="bg-white border border-gray-200 p-5">
+                      <div className={`inline-flex items-center justify-center w-9 h-9 rounded ${k.bg} ${k.accent} mb-3`}>
+                        {k.icon}
+                      </div>
+                      <p className="text-xs text-gray-500 font-medium">{k.label}</p>
+                      <p className={`text-2xl font-bold mt-1 ${k.accent}`}>{k.value}</p>
+                      <p className="text-xs text-gray-400 mt-1">{k.sub}</p>
                     </div>
-                    <p className="text-xs text-gray-500 font-medium">{k.label}</p>
-                    <p className={`text-2xl font-bold mt-1 ${k.accent}`}>{k.value}</p>
-                    <p className="text-xs text-gray-400 mt-1">{k.sub}</p>
-                  </div>
-                ))}
+                  ))
+                }
               </div>
 
               <div className="grid lg:grid-cols-2 gap-4">
@@ -250,7 +276,19 @@ export default function AdminPage() {
                     <h2 className="font-bold text-gray-900 text-sm">최근 주문</h2>
                     <button onClick={() => setTab('orders')} className="text-xs text-red-600 hover:underline">전체보기</button>
                   </div>
-                  {orders.length === 0 ? (
+                  {ordersLoading ? (
+                    <div className="space-y-3 animate-pulse">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="flex justify-between py-2">
+                          <div className="space-y-1.5 flex-1 mr-4">
+                            <div className="h-3 bg-gray-100 rounded w-3/4" />
+                            <div className="h-3 bg-gray-100 rounded w-1/2" />
+                          </div>
+                          <div className="h-3 bg-gray-100 rounded w-16" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : orders.length === 0 ? (
                     <p className="text-center text-gray-400 text-sm py-8">주문 데이터가 없습니다</p>
                   ) : (
                     <div className="divide-y divide-gray-50">
@@ -325,8 +363,17 @@ export default function AdminPage() {
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                   <span className="font-semibold text-gray-900 text-sm">주문 목록 ({orders.length}건)</span>
                 </div>
-                {loading ? (
-                  <div className="p-16 text-center text-gray-400 text-sm">불러오는 중...</div>
+                {ordersLoading ? (
+                  <div className="animate-pulse divide-y divide-gray-50">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="px-5 py-4 flex gap-4">
+                        <div className="h-4 bg-gray-100 rounded w-32" />
+                        <div className="h-4 bg-gray-100 rounded w-40 flex-1" />
+                        <div className="h-4 bg-gray-100 rounded w-16" />
+                        <div className="h-4 bg-gray-100 rounded w-20" />
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <table className="w-full">
                     <thead>
@@ -456,7 +503,17 @@ export default function AdminPage() {
                 <div className="px-5 py-4 border-b border-gray-100">
                   <span className="font-semibold text-gray-900 text-sm">쿠폰 목록 ({coupons.length}개)</span>
                 </div>
-                {coupons.length === 0 ? (
+                {couponsLoading ? (
+                  <div className="animate-pulse divide-y divide-gray-50">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="px-5 py-4 flex gap-6">
+                        <div className="h-4 bg-gray-100 rounded w-24" />
+                        <div className="h-4 bg-gray-100 rounded w-20" />
+                        <div className="h-4 bg-gray-100 rounded w-24" />
+                      </div>
+                    ))}
+                  </div>
+                ) : coupons.length === 0 ? (
                   <div className="p-16 text-center">
                     <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
@@ -505,7 +562,9 @@ export default function AdminPage() {
                 </svg>
                 <h2 className="text-base font-bold text-gray-900 mb-1">회원 관리</h2>
                 <p className="text-gray-500 text-sm">관리자 권한으로 회원을 관리할 수 있습니다</p>
-                <p className="text-sm font-semibold text-gray-800 mt-2">총 회원 수: {stats.totalUsers || 0}명</p>
+                <p className="text-sm font-semibold text-gray-800 mt-2">
+                  총 회원 수: {statsLoading ? '...' : `${stats.totalUsers || 0}명`}
+                </p>
                 <a href="/admin/users"
                   className="inline-block mt-4 px-5 py-2 bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
                   전체 회원 목록 보기
