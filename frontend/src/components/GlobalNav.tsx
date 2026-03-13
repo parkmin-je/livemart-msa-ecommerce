@@ -137,10 +137,10 @@ export function GlobalNav() {
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-50 bg-white transition-shadow duration-200 ${scrolled ? 'shadow-md' : 'shadow-sm'}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-md' : 'bg-white shadow-sm'}`}>
         {/* 상단 안내 바 */}
         <div className="bg-gray-950 text-white text-xs">
-          <div className="max-w-[1280px] mx-auto px-4 flex items-center justify-between h-8">
+          <div className="max-w-[1440px] mx-auto px-4 flex items-center justify-between h-8">
             <span className="text-gray-500 hidden sm:block">LiveMart — 빠른배송 · 최저가 · 안전결제</span>
             <div className="flex items-center gap-5 ml-auto">
               {userName ? (
@@ -164,7 +164,7 @@ export function GlobalNav() {
 
         {/* 메인 헤더 */}
         <div className="border-b border-gray-100">
-          <div className="max-w-[1280px] mx-auto px-4">
+          <div className="max-w-[1440px] mx-auto px-4">
             <div className="flex items-center gap-5 h-16">
               {/* 로고 */}
               <a href="/" className="flex-shrink-0">
@@ -265,7 +265,7 @@ export function GlobalNav() {
 
         {/* 카테고리 네비 — 텍스트 전용, 밑줄 호버 */}
         <div className="bg-white border-b border-gray-200">
-          <div className="max-w-[1280px] mx-auto px-4">
+          <div className="max-w-[1440px] mx-auto px-4">
             <div className="flex items-center overflow-x-auto scrollbar-thin">
               {CATEGORIES.map((cat) => {
                 const isActive = pathname.includes(cat.href.split('?')[0]) && cat.href !== '/products'
@@ -300,7 +300,7 @@ export function GlobalNav() {
         {/* 모바일 메뉴 */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-white border-t shadow-lg animate-fadeInUp">
-            <div className="max-w-[1280px] mx-auto px-4 py-3 space-y-0.5">
+            <div className="max-w-[1440px] mx-auto px-4 py-3 space-y-0.5">
               {CATEGORIES.map((cat) => (
                 <a key={cat.label} href={cat.href} className="flex items-center px-3 py-2.5 rounded text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
                   {cat.label}
