@@ -14,12 +14,22 @@ interface Stats {
   cancelledOrders?: number;
 }
 
+interface OrderItem {
+  productId: number;
+  productName: string;
+  productPrice: number;
+  quantity: number;
+  totalPrice: number;
+}
+
 interface AdminOrder {
   id: number;
+  orderNumber?: string;
   status: string;
   totalAmount: number;
   createdAt: string;
   userId?: number;
+  items?: OrderItem[];
 }
 
 interface Coupon {
@@ -60,16 +70,28 @@ export default function AdminPage() {
   const [savingCoupon, setSavingCoupon] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/orders/query/statistics', { credentials: 'include' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-      fetch('/api/orders?page=0&size=20', { credentials: 'include' }).then(r => r.json()).catch(() => ({ content: [] })),
-      fetch('/api/coupons', { credentials: 'include' }).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch('/api/users', { credentials: 'include' }).then(r => r.ok ? r.json() : []).catch(() => []),
-    ]).then(([s, o, c, u]) => {
-      setStats({ ...s, totalUsers: Array.isArray(u) ? u.length : (u.content?.length || 0) });
-      setOrders(Array.isArray(o) ? o : (Array.isArray(o?.content) ? o.content : []));
-      setCoupons(Array.isArray(c) ? c : (Array.isArray(c?.content) ? c.content : []));
-    }).finally(() => setLoading(false));
+    const fetchStats = fetch('/api/orders/query/statistics', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : {}).catch(() => ({}));
+    const fetchOrders = fetch('/api/orders?page=0&size=20&sort=createdAt,desc', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { content: [] }).catch(() => ({ content: [] }));
+    const fetchProducts = fetch('/api/products?page=0&size=1', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { totalElements: 0 }).catch(() => ({ totalElements: 0 }));
+    const fetchCoupons = fetch('/api/coupons', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : []).catch(() => []);
+    const fetchUsers = fetch('/api/users', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : []).catch(() => []);
+
+    Promise.all([fetchStats, fetchOrders, fetchProducts, fetchCoupons, fetchUsers])
+      .then(([s, o, p, c, u]) => {
+        setStats({
+          ...s,
+          totalProducts: p?.totalElements ?? 0,
+          totalUsers: Array.isArray(u) ? u.length : (u.content?.length || 0),
+        });
+        setOrders(Array.isArray(o) ? o : (Array.isArray(o?.content) ? o.content : []));
+        setCoupons(Array.isArray(c) ? c : (Array.isArray(c?.content) ? c.content : []));
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const createCoupon = async (e: React.FormEvent) => {
@@ -233,14 +255,21 @@ export default function AdminPage() {
                   ) : (
                     <div className="divide-y divide-gray-50">
                       {orders.slice(0, 5).map(o => (
-                        <div key={o.id} className="flex items-center justify-between py-2.5">
-                          <div>
-                            <span className="text-sm font-medium text-gray-900">주문 #{o.id}</span>
-                            <span className={`ml-2 text-[11px] font-medium px-1.5 py-0.5 rounded ${STATUS_STYLE[o.status] || 'bg-gray-100 text-gray-500'}`}>
-                              {STATUS_LABEL[o.status] || o.status}
-                            </span>
+                        <div key={o.id} className="flex items-start justify-between py-2.5">
+                          <div className="flex-1 min-w-0 mr-3">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium text-gray-900 truncate">{o.orderNumber || `#${o.id}`}</span>
+                              <span className={`flex-shrink-0 text-[11px] font-medium px-1.5 py-0.5 rounded ${STATUS_STYLE[o.status] || 'bg-gray-100 text-gray-500'}`}>
+                                {STATUS_LABEL[o.status] || o.status}
+                              </span>
+                            </div>
+                            {o.items && o.items.length > 0 && (
+                              <p className="text-[11px] text-gray-400 mt-0.5 truncate">
+                                {o.items[0].productName}{o.items.length > 1 ? ` 외 ${o.items.length - 1}건` : ''}
+                              </p>
+                            )}
                           </div>
-                          <span className="text-sm font-bold text-gray-900">{(o.totalAmount || 0).toLocaleString()}원</span>
+                          <span className="text-sm font-bold text-gray-900 flex-shrink-0">{(o.totalAmount || 0).toLocaleString()}원</span>
                         </div>
                       ))}
                     </div>
@@ -303,6 +332,7 @@ export default function AdminPage() {
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100">
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">주문번호</th>
+                        <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">상품</th>
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">상태</th>
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">금액</th>
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">날짜</th>
@@ -313,7 +343,22 @@ export default function AdminPage() {
                     <tbody className="divide-y divide-gray-50">
                       {orders.map(o => (
                         <tr key={o.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-5 py-3 text-sm font-medium text-gray-900">#{o.id}</td>
+                          <td className="px-5 py-3">
+                            <p className="text-sm font-medium text-gray-900">{o.orderNumber || `#${o.id}`}</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">ID {o.id}</p>
+                          </td>
+                          <td className="px-5 py-3">
+                            {o.items && o.items.length > 0 ? (
+                              <div className="space-y-0.5">
+                                <p className="text-xs text-gray-800 font-medium leading-snug line-clamp-1">{o.items[0].productName}</p>
+                                {o.items.length > 1 && (
+                                  <p className="text-[11px] text-gray-400">외 {o.items.length - 1}개 상품</p>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
+                          </td>
                           <td className="px-5 py-3">
                             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${STATUS_STYLE[o.status] || 'bg-gray-100 text-gray-500'}`}>
                               {STATUS_LABEL[o.status] || o.status}
