@@ -34,12 +34,30 @@ interface Product {
 
 // ── 카테고리 데이터 ───────────────────────────────────
 const CATEGORIES = [
-  { label: '전자기기', mono: '전', bg: 'bg-slate-800', href: '/search?cat=1' },
-  { label: '패션', mono: '패', bg: 'bg-rose-500', href: '/search?cat=2' },
-  { label: '식품', mono: '식', bg: 'bg-green-600', href: '/search?cat=3' },
-  { label: '홈/리빙', mono: '홈', bg: 'bg-amber-500', href: '/search?cat=4' },
-  { label: '뷰티', mono: '뷰', bg: 'bg-pink-500', href: '/search?cat=5' },
-  { label: '스포츠', mono: '스', bg: 'bg-orange-500', href: '/search?cat=6' },
+  {
+    label: '전자기기', href: '/products?cat=1', bg: 'bg-blue-50', color: 'text-blue-600',
+    icon: <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>,
+  },
+  {
+    label: '패션', href: '/products?cat=2', bg: 'bg-rose-50', color: 'text-rose-500',
+    icon: <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M6 2l1.5 4.5S6 8 6 10v10h12V10c0-2-1.5-3.5-1.5-3.5L18 2c-1.5 1-3 1.5-6 1.5S7.5 3 6 2z"/></svg>,
+  },
+  {
+    label: '식품', href: '/products?cat=3', bg: 'bg-green-50', color: 'text-green-600',
+    icon: <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>,
+  },
+  {
+    label: '홈/리빙', href: '/products?cat=4', bg: 'bg-amber-50', color: 'text-amber-600',
+    icon: <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>,
+  },
+  {
+    label: '뷰티', href: '/products?cat=5', bg: 'bg-pink-50', color: 'text-pink-500',
+    icon: <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 3c-4.5 0-7 3-7 6 0 2.5 1.5 4.5 3.5 5.5V18a1 1 0 001 1h5a1 1 0 001-1v-3.5C17.5 13.5 19 11.5 19 9c0-3-2.5-6-7-6z M9 21h6"/></svg>,
+  },
+  {
+    label: '스포츠', href: '/products?cat=6', bg: 'bg-orange-50', color: 'text-orange-500',
+    icon: <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>,
+  },
 ];
 
 // ── 서버 사이드 상품 조회 ─────────────────────────────
@@ -177,13 +195,13 @@ export default async function Home() {
         {/* ── 카테고리 ── */}
         <section className="bg-white px-5 py-5">
           <SectionHeader title="카테고리" subtitle="원하는 상품을 빠르게 찾아보세요" />
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-6 gap-3">
             {CATEGORIES.map(cat => (
-              <a key={cat.label} href={cat.href} className="flex flex-col items-center gap-2 group">
-                <div className={`w-12 h-12 ${cat.bg} rounded-xl flex items-center justify-center group-hover:opacity-85 transition-opacity`}>
-                  <span className="text-white font-bold text-base">{cat.mono}</span>
+              <a key={cat.label} href={cat.href} className="flex flex-col items-center gap-2.5 group">
+                <div className={`w-14 h-14 ${cat.bg} rounded-2xl flex items-center justify-center group-hover:shadow-md transition-all duration-200 group-hover:scale-105`}>
+                  <span className={cat.color}>{cat.icon}</span>
                 </div>
-                <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900 transition-colors text-center leading-tight">
+                <span className="text-xs font-medium text-gray-700 group-hover:text-red-600 transition-colors text-center leading-tight">
                   {cat.label}
                 </span>
               </a>
