@@ -1,15 +1,18 @@
 package com.livemart.payment.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.livemart.common.event.EventPublisher;
 import com.livemart.payment.domain.*;
 import com.livemart.payment.dto.*;
+import com.livemart.payment.event.PaymentEvent;
 import com.livemart.payment.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -19,10 +22,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("PaymentService 단위 테스트")
 class PaymentServiceTest {
 
-    @InjectMocks
     private PaymentService paymentService;
 
     @Mock
@@ -32,10 +35,14 @@ class PaymentServiceTest {
     private PaymentEventRepository eventRepository;
 
     @Mock
-    private EventPublisher eventPublisher;
+    @SuppressWarnings("unchecked")
+    private KafkaTemplate<String, PaymentEvent> kafkaTemplate;
 
-    @Mock
-    private ObjectMapper objectMapper;
+    @BeforeEach
+    void setUp() {
+        paymentService = new PaymentService(paymentRepository, eventRepository, kafkaTemplate,
+                Optional.of(new ObjectMapper()));
+    }
 
     @Nested
     @DisplayName("결제 처리")

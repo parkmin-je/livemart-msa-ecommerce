@@ -33,6 +33,8 @@ spring:
 
   elasticsearch:
     uris: http://localhost:9200
+    connection-timeout: 5s
+    socket-timeout: 10s
 
   graphql:
     graphiql:

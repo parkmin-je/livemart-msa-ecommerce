@@ -35,7 +35,7 @@ interface Product {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 /**
- * AI 개인화 상품 추천 섹션 — 구매 이력 + 실제 상품 목록 기반
+ * 개인화 상품 추천 섹션 — 구매 이력 + 실제 상품 목록 기반
  * - GET /api/orders/user/{userId}?page=0&size=10  → 최근 주문에서 productIds, categories 추출
  * - GET /api/products?page=0&size=50              → 추천 후보 상품 목록
  * - POST /api/ai/recommend                        → GPT-4o-mini 추천 (10분 Redis 캐시)
@@ -111,7 +111,7 @@ export function AiRecommendations() {
       setReasoning(data.reasoning);
       setCached(data.cached);
     } catch {
-      // AI 서비스 불가 시 섹션 숨김 (정상 폴백)
+      // 서비스 불가 시 섹션 숨김 (정상 폴백)
     } finally {
       setLoading(false);
     }
@@ -121,71 +121,70 @@ export function AiRecommendations() {
   if (!userId || (!loading && recommendations.length === 0)) return null;
 
   return (
-    <section className="bg-white px-5 py-5">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-            <h2 className="text-[17px] font-bold text-gray-900">AI 맞춤 추천</h2>
-          </div>
+    <section className="bg-white px-5 py-6 border-t border-gray-100">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2.5">
+          <h2 className="text-[17px] font-bold text-gray-900 tracking-tight">맞춤 추천</h2>
           {cached && (
-            <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-sm">
+            <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
               캐시
             </span>
           )}
         </div>
-        <span className="text-xs text-gray-400">GPT-4o-mini 기반</span>
+        <a href="/products" className="text-xs text-gray-400 hover:text-gray-700 transition-colors flex items-center gap-1">
+          전체보기
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
       </div>
 
       {/* 추천 근거 */}
       {reasoning && (
-        <p className="text-xs text-gray-500 mb-3 bg-gray-50 px-3 py-2 rounded-lg border-l-2 border-purple-300">
+        <p className="text-xs text-gray-400 mb-4 pb-4 border-b border-gray-50 leading-relaxed">
           {reasoning}
         </p>
       )}
 
       {/* 로딩 스켈레톤 */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[1,2,3,4].map(i => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
             <div key={i} className="animate-pulse">
-              <div className="aspect-square bg-gray-200 rounded-lg mb-2" />
-              <div className="h-3 bg-gray-200 rounded w-3/4 mb-1" />
-              <div className="h-3 bg-gray-200 rounded w-1/2" />
+              <div className="aspect-square bg-gray-100 mb-2.5" />
+              <div className="h-3 bg-gray-100 rounded-sm w-3/4 mb-1.5" />
+              <div className="h-3 bg-gray-100 rounded-sm w-1/2" />
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {recommendations.map((item, i) => (
             <a
               key={i}
               href={`/search?keyword=${encodeURIComponent(item.productName)}`}
               className="group block"
             >
-              <div className="aspect-square bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg mb-2 flex items-center justify-center border border-purple-100 group-hover:border-purple-300 transition-colors relative overflow-hidden">
-                <span className="text-2xl font-black text-purple-300">
-                  {item.productName[0]}
-                </span>
-                <span className="absolute top-1.5 right-1.5 text-[10px] font-bold text-purple-700 bg-white/80 px-1 py-0.5 rounded-sm">
-                  {Math.round(item.relevanceScore * 100)}%
+              {/* Image placeholder */}
+              <div className="aspect-square bg-gray-50 border border-gray-100 group-hover:border-gray-200 transition-colors mb-2.5 flex items-center justify-center relative overflow-hidden">
+                <svg className="w-10 h-10 text-gray-200 group-hover:text-gray-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {/* Category tag */}
+                <span className="absolute bottom-1.5 left-1.5 text-[9px] font-medium text-gray-400 bg-white/90 px-1.5 py-0.5 leading-none">
+                  {item.category}
                 </span>
               </div>
-              <p className="text-xs font-semibold text-gray-800 line-clamp-2 group-hover:text-purple-700 transition-colors leading-snug mb-0.5">
+              <p className="text-xs font-semibold text-gray-800 line-clamp-2 group-hover:text-gray-950 transition-colors leading-snug mb-1">
                 {item.productName}
               </p>
-              <p className="text-[10px] text-gray-400 line-clamp-1">{item.reason}</p>
+              <p className="text-[10px] text-gray-400 line-clamp-1 leading-relaxed">{item.reason}</p>
             </a>
           ))}
         </div>
       )}
-
-      <p className="text-[10px] text-gray-400 mt-3 text-right">
-        구매 이력을 학습해 개인화된 추천을 제공합니다
-      </p>
     </section>
   );
 }

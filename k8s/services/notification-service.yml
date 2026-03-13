@@ -46,16 +46,23 @@ spec:
                   key: SMTP_PASSWORD
           resources:
             requests:
-              memory: "512Mi"
+              memory: "256Mi"
               cpu: "100m"
             limits:
               memory: "1Gi"
               cpu: "500m"
+          startupProbe:
+            tcpSocket:
+              port: 8086
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /actuator/health
               port: 8086
             initialDelaySeconds: 60
+            timeoutSeconds: 5
             periodSeconds: 10
             failureThreshold: 10
           livenessProbe:
@@ -63,6 +70,7 @@ spec:
               path: /actuator/health
               port: 8086
             initialDelaySeconds: 120
+            timeoutSeconds: 5
             periodSeconds: 30
             failureThreshold: 5
 ---
