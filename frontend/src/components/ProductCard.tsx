@@ -120,11 +120,17 @@ export function ProductCard({ product }: ProductCardProps) {
             src={product.imageUrl}
             alt={product.name}
             onError={() => setImageError(true)}
-            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-400"
+            className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
             loading="lazy"
           />
         ) : (
           <ImagePlaceholder />
+        )}
+        {/* Quick view — PC hover only */}
+        {!isOutOfStock && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gray-950/85 text-white text-[11px] font-semibold py-2 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden lg:block tracking-wider backdrop-blur-[2px]">
+            빠른 보기
+          </div>
         )}
 
         {/* Top-left badges */}

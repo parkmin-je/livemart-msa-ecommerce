@@ -1,162 +1,313 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const BANNERS = [
   {
     id: 1,
-    tag: '오늘의 특가',
-    title: '최대 30%',
-    sub: '베스트셀러 한정 특가',
-    desc: '인기 상품 특별 할인 · 오늘만',
+    tag: '한정 특가',
+    title: '최대\n30% 할인',
+    sub: '베스트셀러 오늘만 특가',
+    desc: '인기 상품 한정 수량 특별 할인',
     cta: '지금 쇼핑하기',
     href: '/products',
-    from: '#E11D48',
-    to: '#BE123C',
-    accent: '#ffffff',
-    bigText: '30%',
+    bg: '#0D0D10',
+    accent: '#EF4444',
+    bigText: '30',
+    bigUnit: '%',
     bigLabel: 'SALE',
+    stat1: { label: '참여 중', value: '12,847명' },
+    stat2: { label: '남은 수량', value: '한정' },
   },
   {
     id: 2,
-    tag: '빠른배송',
-    title: '오늘 주문',
-    sub: '내일 도착 보장',
-    desc: '5만원 이상 무료배송 · 전 품목',
+    tag: '빠른 배송',
+    title: '오늘 주문\n내일 도착',
+    sub: '5만원 이상 무료배송',
+    desc: '전 품목 로켓배송 적용',
     cta: '전체상품 보기',
     href: '/products',
-    from: '#1D4ED8',
-    to: '#1E40AF',
-    accent: '#93C5FD',
+    bg: '#080D1A',
+    accent: '#3B82F6',
     bigText: '무료',
+    bigUnit: '',
     bigLabel: '배송',
+    stat1: { label: '평균 배송', value: '14시간' },
+    stat2: { label: '만족도', value: '99.1%' },
   },
   {
     id: 3,
     tag: '신상품 입고',
-    title: '2026 S/S',
-    sub: '봄 신상 컬렉션',
-    desc: '새로 입고된 트렌디한 신상품',
+    title: '2026 S/S\n봄 컬렉션',
+    sub: '트렌디한 신상품 총출동',
+    desc: '이번 시즌 가장 주목받는 아이템',
     cta: '신상품 보기',
     href: '/products',
-    from: '#16A34A',
-    to: '#15803D',
-    accent: '#86EFAC',
+    bg: '#080F08',
+    accent: '#22C55E',
     bigText: 'NEW',
+    bigUnit: '',
     bigLabel: '입고',
+    stat1: { label: '신상품', value: '247종' },
+    stat2: { label: '오늘 입고', value: '32종' },
   },
 ];
+
+const AUTO_INTERVAL = 5200;
 
 export function HeroBanner() {
   const [current, setCurrent] = useState(0);
   const [animating, setAnimating] = useState(false);
+  const [exitDir, setExitDir] = useState<'left' | 'right'>('left');
+  const [progress, setProgress] = useState(0);
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setAnimating(true);
-      setTimeout(() => {
-        setCurrent(c => (c + 1) % BANNERS.length);
-        setAnimating(false);
-      }, 200);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, []);
-
-  const goTo = (i: number) => {
-    setAnimating(true);
-    setTimeout(() => { setCurrent(i); setAnimating(false); }, 150);
+  const clearTimers = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (progressRef.current) clearInterval(progressRef.current);
   };
+
+  const startCycle = (idx: number) => {
+    clearTimers();
+    setProgress(0);
+    const start = Date.now();
+    progressRef.current = setInterval(() => {
+      const p = Math.min(((Date.now() - start) / AUTO_INTERVAL) * 100, 100);
+      setProgress(p);
+    }, 16);
+    timerRef.current = setInterval(() => {
+      goNext(idx);
+    }, AUTO_INTERVAL);
+  };
+
+  const goNext = (from: number) => {
+    const next = (from + 1) % BANNERS.length;
+    goTo(next, 'left');
+  };
+
+  const goTo = (i: number, dir: 'left' | 'right' = 'left') => {
+    if (animating) return;
+    clearTimers();
+    setExitDir(dir);
+    setAnimating(true);
+    setTimeout(() => {
+      setCurrent(i);
+      setAnimating(false);
+    }, 380);
+  };
+
+  useEffect(() => {
+    startCycle(current);
+    return clearTimers;
+  }, [current]);
 
   const banner = BANNERS[current];
 
   return (
     <div
-      className="relative overflow-hidden h-56 md:h-72 transition-all duration-500"
-      style={{ background: `linear-gradient(135deg, ${banner.from} 0%, ${banner.to} 100%)` }}
+      className="relative overflow-hidden w-full select-none"
+      style={{
+        height: 'clamp(260px, 38vw, 520px)',
+        background: banner.bg,
+        transition: 'background 1s ease',
+      }}
     >
-      {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 1px, transparent 1px, transparent 12px)',
-        }}
+      {/* Accent glow */}
+      <div
+        className="absolute -left-32 top-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full blur-[140px] pointer-events-none transition-all duration-1000"
+        style={{ background: banner.accent, opacity: 0.18 }}
+      />
+      <div
+        className="absolute right-0 bottom-0 w-[300px] h-[300px] rounded-full blur-[100px] pointer-events-none transition-all duration-1000"
+        style={{ background: banner.accent, opacity: 0.06 }}
       />
 
-      {/* Content */}
+      {/* Slide content */}
       <div
-        className={`relative z-10 h-full flex items-center justify-between px-7 md:px-14 transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}
+        className="absolute inset-0 flex"
+        style={{
+          opacity: animating ? 0 : 1,
+          transform: animating
+            ? `translateX(${exitDir === 'left' ? '-4%' : '4%'})`
+            : 'translateX(0)',
+          transition: 'opacity 0.38s ease, transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94)',
+        }}
       >
         {/* Left: text */}
-        <div>
-          <div
-            className="inline-block text-[10px] font-bold uppercase tracking-[0.2em] mb-3 px-2.5 py-1 rounded-full"
-            style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}
-          >
-            {banner.tag}
+        <div className="flex-1 flex flex-col justify-center px-8 md:px-14 lg:px-20 xl:px-28 z-10 pb-8">
+          {/* Tag */}
+          <div className="flex items-center gap-2.5 mb-5 md:mb-7">
+            <span
+              className="w-1 h-4 flex-shrink-0 rounded-full"
+              style={{ background: banner.accent }}
+            />
+            <span
+              className="text-[11px] font-extrabold uppercase tracking-[0.28em]"
+              style={{ color: banner.accent }}
+            >
+              {banner.tag}
+            </span>
           </div>
-          <h2 className="text-3xl md:text-5xl font-black text-white leading-[1.05] mb-1.5 tracking-tight">
+
+          {/* Title */}
+          <h2
+            className="font-black text-white leading-[0.98] tracking-tighter mb-4 md:mb-5"
+            style={{
+              fontSize: 'clamp(2.2rem, 4.8vw, 4.8rem)',
+              whiteSpace: 'pre-line',
+              textShadow: '0 4px 60px rgba(0,0,0,0.6)',
+            }}
+          >
             {banner.title}
           </h2>
-          <p className="text-base md:text-lg font-semibold text-white/90 mb-0.5">{banner.sub}</p>
-          <p className="text-xs text-white/60 mb-6">{banner.desc}</p>
+
+          {/* Sub */}
+          <p
+            className="text-white/55 font-medium mb-1"
+            style={{ fontSize: 'clamp(0.82rem, 1.4vw, 1rem)' }}
+          >
+            {banner.sub}
+          </p>
+          <p
+            className="text-white/30 mb-7 md:mb-9"
+            style={{ fontSize: 'clamp(0.72rem, 1.1vw, 0.85rem)' }}
+          >
+            {banner.desc}
+          </p>
+
+          {/* CTA */}
           <button
             onClick={() => router.push(banner.href)}
-            className="inline-flex items-center gap-2 bg-white font-bold px-5 py-2.5 text-sm rounded hover:opacity-90 transition-opacity"
-            style={{ color: banner.from }}
+            className="inline-flex items-center gap-3 font-bold text-white text-sm transition-all duration-200 hover:gap-4 w-fit"
+            style={{
+              background: banner.accent,
+              padding: 'clamp(10px,1.2vw,14px) clamp(20px,2.5vw,28px)',
+              letterSpacing: '0.01em',
+            }}
           >
             {banner.cta}
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
 
-        {/* Right: big bold stat */}
-        <div className="hidden md:flex flex-col items-center justify-center flex-shrink-0 w-44 h-44 rounded-full"
-          style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}>
-          <span className="text-5xl font-black text-white leading-none tracking-tighter"
-            style={{ textShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
-            {banner.bigText}
-          </span>
-          <span className="text-sm font-semibold text-white/80 mt-1 tracking-wide">{banner.bigLabel}</span>
+        {/* Right: big visual (lg+) */}
+        <div className="hidden lg:flex flex-col items-center justify-center w-[40%] flex-shrink-0 relative z-10 pb-8">
+          {/* Decorative rings */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border pointer-events-none"
+            style={{
+              width: 'clamp(200px,18vw,300px)',
+              height: 'clamp(200px,18vw,300px)',
+              borderColor: banner.accent,
+              borderWidth: 1,
+              opacity: 0.12,
+            }}
+          />
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border pointer-events-none"
+            style={{
+              width: 'clamp(270px,24vw,400px)',
+              height: 'clamp(270px,24vw,400px)',
+              borderColor: banner.accent,
+              borderWidth: 1,
+              opacity: 0.05,
+            }}
+          />
+
+          {/* Big number */}
+          <div className="text-center mb-6">
+            <div
+              className="font-black leading-none tabular-nums"
+              style={{
+                fontSize: 'clamp(4.5rem, 9.5vw, 9rem)',
+                color: banner.accent,
+                textShadow: `0 0 80px ${banner.accent}55`,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              {banner.bigText}
+              {banner.bigUnit && (
+                <span style={{ fontSize: '0.42em', verticalAlign: 'super', letterSpacing: '-0.02em' }}>
+                  {banner.bigUnit}
+                </span>
+              )}
+            </div>
+            <div className="text-white/25 text-[10px] font-bold uppercase tracking-[0.35em] mt-2">
+              {banner.bigLabel}
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex gap-10">
+            {[banner.stat1, banner.stat2].map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-white font-black text-xl tabular-nums">{stat.value}</div>
+                <div className="text-white/30 text-[11px] mt-0.5">{stat.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Dots */}
-      <div className="absolute bottom-4 left-7 md:left-14 flex items-center gap-2">
-        {BANNERS.map((_, i) => (
+      {/* Bottom bar: indicators + arrows */}
+      <div className="absolute bottom-0 left-0 right-0 flex items-center px-8 md:px-14 lg:px-20 xl:px-28 pb-4 gap-4">
+        {/* Dot indicators */}
+        <div className="flex items-center gap-1.5 flex-1">
+          {BANNERS.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i, i > current ? 'left' : 'right')}
+              className="transition-all duration-300 rounded-full flex-shrink-0"
+              style={{
+                width: i === current ? '24px' : '5px',
+                height: '5px',
+                background: i === current ? banner.accent : 'rgba(255,255,255,0.2)',
+              }}
+              aria-label={`슬라이드 ${i + 1}`}
+            />
+          ))}
+          <span className="text-white/20 text-[10px] font-mono ml-1">
+            {String(current + 1).padStart(2, '0')}/{String(BANNERS.length).padStart(2, '0')}
+          </span>
+        </div>
+
+        {/* Arrow buttons */}
+        <div className="flex items-center gap-1.5">
           <button
-            key={i}
-            onClick={() => goTo(i)}
-            className={`rounded-full transition-all duration-300 ${i === current ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/40 hover:bg-white/60'}`}
-            aria-label={`슬라이드 ${i + 1}`}
-          />
-        ))}
-        <span className="text-white/30 text-[10px] font-mono ml-1">
-          {current + 1}/{BANNERS.length}
-        </span>
+            onClick={() => goTo((current - 1 + BANNERS.length) % BANNERS.length, 'right')}
+            className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white transition-colors"
+            style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+            aria-label="이전"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={() => goTo((current + 1) % BANNERS.length, 'left')}
+            className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white transition-colors"
+            style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+            aria-label="다음"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Arrow controls */}
-      <button
-        onClick={() => goTo((current - 1 + BANNERS.length) % BANNERS.length)}
-        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-black/35 flex items-center justify-center text-white transition-colors"
-        aria-label="이전"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-      <button
-        onClick={() => goTo((current + 1) % BANNERS.length)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-black/35 flex items-center justify-center text-white transition-colors"
-        aria-label="다음"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
+      {/* Progress bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/[0.06]">
+        <div
+          className="h-full"
+          style={{ width: `${progress}%`, background: banner.accent, transition: 'none' }}
+        />
+      </div>
     </div>
   );
 }
