@@ -3,7 +3,9 @@
 import { GlobalNav } from '@/components/GlobalNav';
 import { CartSummary } from '@/components/CartSummary';
 import { ProductList } from '@/components/ProductList';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense } from 'react';
 
 const CATEGORIES = [
   { id: undefined, label: '전체' },
@@ -15,8 +17,23 @@ const CATEGORIES = [
   { id: 6, label: '스포츠' },
 ];
 
-export default function ProductsPage() {
-  const [selectedCat, setSelectedCat] = useState<number | undefined>(undefined);
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const catParam = searchParams.get('cat');
+  const initialCat = catParam ? parseInt(catParam) : undefined;
+  const [selectedCat, setSelectedCat] = useState<number | undefined>(initialCat);
+
+  useEffect(() => {
+    const cat = searchParams.get('cat');
+    setSelectedCat(cat ? parseInt(cat) : undefined);
+  }, [searchParams]);
+
+  const handleCatChange = (id: number | undefined) => {
+    setSelectedCat(id);
+    if (id) router.push(`/products?cat=${id}`, { scroll: false });
+    else router.push('/products', { scroll: false });
+  };
 
   const selectedLabel = CATEGORIES.find(c => c.id === selectedCat)?.label ?? '전체';
 
@@ -34,7 +51,7 @@ export default function ProductsPage() {
             </div>
             {selectedCat !== undefined && (
               <button
-                onClick={() => setSelectedCat(undefined)}
+                onClick={() => handleCatChange(undefined)}
                 className="text-xs text-gray-400 hover:text-gray-700 transition-colors flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +74,7 @@ export default function ProductsPage() {
                 {CATEGORIES.map(c => (
                   <button
                     key={String(c.id)}
-                    onClick={() => setSelectedCat(c.id)}
+                    onClick={() => handleCatChange(c.id)}
                     className={`w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center justify-between group ${
                       selectedCat === c.id
                         ? 'bg-gray-950 text-white font-semibold'
@@ -83,7 +100,7 @@ export default function ProductsPage() {
               {CATEGORIES.map(c => (
                 <button
                   key={String(c.id)}
-                  onClick={() => setSelectedCat(c.id)}
+                  onClick={() => handleCatChange(c.id)}
                   className={`flex-shrink-0 px-4 py-1.5 text-xs font-semibold border transition-colors ${
                     selectedCat === c.id
                       ? 'bg-gray-950 text-white border-gray-950'
@@ -101,5 +118,30 @@ export default function ProductsPage() {
       </div>
       <CartSummary />
     </main>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
+        <div className="h-[140px]" />
+        <div className="max-w-[1280px] mx-auto px-4 py-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-white rounded animate-pulse">
+                <div className="aspect-square bg-gray-200" />
+                <div className="p-3 space-y-2">
+                  <div className="h-3 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    }>
+      <ProductsContent />
+    </Suspense>
   );
 }

@@ -6,12 +6,12 @@ import { useCartStore } from '@/store/cartStore';
 import { searchApi } from '@/api/productApi';
 
 const CATEGORIES = [
-  { label: '전자기기', href: '/search?cat=1' },
-  { label: '패션', href: '/search?cat=2' },
-  { label: '식품', href: '/search?cat=3' },
-  { label: '홈/리빙', href: '/search?cat=4' },
-  { label: '뷰티', href: '/search?cat=5' },
-  { label: '스포츠', href: '/search?cat=6' },
+  { label: '전자기기', href: '/products?cat=1' },
+  { label: '패션', href: '/products?cat=2' },
+  { label: '식품', href: '/products?cat=3' },
+  { label: '홈/리빙', href: '/products?cat=4' },
+  { label: '뷰티', href: '/products?cat=5' },
+  { label: '스포츠', href: '/products?cat=6' },
   { label: '전체상품', href: '/products' },
 ];
 
