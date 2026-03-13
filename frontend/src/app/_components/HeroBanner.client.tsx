@@ -73,7 +73,7 @@ export function HeroBanner() {
 
   return (
     <div
-      className="relative overflow-hidden h-52 md:h-72 transition-all duration-500"
+      className="relative overflow-hidden h-56 md:h-72 transition-all duration-500"
       style={{ background: `linear-gradient(135deg, ${banner.from} 0%, ${banner.to} 100%)` }}
     >
       {/* Subtle pattern overlay */}

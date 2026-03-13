@@ -226,7 +226,7 @@ export default async function Home() {
                 desc: '최신 플래그십 모델 역대급 할인',
                 badge: '-25%',
                 badgeStyle: 'text-red-600 bg-red-50',
-                href: '/search?cat=1',
+                href: '/products?cat=1',
                 dot: 'bg-slate-800',
               },
               {
@@ -234,7 +234,7 @@ export default async function Home() {
                 desc: '트렌디한 봄 패션 아이템 총집합',
                 badge: 'NEW',
                 badgeStyle: 'text-emerald-700 bg-emerald-50',
-                href: '/search?cat=2',
+                href: '/products?cat=2',
                 dot: 'bg-rose-500',
               },
               {
@@ -242,7 +242,7 @@ export default async function Home() {
                 desc: '집을 더 예쁘게, 최대 40% 세일',
                 badge: '~40%',
                 badgeStyle: 'text-amber-700 bg-amber-50',
-                href: '/search?cat=4',
+                href: '/products?cat=4',
                 dot: 'bg-amber-500',
               },
             ].map((item, idx) => (
@@ -298,7 +298,7 @@ export default async function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {electronics.length > 0 && (
               <section className="bg-white px-5 py-5">
-                <SectionHeader title="전자기기" href="/search?cat=1" />
+                <SectionHeader title="전자기기" href="/products?cat=1" />
                 <div className="grid grid-cols-2 gap-3">
                   {electronics.map(product => <ProductCard key={product.id} product={product} />)}
                 </div>
@@ -306,7 +306,7 @@ export default async function Home() {
             )}
             {fashion.length > 0 && (
               <section className="bg-white px-5 py-5">
-                <SectionHeader title="패션" href="/search?cat=2" />
+                <SectionHeader title="패션" href="/products?cat=2" />
                 <div className="grid grid-cols-2 gap-3">
                   {fashion.map(product => <ProductCard key={product.id} product={product} />)}
                 </div>
