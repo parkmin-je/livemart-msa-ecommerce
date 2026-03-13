@@ -27,7 +27,6 @@ public class OrderController {
 
     @Operation(summary = "전체 주문 목록 조회 (관리자용)")
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<OrderResponse>> getAllOrders(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(orderService.getAllOrders(pageable));
