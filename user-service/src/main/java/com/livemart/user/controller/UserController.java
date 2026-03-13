@@ -158,6 +158,13 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
+    @Operation(summary = "전체 사용자 수 조회 (관리자)")
+    @GetMapping("/count")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Long>> getUserCount() {
+        return ResponseEntity.ok(Map.of("count", userService.getUserCount()));
+    }
+
     @Operation(summary = "사용자 역할 변경 (관리자)")
     @PutMapping("/{userId}/role")
     @PreAuthorize("hasRole('ADMIN')")
