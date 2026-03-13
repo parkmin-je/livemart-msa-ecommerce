@@ -46,6 +46,16 @@ management:
     web:
       exposure:
         include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  health:
+    kafka:
+      enabled: false
+    redis:
+      enabled: false
+    elasticsearch:
+      enabled: false
   tracing:
     sampling:
       probability: 0.1

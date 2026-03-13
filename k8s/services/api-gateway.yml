@@ -35,16 +35,23 @@ spec:
                 name: livemart-config
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "200m"
+              memory: "256Mi"
+              cpu: "100m"
             limits:
               memory: "1Gi"
               cpu: "1000m"
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /actuator/health
               port: 8080
             initialDelaySeconds: 120
+            timeoutSeconds: 5
             periodSeconds: 10
             failureThreshold: 10
           livenessProbe:
@@ -52,6 +59,7 @@ spec:
               path: /actuator/health
               port: 8080
             initialDelaySeconds: 240
+            timeoutSeconds: 5
             periodSeconds: 30
             failureThreshold: 5
 ---

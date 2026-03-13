@@ -28,11 +28,19 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8761
+            failureThreshold: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /actuator/health
               port: 8761
             initialDelaySeconds: 90
+            timeoutSeconds: 5
             periodSeconds: 10
             failureThreshold: 10
           livenessProbe:
@@ -40,6 +48,7 @@ spec:
               path: /actuator/health
               port: 8761
             initialDelaySeconds: 180
+            timeoutSeconds: 5
             periodSeconds: 30
             failureThreshold: 5
 ---

@@ -63,14 +63,18 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <main className="min-h-screen bg-gray-100 pb-28 md:pb-0">
+      <main className="min-h-screen bg-gray-50 pb-28 md:pb-0">
         <GlobalNav />
         <div className="max-w-[1280px] mx-auto px-4 py-16 text-center">
-          <div className="bg-white rounded-2xl border border-gray-100 py-24 px-8 max-w-md mx-auto">
-            <div className="text-7xl mb-6">🛒</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">장바구니가 비어있습니다</h2>
-            <p className="text-gray-500 mb-8">마음에 드는 상품을 담아보세요!</p>
-            <a href="/products" className="btn-primary px-8 py-3 text-base">쇼핑 계속하기</a>
+          <div className="bg-white border border-gray-200 py-24 px-8 max-w-md mx-auto">
+            <svg className="w-16 h-16 text-gray-300 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">장바구니가 비어있습니다</h2>
+            <p className="text-gray-500 text-sm mb-8">마음에 드는 상품을 담아보세요</p>
+            <a href="/products" className="inline-block px-8 py-3 bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
+              쇼핑 계속하기
+            </a>
           </div>
         </div>
       </main>
@@ -78,42 +82,44 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 pb-28 md:pb-0">
+    <main className="min-h-screen bg-gray-50 pb-28 md:pb-0">
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">장바구니</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-6">장바구니</h1>
 
         <div className="flex gap-6 items-start">
           {/* 왼쪽: 상품 목록 */}
-          <div className="flex-1 min-w-0 space-y-4">
+          <div className="flex-1 min-w-0 space-y-3">
             {/* 무료배송 프로그레스 */}
             {freeShippingRemain > 0 && (
-              <div className="bg-white rounded-xl border border-gray-100 p-4">
+              <div className="bg-white border border-gray-200 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-700">
-                    <span className="font-semibold text-red-600">{freeShippingRemain.toLocaleString()}원</span> 더 담으면 무료배송!
+                    <span className="font-bold text-red-600">{freeShippingRemain.toLocaleString()}원</span> 더 담으면 무료배송
                   </span>
-                  <span className="text-xs text-gray-400">5만원 이상 무료배송</span>
+                  <span className="text-xs text-gray-400">5만원 이상</span>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-gray-100 overflow-hidden">
                   <div
-                    className="h-full bg-red-500 rounded-full transition-all duration-500"
+                    className="h-full bg-red-600 transition-all duration-500"
                     style={{ width: `${Math.min(100, (subtotal / 50000) * 100)}%` }}
                   />
                 </div>
               </div>
             )}
             {subtotal >= 50000 && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-2">
-                <span className="text-green-600 text-lg">🎉</span>
+              <div className="bg-green-50 border border-green-200 p-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
                 <span className="text-sm text-green-700 font-medium">무료배송 달성! 배송비가 무료입니다.</span>
               </div>
             )}
 
             {/* 전체선택 */}
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
+            <div className="bg-white border border-gray-200 px-4 py-3">
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={selectedItems.size === items.length}
@@ -124,7 +130,7 @@ export default function CartPage() {
                 </label>
                 <button
                   onClick={() => { if (confirm('선택한 상품을 삭제하시겠습니까?')) selectedItems.forEach(id => removeItem(id)); }}
-                  className="text-sm text-gray-400 hover:text-red-500 transition-colors"
+                  className="text-sm text-gray-400 hover:text-red-600 transition-colors"
                 >
                   선택삭제
                 </button>
@@ -132,7 +138,7 @@ export default function CartPage() {
             </div>
 
             {/* 상품 목록 */}
-            <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
+            <div className="bg-white border border-gray-200 divide-y divide-gray-100">
               {items.map(item => (
                 <div key={item.productId} className="p-4 flex gap-4 group">
                   <input
@@ -142,45 +148,50 @@ export default function CartPage() {
                     className="mt-1 w-4 h-4 accent-red-600 flex-shrink-0"
                   />
                   <div
-                    className="w-20 h-20 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 cursor-pointer"
+                    className="w-20 h-20 bg-gray-100 overflow-hidden flex-shrink-0 cursor-pointer"
                     onClick={() => router.push(`/products/${item.productId}`)}
                   >
                     {item.imageUrl ? (
                       <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover hover:scale-105 transition-transform" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                      </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3
-                      className="font-medium text-gray-900 line-clamp-2 cursor-pointer hover:text-red-600 transition-colors"
+                      className="font-medium text-gray-900 line-clamp-2 cursor-pointer hover:text-red-600 transition-colors text-sm"
                       onClick={() => router.push(`/products/${item.productId}`)}
                     >
                       {item.name}
                     </h3>
-                    <p className="text-xs text-green-600 mt-1">🚀 로켓배송</p>
+                    <p className="text-xs text-gray-400 mt-1">빠른배송</p>
                     <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
                       {/* 수량 조절 */}
-                      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="flex items-center border border-gray-200 overflow-hidden">
                         <button
                           onClick={() => item.quantity > 1 ? updateQuantity(item.productId, item.quantity - 1) : removeItem(item.productId)}
-                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors font-bold"
+                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors font-bold text-lg"
                         >
                           −
                         </button>
-                        <span className="w-10 text-center text-sm font-semibold text-gray-900">{item.quantity}</span>
+                        <span className="w-10 text-center text-sm font-semibold text-gray-900 border-x border-gray-200">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors font-bold"
+                          className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors font-bold text-lg"
                         >
                           +
                         </button>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="text-lg font-bold text-gray-900">{(item.price * item.quantity).toLocaleString()}원</span>
+                        <span className="text-base font-bold text-gray-900">{(item.price * item.quantity).toLocaleString()}원</span>
                         <button
                           onClick={() => removeItem(item.productId)}
                           className="text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          aria-label="삭제"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -194,8 +205,8 @@ export default function CartPage() {
             </div>
 
             {/* 쿠폰 */}
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">쿠폰 적용</h3>
+            <div className="bg-white border border-gray-200 p-4">
+              <h3 className="font-semibold text-gray-900 text-sm mb-3">쿠폰 적용</h3>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -203,40 +214,75 @@ export default function CartPage() {
                   onChange={e => setCouponCode(e.target.value.toUpperCase())}
                   onKeyDown={e => e.key === 'Enter' && applyCoupon()}
                   placeholder="쿠폰 코드를 입력하세요"
-                  className="flex-1 form-input text-sm"
+                  className="flex-1 border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-gray-500"
                 />
                 <button
                   onClick={applyCoupon}
                   disabled={couponLoading}
-                  className="btn-primary px-4 py-2 text-sm whitespace-nowrap"
+                  className="px-4 py-2 bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors whitespace-nowrap disabled:opacity-50"
                 >
                   {couponLoading ? '확인중...' : '적용'}
                 </button>
               </div>
               {couponDiscount > 0 && (
-                <p className="text-sm text-green-600 mt-2">✓ 쿠폰 {couponDiscount.toLocaleString()}원 할인 적용됨</p>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-sm text-green-600 font-medium">쿠폰 {couponDiscount.toLocaleString()}원 할인 적용됨</p>
+                </div>
               )}
+            </div>
+
+            {/* 함께 구매하면 좋은 상품 */}
+            <div>
+              <h2 className="text-base font-bold text-gray-900 mb-3">함께 구매하면 좋은 상품</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                {[
+                  { id: 101, name: 'USB-C 충전케이블 3m', price: 12900, badge: 'BEST' },
+                  { id: 102, name: '노트북 파우치 15인치', price: 24900, badge: 'HOT' },
+                  { id: 103, name: '무선 마우스', price: 19900, badge: '-20%' },
+                  { id: 104, name: '모니터 클리너 세트', price: 8900, badge: 'NEW' },
+                  { id: 105, name: '케이블 정리 클립', price: 5900, badge: '추천' },
+                  { id: 106, name: '스마트폰 거치대', price: 15900, badge: '-15%' },
+                ].map(item => (
+                  <a key={item.id} href={`/products/${item.id}`}
+                    className="bg-white border border-gray-200 p-3 hover:border-gray-400 transition-all group text-center">
+                    <div className="aspect-square bg-gray-100 flex items-center justify-center mb-2 group-hover:bg-gray-50 transition-colors">
+                      <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
+                    <span className="inline-block text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 mb-1">{item.badge}</span>
+                    <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug mb-1">{item.name}</p>
+                    <p className="text-sm font-bold text-gray-900">{item.price.toLocaleString()}원</p>
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* 모바일 하단 고정 결제 바 */}
-          <div className="fixed bottom-14 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200 shadow-2xl px-4 py-3 flex items-center gap-3">
+          <div className="fixed bottom-14 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200 shadow-lg px-4 py-3 flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <div className="text-xs text-gray-500">{selectedItems.size > 0 ? `${selectedItems.size}개 선택` : '상품을 선택하세요'}</div>
               <div className="text-lg font-black text-gray-900 tabular-nums">
                 {total > 0 ? <>{total.toLocaleString()}<span className="text-sm font-normal text-gray-500 ml-0.5">원</span></> : '-'}
               </div>
             </div>
-            <button onClick={handleCheckout} disabled={selectedItems.size === 0}
-              className="flex-shrink-0 bg-red-600 text-white font-bold px-6 py-3 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700 transition-colors active:scale-[0.97]">
-              주문하기 →
+            <button
+              onClick={handleCheckout}
+              disabled={selectedItems.size === 0}
+              className="flex-shrink-0 bg-red-600 text-white font-bold px-6 py-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700 transition-colors"
+            >
+              주문하기
             </button>
           </div>
 
           {/* 오른쪽: 주문 요약 */}
-          <div className="w-80 flex-shrink-0 sticky top-[156px]">
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <h2 className="font-bold text-gray-900 text-lg mb-4">주문 요약</h2>
+          <div className="w-72 flex-shrink-0 sticky top-[156px] hidden md:block">
+            <div className="bg-white border border-gray-200 p-5">
+              <h2 className="font-bold text-gray-900 text-sm mb-4">주문 요약</h2>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>상품금액</span>
@@ -254,15 +300,15 @@ export default function CartPage() {
                     <span>-{discount.toLocaleString()}원</span>
                   </div>
                 )}
-                <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-gray-900 text-base">
+                <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-gray-900">
                   <span>총 결제금액</span>
-                  <span className="text-red-600 text-xl">{total.toLocaleString()}원</span>
+                  <span className="text-red-600 text-lg">{total.toLocaleString()}원</span>
                 </div>
               </div>
               <button
                 onClick={handleCheckout}
                 disabled={selectedItems.size === 0}
-                className="mt-5 w-full btn-primary py-3 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-5 w-full py-3 bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {selectedItems.size > 0 ? `${selectedItems.size}개 상품 주문하기` : '상품을 선택하세요'}
               </button>
@@ -270,37 +316,27 @@ export default function CartPage() {
             </div>
 
             {/* 혜택 안내 */}
-            <div className="mt-3 bg-red-50 border border-red-100 rounded-xl p-4 space-y-2">
-              <p className="text-xs font-semibold text-red-700">LiveMart 혜택</p>
-              <p className="text-xs text-red-600">🚀 5만원 이상 무료배송</p>
-              <p className="text-xs text-red-600">💳 카드결제 최대 5% 할인</p>
-              <p className="text-xs text-red-600">🎁 신규회원 3,000원 쿠폰 증정</p>
+            <div className="mt-3 bg-gray-50 border border-gray-200 p-4 space-y-2">
+              <p className="text-xs font-bold text-gray-700 tracking-wide">LiveMart 혜택</p>
+              <div className="flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-xs text-gray-600">5만원 이상 무료배송</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-xs text-gray-600">카드결제 최대 5% 할인</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-xs text-gray-600">신규회원 3,000원 쿠폰</p>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* 함께 구매하면 좋은 상품 */}
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">🛍️ 함께 구매하면 좋은 상품</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-            {[
-              { id: 101, name: 'USB-C 충전케이블 3m', price: 12900, emoji: '🔌', badge: '베스트' },
-              { id: 102, name: '노트북 파우치 15인치', price: 24900, emoji: '💼', badge: '인기' },
-              { id: 103, name: '무선 마우스', price: 19900, emoji: '🖱️', badge: '-20%' },
-              { id: 104, name: '모니터 클리너 세트', price: 8900, emoji: '🧹', badge: '신상' },
-              { id: 105, name: '케이블 정리 클립', price: 5900, emoji: '📎', badge: '추천' },
-              { id: 106, name: '스마트폰 거치대', price: 15900, emoji: '📱', badge: '-15%' },
-            ].map(item => (
-              <a key={item.id} href={`/products/${item.id}`}
-                className="bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md hover:border-gray-200 transition-all group text-center">
-                <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center text-3xl mb-2 group-hover:scale-105 transition-transform">
-                  {item.emoji}
-                </div>
-                <span className="inline-block text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded mb-1">{item.badge}</span>
-                <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug mb-1">{item.name}</p>
-                <p className="text-sm font-black text-gray-900">{item.price.toLocaleString()}원</p>
-              </a>
-            ))}
           </div>
         </div>
       </div>

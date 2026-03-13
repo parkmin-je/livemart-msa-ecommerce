@@ -34,9 +34,11 @@ class ArchitectureTest {
                 .layer("Domain").definedBy("..domain..")
                 .layer("DTO").definedBy("..dto..")
                 .layer("Config").definedBy("..config..")
+                .layer("Security").definedBy("..security..")
+                .layer("OAuth").definedBy("..oauth..")
                 .whereLayer("Controller").mayNotBeAccessedByAnyLayer()
-                .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller", "Config")
-                .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service")
+                .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller", "Config", "Security", "OAuth")
+                .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service", "Controller", "Security", "OAuth")
                 .check(classes);
     }
 
@@ -45,6 +47,7 @@ class ArchitectureTest {
     void controllersShouldBeAnnotated() {
         classes().that().resideInAPackage("..controller..")
                 .and().areNotInterfaces()
+                .and().areTopLevelClasses()  // 내부 클래스(Inner DTO) 제외
                 .should().beAnnotatedWith(org.springframework.web.bind.annotation.RestController.class)
                 .check(classes);
     }

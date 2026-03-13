@@ -103,16 +103,23 @@ spec:
               value: "http://localhost:3002/auth/callback"
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "200m"
+              memory: "256Mi"
+              cpu: "100m"
             limits:
               memory: "1Gi"
               cpu: "500m"
+          startupProbe:
+            tcpSocket:
+              port: 8085
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /actuator/health
               port: 8085
             initialDelaySeconds: 150
+            timeoutSeconds: 5
             periodSeconds: 10
             failureThreshold: 15
           livenessProbe:
@@ -120,6 +127,7 @@ spec:
               path: /actuator/health
               port: 8085
             initialDelaySeconds: 360
+            timeoutSeconds: 5
             periodSeconds: 30
             failureThreshold: 10
 ---
