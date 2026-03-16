@@ -7,12 +7,15 @@ import toast from 'react-hot-toast';
 
 
 const PAYMENT_METHODS = [
-  { id: 'CREDIT_CARD', label: '신용/체크카드' },
-  { id: 'KAKAO_PAY',   label: '카카오페이' },
-  { id: 'NAVER_PAY',   label: '네이버페이' },
-  { id: 'BANK_TRANSFER', label: '계좌이체' },
-  { id: 'VIRTUAL_ACCOUNT', label: '가상계좌' },
+  { id: 'TOSS_PAY',       label: '토스페이먼츠', badge: '테스트 가능' },
+  { id: 'CREDIT_CARD',    label: '신용/체크카드', badge: '' },
+  { id: 'KAKAO_PAY',      label: '카카오페이',    badge: '' },
+  { id: 'NAVER_PAY',      label: '네이버페이',    badge: '' },
+  { id: 'BANK_TRANSFER',  label: '계좌이체',      badge: '' },
+  { id: 'VIRTUAL_ACCOUNT', label: '가상계좌',     badge: '' },
 ];
+
+const TOSS_CLIENT_KEY = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
 
 export function OrderForm() {
   const router = useRouter();
@@ -122,9 +125,28 @@ export function OrderForm() {
       }
 
       const orderData = await orderRes.json();
-      const orderId   = orderData.id || orderData.orderId;
+      const orderId    = orderData.id || orderData.orderId;
+      const orderNumber = orderData.orderNumber || String(orderId);
 
       localStorage.setItem('savedAddress', JSON.stringify(address));
+
+      // Toss Payments 위젯 결제
+      if (paymentMethod === 'TOSS_PAY') {
+        const tossModule = await import('@tosspayments/payment-sdk');
+        const tossPayments = tossModule.loadTossPayments(TOSS_CLIENT_KEY);
+        const tp = await tossPayments;
+        await tp.requestPayment('카드', {
+          amount: total,
+          orderId: orderNumber,
+          orderName: items.length === 1 ? items[0].name : `${items[0].name} 외 ${items.length - 1}건`,
+          customerName: address.recipient,
+          successUrl: `${window.location.origin}/payment/toss/success`,
+          failUrl:    `${window.location.origin}/payment/toss/fail`,
+        });
+        // Toss가 successUrl로 리다이렉트 — 이후 코드 실행 안 됨
+        return;
+      }
+
       clearCart();
       toast.success('주문이 완료되었습니다!');
       // Kafka Saga가 자동으로 결제 처리 — 주문 상세 페이지로 이동
@@ -242,12 +264,17 @@ export function OrderForm() {
             {PAYMENT_METHODS.map(pm => (
               <button
                 key={pm.id} type="button" onClick={() => setPaymentMethod(pm.id)}
-                className={`px-4 py-3 rounded-xl border-2 transition-colors text-sm font-medium ${
+                className={`relative px-4 py-3 rounded-xl border-2 transition-colors text-sm font-medium ${
                   paymentMethod === pm.id
                     ? 'border-red-500 bg-red-50 text-red-700'
                     : 'border-gray-200 text-gray-700 hover:border-red-200'
                 }`}
               >
+                {pm.badge && (
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    {pm.badge}
+                  </span>
+                )}
                 {pm.label}
               </button>
             ))}

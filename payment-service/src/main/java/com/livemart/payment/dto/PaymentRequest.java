@@ -23,4 +23,12 @@ public class PaymentRequest {
         @DecimalMin("0.01") private BigDecimal amount;
         private String reason;
     }
+
+    /** Toss Payments 결제 승인 요청 (프론트 리다이렉트 후 호출) */
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class TossConfirm {
+        @NotBlank private String paymentKey;
+        @NotBlank private String orderId;
+        @NotNull  private Long   amount;
+    }
 }
