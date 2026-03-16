@@ -122,6 +122,8 @@ export function AuthForm() {
     if (form.password.length < 8) { toast.error('비밀번호는 8자 이상이어야 합니다'); return; }
     setLoading(true);
     try {
+      // 전화번호: 하이픈/공백 제거 후 전송 (01012345678 형식)
+      const normalizedPhone = form.phone ? form.phone.replace(/[-\s]/g, '') : null;
       const res = await fetch(`${API_BASE}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,7 +131,7 @@ export function AuthForm() {
           email: form.email,
           password: form.password,
           name: form.name,
-          phoneNumber: form.phone || null,
+          phoneNumber: normalizedPhone,
         }),
       });
       if (!res.ok) {
@@ -372,7 +374,7 @@ export function AuthForm() {
                   type="tel"
                   value={form.phone}
                   onChange={e => set('phone', e.target.value)}
-                  placeholder="010-0000-0000"
+                  placeholder="01012345678 (하이픈 없이 입력)"
                   className="w-full px-4 py-3 border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white"
                 />
               </div>
