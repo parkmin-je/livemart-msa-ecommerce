@@ -100,7 +100,7 @@ spec:
                   name: livemart-secrets
                   key: SMTP_PASSWORD
             - name: OAUTH2_REDIRECT_URI
-              value: "http://localhost:3002/auth/callback"
+              value: "http://localhost/auth/callback"
           resources:
             requests:
               memory: "256Mi"
