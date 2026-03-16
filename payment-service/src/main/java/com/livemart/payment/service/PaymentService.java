@@ -12,7 +12,9 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -25,15 +27,18 @@ public class PaymentService {
     private final PaymentEventRepository eventRepository;
     private final KafkaTemplate<String, PaymentEvent> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final TossPaymentClient tossPaymentClient;
 
     public PaymentService(PaymentRepository paymentRepository,
                          PaymentEventRepository eventRepository,
                          @Qualifier("paymentKafkaTemplate") KafkaTemplate<String, PaymentEvent> kafkaTemplate,
-                         java.util.Optional<ObjectMapper> objectMapper) {
+                         java.util.Optional<ObjectMapper> objectMapper,
+                         TossPaymentClient tossPaymentClient) {
         this.paymentRepository = paymentRepository;
         this.eventRepository = eventRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper.orElse(new ObjectMapper());
+        this.tossPaymentClient = tossPaymentClient;
     }
 
     @Transactional
@@ -103,9 +108,40 @@ public class PaymentService {
                 .orElseThrow(() -> new EntityNotFoundException("Payment not found for order: " + orderNumber));
     }
 
+    /**
+     * Toss Payments 결제 승인 처리
+     * 프론트에서 paymentKey/orderId/amount를 받아 Toss API로 최종 승인
+     */
+    @Transactional
+    public PaymentResponse confirmTossPayment(PaymentRequest.TossConfirm request) {
+        Map<String, Object> tossResult = tossPaymentClient.confirm(
+                request.getPaymentKey(), request.getOrderId(), request.getAmount());
+
+        String transactionId = "TOSS-" + request.getPaymentKey().substring(0, Math.min(12, request.getPaymentKey().length()));
+        String approvalNumber = (String) tossResult.getOrDefault("approvalNumber",
+                "APR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+
+        Payment payment = Payment.builder()
+                .transactionId(transactionId)
+                .orderNumber(request.getOrderId())
+                .amount(BigDecimal.valueOf(request.getAmount()))
+                .paymentMethod(PaymentMethod.TOSS_PAY)
+                .status(PaymentStatus.COMPLETED)
+                .approvalNumber(approvalNumber)
+                .build();
+
+        payment = paymentRepository.save(payment);
+        saveEvent(payment, "PAYMENT_COMPLETED");
+        publishPaymentEvent(payment, PaymentEvent.EventType.PAYMENT_COMPLETED);
+
+        log.info("Toss 결제 승인 완료: txn={}, order={}", transactionId, request.getOrderId());
+        return PaymentResponse.from(payment);
+    }
+
     private String executePayment(Payment payment, PaymentRequest.Create request) {
         log.info("결제 실행 ({}): amount={}", payment.getPaymentMethod(), payment.getAmount());
-        // 실제 PG사 연동 로직 (현재는 시뮬레이션)
+        // Saga 패턴: 주문 이벤트 수신 후 자동 처리 (시뮬레이션)
+        // Toss 위젯 결제는 /toss/confirm 엔드포인트로 별도 처리
         return "APR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 

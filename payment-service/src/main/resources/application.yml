@@ -1,3 +1,8 @@
+toss:
+  payments:
+    client-key: ${TOSS_CLIENT_KEY:test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq}
+    secret-key: ${TOSS_SECRET_KEY:test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R}
+
 server:
   port: 8084
   shutdown: graceful

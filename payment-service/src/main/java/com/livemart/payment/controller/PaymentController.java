@@ -52,4 +52,17 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse> getByOrder(@PathVariable String orderNumber) {
         return ResponseEntity.ok(paymentService.getByOrderNumber(orderNumber));
     }
+
+    /**
+     * Toss Payments 결제 승인
+     * 프론트에서 Toss 위젯 결제 완료 후 paymentKey/orderId/amount로 최종 승인 요청
+     */
+    @PostMapping("/toss/confirm")
+    @Operation(summary = "Toss Payments 결제 승인")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PaymentResponse> confirmToss(
+            @Valid @RequestBody PaymentRequest.TossConfirm request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(paymentService.confirmTossPayment(request));
+    }
 }
