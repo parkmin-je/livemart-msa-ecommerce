@@ -2,6 +2,7 @@ package com.livemart.payment.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -42,11 +43,11 @@ public class TossPaymentClient {
         body.put("amount", amount);
 
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     TOSS_API_BASE + "/confirm",
                     HttpMethod.POST,
                     new HttpEntity<>(body, headers),
-                    Map.class
+                    new ParameterizedTypeReference<>() {}
             );
             log.info("Toss 결제 승인 성공: orderId={}, amount={}", orderId, amount);
             return response.getBody();
@@ -73,11 +74,11 @@ public class TossPaymentClient {
         }
 
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     TOSS_API_BASE + "/" + paymentKey + "/cancel",
                     HttpMethod.POST,
                     new HttpEntity<>(body, headers),
-                    Map.class
+                    new ParameterizedTypeReference<>() {}
             );
             log.info("Toss 결제 취소 성공: paymentKey={}", paymentKey);
             return response.getBody();
