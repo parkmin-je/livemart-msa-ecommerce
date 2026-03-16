@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: '',  // Next.js rewrite proxy 경유 (상대 경로)
   timeout: 10000,
   withCredentials: true,  // httpOnly 쿠키 자동 전송
   headers: {
