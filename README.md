@@ -28,31 +28,55 @@
 
 ## 시스템 아키텍처
 
-```
-[Client]
-   │ HTTPS
-   ▼
-[API Gateway :8080]
-  ├─ Rate Limiting  (Redis Token Bucket — 100 RPS / 주문·결제 20 RPS)
-  ├─ JWT Cookie 검증 / API Key 인증
-  ├─ Circuit Breaker (Resilience4j)
-  └─ Eureka Service Discovery
-         │
-   ┌─────┼──────────────┐──────────────────┐
-   ▼     ▼              ▼                  ▼
-order  product        user             payment
-:8083   :8082         :8085             :8084
-   │     │ gRPC
-   │◄────┘ (50051)
-   │
-[Kafka] order-events / payment-events / stock-events
-   │    DLQ: *.DLT (ExponentialBackOff 1s→2s→4s, 3회)
-   │
-[PostgreSQL] [Redis] [Elasticsearch]
-   │
-[analytics] [inventory] [notification]
-   │
-[Prometheus → Grafana]  [OTLP → Zipkin]
+```mermaid
+flowchart TB
+    Client(["🌐 Client\n(Next.js 15)"])
+
+    subgraph GW["API Gateway :8080"]
+        direction TB
+        RL["Rate Limiting\n(Redis Token Bucket\n100 RPS / 주문·결제 20 RPS)"]
+        Auth["JWT Cookie 검증\nAPI Key 인증"]
+        CB["Circuit Breaker\n(Resilience4j)"]
+        SD["Eureka\nService Discovery"]
+    end
+
+    subgraph Services["Microservices"]
+        direction LR
+        US["user-service\n:8085"]
+        PS["product-service\n:8082"]
+        OS["order-service\n:8083"]
+        PAY["payment-service\n:8084"]
+        AN["analytics-service\n:8087"]
+        NO["notification-service\n:8086"]
+        AI["ai-service\n:8090"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        direction LR
+        PG[("PostgreSQL\n× 5 DB")]
+        RD[("Redis\nCache · Rate Limit\nJWT Blacklist")]
+        ES[("Elasticsearch\nnori 형태소")]
+        KF["Kafka\norder-events\npayment-events\n*.DLT (DLQ)"]
+    end
+
+    subgraph Obs["Observability"]
+        PR["Prometheus"]
+        GR["Grafana"]
+        ZP["Zipkin\n(OTLP Tracing)"]
+    end
+
+    Client -->|HTTPS| GW
+    GW -->|REST| Services
+    PS <-->|"gRPC :50051"| OS
+    OS -->|"order-events"| KF
+    KF -->|"payment-events"| PAY
+    KF -->|"stock-events"| PS
+    KF --> AN
+    KF --> NO
+    Services --- Infra
+    Services -->|metrics| PR
+    PR --> GR
+    Services -->|traces| ZP
 ```
 
 ---
@@ -118,6 +142,34 @@ order  product        user             payment
 ## 핵심 구현 패턴
 
 ### Saga + Transactional Outbox
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant OS as order-service
+    participant OB as Outbox (DB)
+    participant KF as Kafka
+    participant PAY as payment-service
+    participant PS as product-service
+
+    C->>OS: POST /api/orders
+    OS->>OS: 주문 저장 + Outbox 이벤트 저장 (단일 트랜잭션)
+    OS-->>C: 201 Created (orderNumber)
+
+    OS->>OB: poll (500ms)
+    OB->>KF: order-events (동기 .get(5s))
+    OB->>OB: status = PUBLISHED
+
+    KF->>PAY: order-events
+    PAY->>PAY: 결제 처리
+    PAY->>KF: payment-events (PAYMENT_COMPLETED)
+
+    KF->>OS: payment-events → ORDER_CONFIRMED
+    KF->>PS: order-events → 재고 차감
+
+    Note over PAY,PS: 실패 시 보상 트랜잭션<br/>ExponentialBackOff (1s→2s→4s, 3회 재시도)<br/>→ *.DLT (Dead Letter Topic)
+```
+
 ```java
 // OutboxProcessor.java — DB 트랜잭션 내에 이벤트 저장 → 별도 스레드에서 동기 발행
 kafkaTemplate.send(topic, key, payload).get(5, TimeUnit.SECONDS);
