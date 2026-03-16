@@ -13,7 +13,7 @@ const nextConfig = {
     // reactCompiler: true,  // babel-plugin-react-compiler 필요
   },
   async rewrites() {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const apiBase = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://api-gateway:8080';
     return [
       // OAuth2 소셜 로그인 → api-gateway → user-service
       {
