@@ -24,4 +24,5 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.testcontainers:postgresql'
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
 }
