@@ -1,0 +1,134 @@
+name: Security — Secret Scan & SAST
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 매일 오전 2시(UTC) 정기 스캔
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ── Gitleaks: 하드코딩된 시크릿 탐지 ────────────────────────
+  gitleaks:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 전체 히스토리 스캔
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  # ── Trivy: 의존성 취약점 스캔 ────────────────────────────────
+  trivy-deps:
+    name: Dependency Vulnerability Scan (Trivy)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ── CodeQL: Java 정적 분석 ───────────────────────────────────
+  codeql:
+    name: CodeQL Analysis (Java)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+          queries: security-extended
+
+      - name: Build for CodeQL
+        run: |
+          chmod +x gradlew
+          ./gradlew :user-service:classes \
+            :order-service:classes \
+            :payment-service:classes \
+            :product-service:classes \
+            -x test --no-daemon --parallel
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:java'
+
+  # ── Frontend 의존성 감사 ──────────────────────────────────────
+  npm-audit:
+    name: Frontend npm audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run npm audit
+        working-directory: ./frontend
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Run npm audit (SARIF output)
+        working-directory: ./frontend
+        run: |
+          npm audit --json > npm-audit.json || true
+          echo "## npm audit results" >> $GITHUB_STEP_SUMMARY
+          node -e "
+            const r = require('./npm-audit.json');
+            const v = r.metadata?.vulnerabilities || {};
+            console.log('| Severity | Count |');
+            console.log('|----------|-------|');
+            ['critical','high','moderate','low'].forEach(s => {
+              if (v[s]) console.log('| ' + s + ' | ' + v[s] + ' |');
+            });
+          " >> $GITHUB_STEP_SUMMARY || true

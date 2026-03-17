@@ -87,6 +87,8 @@ jobs:
           - payment-service
           - user-service
           - product-service
+          - inventory-service
+          - analytics-service
 
     steps:
       - uses: actions/checkout@v4
