@@ -22,6 +22,12 @@ out/
 .env.*
 *.log
 
+# Kubernetes secrets (실제 값이 들어간 로컬 파일)
+secrets.local.yml
+secrets.local.yaml
+**/secrets.local.yml
+**/secrets.local.yaml
+
 # Node
 node_modules/
 npm-debug.log*

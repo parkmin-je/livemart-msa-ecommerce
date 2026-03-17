@@ -41,7 +41,7 @@ services:
   user:
     name: user-service
     replicas: 2
-    port: 8081
+    port: 8085
     image: user-service
     tag: latest
     resources:
@@ -133,7 +133,8 @@ infra:
     grafana:
       enabled: true
       adminUser: admin
-      adminPassword: admin
+      # adminPassword: Helm 배포 시 --set infra.monitoring.grafana.adminPassword=STRONG_PASSWORD 로 주입
+      adminPassword: ${GRAFANA_ADMIN_PASSWORD}
     zipkin:
       enabled: true
 
