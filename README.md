@@ -285,6 +285,50 @@ kubectl port-forward -n livemart svc/grafana 13000:3000
 
 ---
 
+## Architecture Overview (English)
+
+> For international reviewers (Coupang, Line) and global contribution context.
+
+**LiveMart** is a production-grade MSA e-commerce platform built with Java 21, Spring Boot 3.4, and Kubernetes.
+
+### Key Architectural Decisions
+
+**1. Layered Architecture with Domain Isolation**
+Each service enforces a strict `controller → service → repository → domain` dependency direction. Domain entities have zero dependency on Spring (validated via ArchUnit in CI). This ensures framework-independent business logic and aligns with Clean Architecture principles.
+
+**2. Saga Choreography over Orchestration**
+Order→Payment→Inventory distributed transactions use Kafka-based choreography (ADR-001). No central coordinator = no single point of failure. Compensation transactions handle rollback scenarios.
+
+**3. Transactional Outbox for At-Least-Once Delivery**
+Order save + Kafka event stored in same DB transaction. A scheduled poller publishes to Kafka with `.get(5s)` synchronous confirmation. Zero message loss under service restart (ADR-002).
+
+**4. Database-per-Service**
+5 independent PostgreSQL instances. Services never share schema. Cross-service queries go through APIs or Kafka events — enforcing bounded context isolation.
+
+**5. East-West mTLS via Istio**
+All inter-service traffic encrypted with TLS 1.3. AuthorizationPolicy restricts payment-service access to order-service + api-gateway only (ADR-006).
+
+### Concurrency Control
+
+| Scenario | Solution | Why |
+|---|---|---|
+| Flash sale (500 VU, 100 items) | Redisson distributed lock | DB lock unusable — no shared DB across services |
+| Rate limiting | Redis Token Bucket (100 RPS/20 RPS) | Stateless Gateway pods need shared state |
+| Payment idempotency | Idempotency key header | PG callbacks can duplicate |
+
+### Test Strategy
+
+```
+Unit Tests (Mockito)       — Business logic, no Spring context
+Integration Tests           — Testcontainers PostgreSQL + Kafka
+Architecture Tests (ArchUnit) — Layered dependency rules enforced in CI
+Contract Tests (Spring Cloud Contract) — order↔payment API contract
+Load Tests (k6)            — Smoke / Load / Stress / Spike scenarios
+Coverage Gate (JaCoCo)     — Service layer ≥ 70%, Controller ≥ 60%
+```
+
+---
+
 ## 개발자
 
 **박민제** · [@parkmin-je](https://github.com/parkmin-je)
