@@ -25,7 +25,7 @@ public class OrderCreateRequest {
     private String deliveryAddress;
 
     @NotBlank(message = "연락처는 필수입니다")
-    @Pattern(regexp = "^01[0-9]-\\d{3,4}-\\d{4}$", message = "올바른 전화번호 형식이 아닙니다")
+    @Pattern(regexp = "^01[0-9]-?\\d{3,4}-?\\d{4}$", message = "올바른 전화번호 형식이 아닙니다 (예: 01012345678 또는 010-1234-5678)")
     private String phoneNumber;
 
     @Size(max = 500, message = "주문 메모는 500자 이하여야 합니다")
