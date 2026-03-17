@@ -1,0 +1,132 @@
+# ─────────────────────────────────────────────────────────────────
+# docker-compose.override.yml — 로컬 개발 환경 오버라이드
+#
+# 이 파일은 docker-compose.yml을 자동으로 override합니다.
+# 개발자별 로컬 설정 변경 시 이 파일을 수정하세요.
+# 절대 커밋하지 마세요 (gitignore에 추가 권장).
+#
+# 사용법: docker-compose up -d  (override 자동 적용)
+# ─────────────────────────────────────────────────────────────────
+
+version: '3.9'
+
+services:
+
+  # ─── PostgreSQL ───────────────────────────────────────────────
+  postgres:
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: localdev
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # ─── Redis ───────────────────────────────────────────────────
+  redis:
+    ports:
+      - "6379:6379"
+    command: redis-server --loglevel debug --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-dev-data:/data
+
+  # ─── Kafka ───────────────────────────────────────────────────
+  kafka:
+    ports:
+      - "9092:9092"
+      - "9093:9093"    # External listener (host access)
+    environment:
+      KAFKA_LOG_RETENTION_HOURS: 4        # 로컬에서 로그 빨리 만료
+      KAFKA_LOG_SEGMENT_BYTES: 10485760   # 10MB segments
+
+  # ─── Kafka UI (로컬 전용) ──────────────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: livemart-kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: livemart-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      - kafka
+    profiles:
+      - tools
+
+  # ─── Elasticsearch ───────────────────────────────────────────
+  elasticsearch:
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms512m -Xmx512m    # 로컬 메모리 절약
+      xpack.security.enabled: "false"
+
+  # ─── Kibana (로컬 전용) ────────────────────────────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: livemart-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    profiles:
+      - tools
+
+  # ─── Zipkin ──────────────────────────────────────────────────
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: livemart-zipkin
+    ports:
+      - "9411:9411"
+    profiles:
+      - tools
+
+  # ─── Prometheus ──────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: livemart-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    profiles:
+      - monitoring
+
+  # ─── Grafana ─────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: livemart-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-dev-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+volumes:
+  postgres-dev-data:
+  redis-dev-data:
+  grafana-dev-data:
+
+# ─────────────────────────────────────────────────────────────────
+# 사용 예시
+#
+# 기본 인프라만:     docker-compose -f docker-compose-infra.yml up -d
+# 툴 포함:          docker-compose -f docker-compose-infra.yml --profile tools up -d
+# 모니터링 포함:     docker-compose -f docker-compose-infra.yml --profile monitoring up -d
+# 전체:             docker-compose -f docker-compose-infra.yml --profile tools --profile monitoring up -d
+# ─────────────────────────────────────────────────────────────────
