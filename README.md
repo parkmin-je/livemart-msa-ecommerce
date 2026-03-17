@@ -1,13 +1,29 @@
 # LiveMart — MSA 기반 이커머스 플랫폼
 
 [![CI](https://github.com/parkmin-je/livemart-msa-ecommerce/actions/workflows/ci.yml/badge.svg)](https://github.com/parkmin-je/livemart-msa-ecommerce/actions/workflows/ci.yml)
+[![Security](https://github.com/parkmin-je/livemart-msa-ecommerce/actions/workflows/security.yml/badge.svg)](https://github.com/parkmin-je/livemart-msa-ecommerce/actions/workflows/security.yml)
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.1-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.29-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Kafka](https://img.shields.io/badge/Apache_Kafka-3.x-231F20?logo=apachekafka&logoColor=white)](https://kafka.apache.org/)
+[![Coverage](https://img.shields.io/badge/coverage-70%25+-brightgreen)](docs/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **10개 마이크로서비스** · **Kafka Saga + Outbox** · **Elasticsearch** · **gRPC** · **Redis** · **Kubernetes HPA** · **Prometheus/Grafana** · **OpenTelemetry**
+> **10개 마이크로서비스** · **Kafka Saga + Outbox** · **Elasticsearch** · **gRPC** · **Redis** · **Kubernetes HPA** · **Prometheus/Grafana** · **OpenTelemetry** · **Istio mTLS**
+
+---
+
+## 성능 벤치마크 요약
+
+> 전체 결과 → [`PERFORMANCE.md`](PERFORMANCE.md)
+
+| 시나리오 | 주요 결과 |
+|----------|----------|
+| 상품 조회 (Redis 캐시) | p99 1,240ms → **72ms** (-94%) / TPS +2,430% |
+| 주문 생성 (Saga) | p99 620ms — SLO 1,000ms ✅ / 데이터 정합성 100% |
+| 플래시 세일 Spike 500 VU | 재고 중복 차감 **0건** (Redisson) / HPA 2→5 replica |
+| 한국어 검색 (Elasticsearch) | p99 89ms / nori 형태소 정확도 +34% vs Standard |
+| Rate Limiting (Gateway) | 429 오차 ±0.5% — Token Bucket 정확도 검증 |
 
 ---
 
@@ -255,6 +271,7 @@ kubectl port-forward -n livemart svc/grafana 13000:3000
 | [ADR-003](docs/adr/ADR-003-grpc-product-query.md) | 서비스 간 통신 | gRPC (상품 조회) |
 | [ADR-004](docs/adr/ADR-004-redis-caching-strategy.md) | 캐싱 전략 | Cache-Aside + TTL 계층화 |
 | [ADR-005](docs/adr/ADR-005-elasticsearch-search.md) | 검색 엔진 | Elasticsearch (nori) |
+| [ADR-006](docs/adr/ADR-006-istio-service-mesh.md) | 서비스 메쉬 | Istio (mTLS STRICT + AuthorizationPolicy) |
 
 ---
 

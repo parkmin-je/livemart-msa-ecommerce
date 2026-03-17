@@ -112,9 +112,19 @@ subprojects {
         dependsOn jacocoTestReport
         violationRules {
             rule {
-                // 서비스 레이어: 최소 60% 라인 커버리지
+                // 서비스 레이어: 최소 70% 라인 커버리지
                 element = 'PACKAGE'
                 includes = ['com.livemart.*.service']
+                limit {
+                    counter = 'LINE'
+                    value = 'COVEREDRATIO'
+                    minimum = 0.70
+                }
+            }
+            rule {
+                // 컨트롤러 레이어: 최소 60% 라인 커버리지
+                element = 'PACKAGE'
+                includes = ['com.livemart.*.controller']
                 limit {
                     counter = 'LINE'
                     value = 'COVEREDRATIO'
