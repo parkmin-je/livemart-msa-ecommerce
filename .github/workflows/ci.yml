@@ -2,9 +2,9 @@ name: CI — Build, Test & Coverage
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   # ── 단위/통합 테스트 + JaCoCo 커버리지 ──────────────────────────
@@ -255,8 +255,8 @@ jobs:
           echo "| Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Architecture | ${{ needs.architecture-test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build Backend | ${{ needs.build-backend.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build Frontend | ${{ needs.build-frontend.result }} |
-          echo "| Lighthouse CI | ${{ needs.lighthouse.result }} |" >> $GITHUB_STEP_SUMMARY" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Frontend | ${{ needs.build-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lighthouse CI | ${{ needs.lighthouse.result }} |" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ needs.test.result }}" == "failure" ]]; then
             echo "❌ Tests FAILED — PR cannot be merged" >> $GITHUB_STEP_SUMMARY
