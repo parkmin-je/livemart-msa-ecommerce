@@ -122,6 +122,9 @@ jobs:
           - payment-service
           - api-gateway
           - eureka-server
+          - ai-service
+          - notification-service
+          - analytics-service
 
     steps:
       - uses: actions/checkout@v4

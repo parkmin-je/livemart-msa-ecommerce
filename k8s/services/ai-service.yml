@@ -39,17 +39,20 @@ spec:
                 secretKeyRef:
                   name: livemart-secrets
                   key: OPENAI_API_KEY
-                  optional: true   # API Key 없어도 서비스 기동 (fallback 모드)
+                  optional: true
             - name: AI_ENABLED
               value: "true"
+            - name: JAVA_OPTS
+              value: "-Xms128m -Xmx384m -XX:+UseG1GC"
           resources:
             requests:
               memory: "256Mi"
               cpu: "100m"
             limits:
-              memory: "1Gi"
-              cpu: "1000m"
-            tcpSocket:
+              memory: "512Mi"
+              cpu: "500m"
+          startupProbe:
+            tcpSocket:
               port: 8090
             failureThreshold: 30
             periodSeconds: 10
@@ -58,7 +61,7 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8090
-            initialDelaySeconds: 90
+            initialDelaySeconds: 60
             timeoutSeconds: 5
             periodSeconds: 10
             failureThreshold: 10
@@ -66,7 +69,7 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8090
-            initialDelaySeconds: 120
+            initialDelaySeconds: 90
             timeoutSeconds: 5
             periodSeconds: 30
             failureThreshold: 5
