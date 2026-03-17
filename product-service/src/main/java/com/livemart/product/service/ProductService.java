@@ -26,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -40,9 +42,13 @@ public class ProductService {
     private final ProductSearchRepository productSearchRepository;
     private final KafkaTemplate<String, ProductEvent> kafkaTemplate;
     private final KafkaTemplate<String, StockEvent> stockKafkaTemplate;
+    @org.springframework.beans.factory.annotation.Qualifier("dlqKafkaTemplate")
+    private final KafkaTemplate<String, Object> dlqKafkaTemplate;
 
     private static final String PRODUCT_TOPIC = "product-events";
     private static final String STOCK_TOPIC = "stock-events";
+    private static final String STOCK_ALERT_TOPIC = "stock-alert-events";
+    private static final int STOCK_LOW_THRESHOLD = 5;
 
     @Transactional
     public ProductResponse createProduct(ProductCreateRequest request) {
@@ -242,6 +248,25 @@ public class ProductService {
 
         stockKafkaTemplate.send(STOCK_TOPIC, productId.toString(), event);
         log.info("Stock event published: productId={}, old={}, new={}", productId, oldStock, newStock);
+
+        // 재고 부족/소진 시 stock-alert-events 발행 → notification-service 처리
+        if (newStock <= 0 || (newStock <= STOCK_LOW_THRESHOLD && oldStock > STOCK_LOW_THRESHOLD)) {
+            try {
+                Product product = productRepository.findById(productId).orElse(null);
+                if (product != null) {
+                    Map<String, Object> alert = new HashMap<>();
+                    alert.put("eventType", newStock <= 0 ? "OUT_OF_STOCK" : "LOW_STOCK");
+                    alert.put("productId", productId);
+                    alert.put("productName", product.getName());
+                    alert.put("availableQuantity", newStock);
+                    alert.put("warehouseCode", "DEFAULT");
+                    dlqKafkaTemplate.send(STOCK_ALERT_TOPIC, productId.toString(), alert);
+                    log.warn("재고 알림 발행: productId={}, newStock={}", productId, newStock);
+                }
+            } catch (Exception e) {
+                log.error("재고 알림 발행 실패: {}", e.getMessage());
+            }
+        }
     }
 
     /**
