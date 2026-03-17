@@ -17,7 +17,7 @@ const CATEGORIES = [
       { label: '오디오', href: '/products?cat=1&sub=audio' },
       { label: '카메라', href: '/products?cat=1&sub=camera' },
     ],
-    featured: { label: '이번주 특가', badge: '-30%', color: '#DC2626' },
+    featured: { label: '이번주 특가', badge: '-30%', color: '#E8001D' },
   },
   {
     label: '패션', href: '/products?cat=2',
@@ -89,7 +89,11 @@ function MobileBottomNav() {
   const totalQty = cartItems.reduce((s, i) => s + i.quantity, 0);
 
   const items = [
-    { href: '/', label: '홈', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>, icon2: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 22V12h6v10"/> },
+    {
+      href: '/', label: '홈',
+      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>,
+      icon2: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 22V12h6v10"/>,
+    },
     { href: '/products', label: '카테고리', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 10h16M4 14h16M4 18h16"/> },
     { href: '/search', label: '검색', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/> },
     { href: '/cart', label: '장바구니', badge: totalQty, icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/> },
@@ -97,20 +101,33 @@ function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 border-t border-gray-200 md:hidden" style={{ backdropFilter: 'blur(12px)' }}>
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
+      style={{
+        background: 'rgba(247,246,241,0.97)',
+        backdropFilter: 'blur(20px) saturate(1.8)',
+        borderTop: '1px solid rgba(14,14,14,0.08)',
+      }}
+    >
       <div className="grid grid-cols-5 h-14">
         {items.map(({ href, label, icon, icon2, badge }) => {
           const active = pathname === href || (href !== '/' && pathname.startsWith(href));
           return (
-            <a key={href} href={href}
-              className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${active ? 'text-red-600' : 'text-gray-400'}`}
+            <a
+              key={href}
+              href={href}
+              className="flex flex-col items-center justify-center gap-0.5 transition-colors"
+              style={{ color: active ? '#E8001D' : 'rgba(14,14,14,0.35)' }}
             >
               <div className="relative">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {icon}{icon2}
                 </svg>
                 {badge != null && badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-black rounded-full min-w-[15px] h-[15px] flex items-center justify-center px-0.5">
+                  <span
+                    className="absolute -top-1.5 -right-1.5 text-white text-[10px] font-black rounded-full min-w-[15px] h-[15px] flex items-center justify-center px-0.5"
+                    style={{ background: '#E8001D' }}
+                  >
                     {badge > 99 ? '99+' : badge}
                   </span>
                 )}
@@ -130,29 +147,40 @@ function MegaMenu({ category, onClose }: { category: typeof CATEGORIES[0]; onClo
 
   return (
     <div
-      className="absolute top-full left-0 right-0 bg-white z-50 border-t border-gray-100"
+      className="absolute top-full left-0 right-0 z-50"
       style={{
-        boxShadow: '0 16px 48px rgba(0,0,0,0.12)',
+        background: '#F7F6F1',
+        borderTop: '2px solid #E8001D',
+        boxShadow: '0 20px 60px rgba(14,14,14,0.12)',
         animation: 'dropdownOpen 0.22s cubic-bezier(0.22,1,0.36,1) both',
       }}
       onMouseLeave={onClose}
     >
-      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 xl:px-12 py-5">
-        <div className="flex gap-10">
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 xl:px-12 py-6">
+        <div className="flex gap-12">
           {/* 서브 카테고리 그리드 */}
           <div className="flex-1">
-            <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.18em] mb-3">
+            <div
+              className="text-[10px] font-black uppercase tracking-[0.2em] mb-4"
+              style={{ color: 'rgba(14,14,14,0.3)' }}
+            >
               {category.label} 카테고리
             </div>
-            <div className="grid grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-1.5">
+            <div className="grid grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-1">
               {category.sub.map((item) => (
                 <a
                   key={item.label}
                   href={item.href}
                   onClick={onClose}
-                  className="text-sm text-gray-700 hover:text-red-600 font-medium py-1 transition-colors flex items-center gap-1.5 group"
+                  className="group flex items-center gap-1.5 py-1.5 text-[13px] font-medium transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.65)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#E8001D'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.65)'; }}
                 >
-                  <span className="w-0 group-hover:w-1.5 h-[2px] bg-red-600 transition-all duration-200 overflow-hidden flex-shrink-0" />
+                  <span
+                    className="w-0 group-hover:w-1.5 h-px transition-all duration-200 overflow-hidden flex-shrink-0"
+                    style={{ background: '#E8001D', height: '1.5px' }}
+                  />
                   {item.label}
                 </a>
               ))}
@@ -161,19 +189,25 @@ function MegaMenu({ category, onClose }: { category: typeof CATEGORIES[0]; onClo
 
           {/* 특가 배너 */}
           {category.featured && (
-            <div className="hidden lg:flex flex-col justify-center flex-shrink-0 w-40">
-              <a href={category.href} onClick={onClose}
-                className="border border-gray-100 p-4 hover:border-gray-300 transition-colors group">
+            <div className="hidden lg:flex flex-col justify-center flex-shrink-0 w-44">
+              <a
+                href={category.href}
+                onClick={onClose}
+                className="group p-4 transition-all"
+                style={{ border: '1px solid rgba(14,14,14,0.1)', background: '#fff' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#E8001D'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,14,14,0.1)'; }}
+              >
                 <span
-                  className="text-[10px] font-black px-1.5 py-0.5 mb-2 inline-block"
-                  style={{ background: category.featured.color, color: '#fff' }}
+                  className="text-[10px] font-black px-1.5 py-0.5 mb-2 inline-block text-white"
+                  style={{ background: category.featured.color }}
                 >
                   {category.featured.badge}
                 </span>
-                <div className="text-sm font-bold text-gray-900 group-hover:text-red-600 transition-colors">
+                <div className="text-sm font-bold text-[#0E0E0E] group-hover:text-[#E8001D] transition-colors">
                   {category.featured.label}
                 </div>
-                <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                <div className="flex items-center gap-1 mt-1 text-xs" style={{ color: 'rgba(14,14,14,0.35)' }}>
                   보러가기
                   <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
@@ -273,19 +307,26 @@ export function GlobalNav() {
 
   const activeCategoryData = CATEGORIES.find(c => c.label === activeMega);
 
+  // Warm cream with scroll glass effect
+  const headerBg = scrolled
+    ? 'rgba(247,246,241,0.96)'
+    : '#F7F6F1';
+
   return (
     <>
       <header
         className="fixed top-0 left-0 right-0 z-50"
         style={{
-          background: scrolled ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,1)',
-          backdropFilter: scrolled ? 'blur(20px) saturate(1.8)' : 'none',
-          boxShadow: scrolled ? '0 1px 20px rgba(0,0,0,0.08)' : '0 1px 0 rgba(0,0,0,0.06)',
-          transition: 'background 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease',
+          background: headerBg,
+          backdropFilter: scrolled ? 'blur(24px) saturate(1.6)' : 'none',
+          boxShadow: scrolled
+            ? '0 1px 0 rgba(14,14,14,0.08), 0 4px 24px rgba(14,14,14,0.06)'
+            : '0 1px 0 rgba(14,14,14,0.07)',
+          transition: 'background 0.3s ease, box-shadow 0.3s ease',
         }}
       >
         {/* ── 상단 안내바 ── */}
-        <div className="bg-gray-950 text-white text-xs">
+        <div style={{ background: '#0A0A0A' }}>
           <div className="max-w-[1440px] mx-auto px-4">
             <div className="flex items-center h-8">
               {/* 마키 배송 알림 */}
@@ -295,46 +336,52 @@ export function GlobalNav() {
                   style={{ animation: 'marquee 28s linear infinite' }}
                 >
                   {[
-                    '🚀 오늘 오후 2시까지 주문 시 내일 도착 보장',
+                    '로켓배송 — 오늘 오후 2시까지 주문 시 내일 도착 보장',
                     '  ·  ',
-                    '💳 신규가입 즉시 3,000원 쿠폰 지급',
+                    '신규가입 즉시 3,000원 쿠폰 지급',
                     '  ·  ',
-                    '🎁 5만원 이상 구매 시 무료배송',
+                    '5만원 이상 구매 시 무료배송',
                     '  ·  ',
-                    '⚡ 카드결제 5% 추가할인',
+                    '카드결제 5% 추가할인',
                     '  ·  ',
-                    '🚀 오늘 오후 2시까지 주문 시 내일 도착 보장',
+                    '로켓배송 — 오늘 오후 2시까지 주문 시 내일 도착 보장',
                     '  ·  ',
-                    '💳 신규가입 즉시 3,000원 쿠폰 지급',
+                    '신규가입 즉시 3,000원 쿠폰 지급',
                     '  ·  ',
-                    '🎁 5만원 이상 구매 시 무료배송',
+                    '5만원 이상 구매 시 무료배송',
                     '  ·  ',
-                    '⚡ 카드결제 5% 추가할인',
+                    '카드결제 5% 추가할인',
                     '  ·  ',
                   ].map((text, i) => (
-                    <span key={i} className="text-gray-400 text-[11px]">{text}</span>
+                    <span key={i} style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>{text}</span>
                   ))}
                 </div>
               </div>
-              <div className="sm:hidden text-gray-400 text-[11px]">
+              <div className="sm:hidden" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>
                 LiveMart — 빠른배송 · 최저가
               </div>
               {/* 오른쪽 유틸 */}
-              <div className="flex items-center gap-4 ml-auto flex-shrink-0 text-[11px]">
+              <div className="flex items-center gap-4 ml-auto flex-shrink-0" style={{ fontSize: '11px' }}>
                 {userName ? (
                   <>
-                    <span className="text-gray-500">{userName}님</span>
-                    <button onClick={handleLogout} className="text-gray-500 hover:text-white transition-colors">로그아웃</button>
+                    <span style={{ color: 'rgba(255,255,255,0.35)' }}>{userName}님</span>
+                    <button
+                      onClick={handleLogout}
+                      style={{ color: 'rgba(255,255,255,0.35)' }}
+                      className="hover:text-white transition-colors"
+                    >
+                      로그아웃
+                    </button>
                   </>
                 ) : (
                   <>
-                    <a href="/auth" className="text-gray-500 hover:text-white transition-colors">로그인</a>
-                    <a href="/auth" className="text-gray-500 hover:text-white transition-colors hidden sm:block">회원가입</a>
+                    <a href="/auth" style={{ color: 'rgba(255,255,255,0.35)' }} className="hover:text-white transition-colors">로그인</a>
+                    <a href="/auth" style={{ color: 'rgba(255,255,255,0.35)' }} className="hover:text-white transition-colors hidden sm:block">회원가입</a>
                   </>
                 )}
-                <a href="/seller" className="text-gray-500 hover:text-white transition-colors hidden md:block">판매자센터</a>
+                <a href="/seller" style={{ color: 'rgba(255,255,255,0.35)' }} className="hover:text-white transition-colors hidden md:block">판매자센터</a>
                 {userRole === 'ADMIN' && (
-                  <a href="/admin" className="text-yellow-400 hover:text-yellow-300 transition-colors hidden md:block font-bold">관리자</a>
+                  <a href="/admin" style={{ color: '#FBBF24', fontWeight: 700 }} className="hover:opacity-80 transition-opacity hidden md:block">관리자</a>
                 )}
               </div>
             </div>
@@ -342,31 +389,43 @@ export function GlobalNav() {
         </div>
 
         {/* ── 메인 헤더 ── */}
-        <div className="border-b border-gray-100">
+        <div style={{ borderBottom: '1px solid rgba(14,14,14,0.07)' }}>
           <div className="max-w-[1440px] mx-auto px-4">
-            <div className="flex items-center gap-5 h-[60px]">
-              {/* 로고 */}
-              <a href="/" className="flex-shrink-0 group">
-                <span className="text-[22px] font-black tracking-tight">
-                  <span
-                    className="text-red-600 transition-all duration-200"
-                    style={{ textShadow: '0 0 20px rgba(220,38,38,0)' }}
-                  >Live</span>
-                  <span className="text-gray-950">Mart</span>
+            <div className="flex items-center gap-5 h-[62px]">
+
+              {/* 로고 — Bebas Neue display wordmark */}
+              <a href="/" className="flex-shrink-0 group flex items-baseline gap-0" aria-label="LiveMart 홈">
+                <span
+                  className="font-bebas tracking-wider leading-none"
+                  style={{
+                    fontSize: '1.65rem',
+                    color: '#E8001D',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  LIVE
+                </span>
+                <span
+                  className="font-bebas tracking-wider leading-none"
+                  style={{
+                    fontSize: '1.65rem',
+                    color: '#0E0E0E',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  MART
                 </span>
               </a>
 
-              {/* 검색창 — glassmorphism on scroll */}
+              {/* 검색창 */}
               <div ref={searchContainerRef} className="relative flex-1 max-w-2xl">
                 <form onSubmit={(e) => { setShowSuggestions(false); handleSearch(e); }}>
                   <div
                     className="flex overflow-hidden transition-all duration-300"
                     style={{
                       border: '1.5px solid',
-                      borderColor: scrolled ? 'rgba(220,38,38,0.3)' : '#E5E7EB',
-                      borderRadius: '2px',
-                      background: scrolled ? 'rgba(255,255,255,0.92)' : '#fff',
-                      backdropFilter: scrolled ? 'blur(8px)' : 'none',
+                      borderColor: scrolled ? 'rgba(232,0,29,0.25)' : 'rgba(14,14,14,0.14)',
+                      background: '#fff',
                     }}
                   >
                     <input
@@ -375,12 +434,14 @@ export function GlobalNav() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                       placeholder="상품, 브랜드를 검색해보세요"
-                      className="flex-1 px-4 py-2.5 text-[13px] text-gray-900 placeholder-gray-400 outline-none bg-transparent"
+                      className="flex-1 px-4 py-2.5 text-[13px] outline-none bg-transparent"
+                      style={{ color: '#0E0E0E' }}
                       autoComplete="off"
                     />
                     <button
                       type="submit"
-                      className="px-5 bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-1.5 font-bold text-[13px]"
+                      className="px-5 text-white flex items-center gap-1.5 font-bold text-[13px] transition-opacity hover:opacity-90"
+                      style={{ background: '#E8001D' }}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -393,9 +454,11 @@ export function GlobalNav() {
                 {/* 자동완성 */}
                 {showSuggestions && suggestions.length > 0 && (
                   <div
-                    className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 z-[60] overflow-hidden"
+                    className="absolute top-full left-0 right-0 mt-1 z-[60] overflow-hidden"
                     style={{
-                      boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                      background: '#fff',
+                      border: '1px solid rgba(14,14,14,0.09)',
+                      boxShadow: '0 12px 40px rgba(14,14,14,0.1)',
                       animation: 'dropdownOpen 0.18s cubic-bezier(0.22,1,0.36,1) both',
                     }}
                   >
@@ -409,9 +472,16 @@ export function GlobalNav() {
                           setShowSuggestions(false);
                           router.push(`/search?q=${encodeURIComponent(s)}`);
                         }}
-                        className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-red-50 hover:text-red-700 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-0 group"
+                        className="w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors group"
+                        style={{
+                          fontSize: '13px',
+                          color: 'rgba(14,14,14,0.7)',
+                          borderBottom: i < suggestions.length - 1 ? '1px solid rgba(14,14,14,0.04)' : 'none',
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#FFF5F5'; (e.currentTarget as HTMLElement).style.color = '#E8001D'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.7)'; }}
                       >
-                        <svg className="w-3.5 h-3.5 text-gray-300 group-hover:text-red-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5 flex-shrink-0 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                         <span>{s}</span>
@@ -421,36 +491,69 @@ export function GlobalNav() {
                 )}
               </div>
 
-              {/* 우측 아이콘 */}
-              <div className="flex items-center gap-0.5 flex-shrink-0">
-                <a href="/wishlist" className="hidden sm:flex flex-col items-center gap-0.5 px-3 py-2 text-gray-500 hover:text-gray-900 transition-colors group">
+              {/* 우측 아이콘 그룹 */}
+              <div className="flex items-center gap-0 flex-shrink-0">
+                {/* 위시리스트 */}
+                <a
+                  href="/wishlist"
+                  className="hidden sm:flex flex-col items-center gap-0.5 px-3 py-2 transition-colors group"
+                  style={{ color: 'rgba(14,14,14,0.45)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#0E0E0E'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.45)'; }}
+                >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                   <span className="text-[11px] font-medium">위시리스트</span>
                 </a>
-                <a href="/my-orders" className="hidden md:flex flex-col items-center gap-0.5 px-3 py-2 text-gray-500 hover:text-gray-900 transition-colors">
+
+                {/* 주문내역 */}
+                <a
+                  href="/my-orders"
+                  className="hidden md:flex flex-col items-center gap-0.5 px-3 py-2 transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.45)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#0E0E0E'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.45)'; }}
+                >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                   <span className="text-[11px] font-medium">주문내역</span>
                 </a>
-                <a href={userName ? '/profile' : '/auth'} className="hidden md:flex flex-col items-center gap-0.5 px-3 py-2 text-gray-500 hover:text-gray-900 transition-colors">
+
+                {/* 내 정보/로그인 */}
+                <a
+                  href={userName ? '/profile' : '/auth'}
+                  className="hidden md:flex flex-col items-center gap-0.5 px-3 py-2 transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.45)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#0E0E0E'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.45)'; }}
+                >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   <span className="text-[11px] font-medium">{userName ? '내정보' : '로그인'}</span>
                 </a>
-                {/* 장바구니 — 뱃지 강화 */}
-                <a href="/cart" className="flex flex-col items-center gap-0.5 px-3 py-2 text-gray-500 hover:text-gray-900 transition-colors group relative">
+
+                {/* 장바구니 */}
+                <a
+                  href="/cart"
+                  className="flex flex-col items-center gap-0.5 px-3 py-2 transition-colors group relative"
+                  style={{ color: 'rgba(14,14,14,0.45)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#0E0E0E'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.45)'; }}
+                >
                   <div className="relative">
                     <svg className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     {totalQty > 0 && (
                       <span
-                        className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[10px] font-black rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-0.5 leading-none"
-                        style={{ animation: 'badgePop 0.35s cubic-bezier(0.175,0.885,0.32,1.275) both' }}
+                        className="absolute -top-1.5 -right-2 text-white text-[10px] font-black rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-0.5 leading-none"
+                        style={{
+                          background: '#E8001D',
+                          animation: 'badgePop 0.35s cubic-bezier(0.175,0.885,0.32,1.275) both',
+                        }}
                       >
                         {totalQty > 99 ? '99+' : totalQty}
                       </span>
@@ -458,9 +561,12 @@ export function GlobalNav() {
                   </div>
                   <span className="text-[11px] font-medium">장바구니</span>
                 </a>
+
+                {/* 모바일 햄버거 */}
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="md:hidden p-2 text-gray-500 hover:bg-gray-100 ml-1"
+                  className="md:hidden p-2 ml-1 transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.55)' }}
                   aria-label="메뉴"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -477,8 +583,8 @@ export function GlobalNav() {
 
         {/* ── 카테고리 네비 + 메가 메뉴 ── */}
         <div
-          className="bg-white border-b border-gray-150 relative"
-          style={{ borderBottomColor: '#EBEBEB' }}
+          className="relative"
+          style={{ borderBottom: '1px solid rgba(14,14,14,0.07)' }}
           onMouseLeave={handleMegaLeave}
         >
           <div className="max-w-[1440px] mx-auto px-4">
@@ -491,16 +597,17 @@ export function GlobalNav() {
                     <a
                       href={cat.href}
                       onMouseEnter={() => handleMegaEnter(cat.label)}
-                      className={`px-3 py-3 text-[13px] font-semibold whitespace-nowrap border-b-2 transition-all duration-200 -mb-px flex items-center gap-1 ${
-                        isActive || isMegaActive
-                          ? 'text-red-600 border-red-600'
-                          : 'text-gray-600 border-transparent hover:text-gray-900 hover:border-gray-300'
-                      }`}
+                      className="flex items-center gap-1 px-3 py-3 text-[13px] font-semibold whitespace-nowrap -mb-px transition-all duration-200"
+                      style={{
+                        color: isActive || isMegaActive ? '#E8001D' : 'rgba(14,14,14,0.6)',
+                        borderBottom: `2px solid ${isActive || isMegaActive ? '#E8001D' : 'transparent'}`,
+                      }}
                     >
                       {cat.label}
                       {cat.sub.length > 0 && (
                         <svg
-                          className={`w-3 h-3 transition-transform duration-200 ${isMegaActive ? 'rotate-180' : ''}`}
+                          className="w-3 h-3 transition-transform duration-200"
+                          style={{ transform: isMegaActive ? 'rotate(180deg)' : 'none' }}
                           fill="none" stroke="currentColor" viewBox="0 0 24 24"
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -511,8 +618,14 @@ export function GlobalNav() {
                 );
               })}
 
-              <div className="ml-auto pl-4 flex-shrink-0 border-l border-gray-100">
-                <a href="/notifications" className="flex items-center gap-1.5 px-3 py-3 text-[13px] text-gray-500 hover:text-red-600 transition-colors whitespace-nowrap font-medium">
+              <div className="ml-auto pl-4 flex-shrink-0" style={{ borderLeft: '1px solid rgba(14,14,14,0.07)' }}>
+                <a
+                  href="/notifications"
+                  className="flex items-center gap-1.5 px-3 py-3 text-[13px] font-medium whitespace-nowrap transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.4)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#E8001D'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.4)'; }}
+                >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
@@ -530,27 +643,48 @@ export function GlobalNav() {
 
         {/* ── 모바일 메뉴 ── */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100" style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.1)', animation: 'dropdownOpen 0.22s cubic-bezier(0.22,1,0.36,1) both' }}>
+          <div
+            className="md:hidden"
+            style={{
+              background: '#F7F6F1',
+              borderTop: '1px solid rgba(14,14,14,0.07)',
+              boxShadow: '0 12px 32px rgba(14,14,14,0.1)',
+              animation: 'dropdownOpen 0.22s cubic-bezier(0.22,1,0.36,1) both',
+            }}
+          >
             <div className="max-w-[1440px] mx-auto px-4 py-3 space-y-0.5">
               {CATEGORIES.map((cat) => (
-                <a key={cat.label} href={cat.href} className="flex items-center justify-between px-3 py-2.5 text-[13px] text-gray-700 hover:bg-red-50 hover:text-red-700 font-medium transition-colors">
+                <a
+                  key={cat.label}
+                  href={cat.href}
+                  className="flex items-center justify-between px-3 py-2.5 text-[13px] font-medium transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.65)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#E8001D'; (e.currentTarget as HTMLElement).style.background = 'rgba(232,0,29,0.04)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.65)'; (e.currentTarget as HTMLElement).style.background = ''; }}
+                >
                   {cat.label}
                   {cat.sub.length > 0 && (
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
                     </svg>
                   )}
                 </a>
               ))}
-              <div className="border-t border-gray-100 mt-2 pt-2 space-y-0.5">
+              <div className="pt-2 mt-2 space-y-0.5" style={{ borderTop: '1px solid rgba(14,14,14,0.07)' }}>
                 {[
                   { href: '/my-orders', label: '주문내역' },
                   { href: '/wishlist', label: '위시리스트' },
                   { href: '/notifications', label: '알림' },
                   { href: userName ? '/profile' : '/auth', label: userName ? `${userName} (내 정보)` : '로그인 / 회원가입' },
                 ].map(item => (
-                  <a key={item.href} href={item.href}
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center px-3 py-2.5 text-[13px] font-medium transition-colors"
+                    style={{ color: 'rgba(14,14,14,0.5)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#0E0E0E'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.5)'; }}
+                  >
                     {item.label}
                   </a>
                 ))}
