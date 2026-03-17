@@ -1,0 +1,22 @@
+# CODEOWNERS — LiveMart MSA
+# 각 경로에 대한 코드 오너를 지정합니다.
+# PR 생성 시 해당 오너에게 자동 리뷰 요청됩니다.
+
+# 전체 기본 오너
+* @parkmin-je
+
+# 결제 서비스 — 보안 민감, 추가 리뷰 필요
+/payment-service/ @parkmin-je
+
+# 공통 모듈 — 모든 서비스에 영향
+/common/ @parkmin-je
+
+# K8s / 인프라 — 운영 환경에 영향
+/k8s/ @parkmin-je
+/helm/ @parkmin-je
+/.github/workflows/ @parkmin-je
+
+# 보안 설정
+/k8s/base/rbac.yml @parkmin-je
+/k8s/base/external-secrets.yml @parkmin-je
+/monitoring/ @parkmin-je
