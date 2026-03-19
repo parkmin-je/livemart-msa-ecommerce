@@ -22,6 +22,26 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  # ── Spring AI 1.0 설정 ──────────────────────────────────────────────────────
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}          # 환경변수로 주입 (코드에 절대 하드코딩 금지)
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: gpt-4o-mini               # CS 챗봇: 비용 효율적이고 빠른 응답
+          temperature: 0.3                 # 일관성 우선 (낮을수록 deterministic)
+          max-tokens: 800
+      embedding:
+        options:
+          model: text-embedding-3-small    # RAG 벡터 생성 (향후 확장)
+
+  # ── Spring Boot 3.4 Structured Logging (ECS 포맷 — ELK 스택 연동) ──────────
+  logging:
+    structured:
+      format:
+        console: ecs                       # Elastic Common Schema JSON 로그
+
 eureka:
   client:
     service-url:
@@ -55,9 +75,10 @@ management:
   tracing:
     sampling:
       probability: 0.1
-  zipkin:
+  otlp:
     tracing:
-      endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+      transport: http                      # gRPC: grpc (포트 4317), HTTP: http (포트 4318)
 
 springdoc:
   api-docs:

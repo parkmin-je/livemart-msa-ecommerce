@@ -38,19 +38,22 @@ public class OrderService {
     private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
     private final EventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+    private final ParallelProductValidationService parallelValidationService;
 
     public OrderService(OrderRepository orderRepository,
                        ProductFeignClient productFeignClient,
                        PaymentFeignClient paymentFeignClient,
                        KafkaTemplate<String, OrderEvent> kafkaTemplate,
                        java.util.Optional<EventPublisher> eventPublisher,
-                       java.util.Optional<ObjectMapper> objectMapper) {
+                       java.util.Optional<ObjectMapper> objectMapper,
+                       ParallelProductValidationService parallelValidationService) {
         this.orderRepository = orderRepository;
         this.productFeignClient = productFeignClient;
         this.paymentFeignClient = paymentFeignClient;
         this.kafkaTemplate = kafkaTemplate;
         this.eventPublisher = eventPublisher.orElse(null);
         this.objectMapper = objectMapper.orElse(new com.fasterxml.jackson.databind.ObjectMapper());
+        this.parallelValidationService = parallelValidationService;
     }
 
     private static final String ORDER_TOPIC = "order-events";
@@ -65,16 +68,17 @@ public class OrderService {
         Long userId = request.getUserId();
         log.info("Creating order for userId: {}", userId);
 
-        // 1. 상품 정보 조회 및 검증 (락 사용)
+        // 1. 상품 정보 병렬 조회 및 재고 검증 (Java 21 Structured Concurrency)
+        //    단일 상품: 직접 조회 / 복수 상품: StructuredTaskScope.ShutdownOnFailure 병렬 조회
+        //    → N개 상품 순차 조회 대비 최대 N배 성능 향상 (네트워크 I/O 병렬화)
+        List<ProductInfo> validatedProducts = parallelValidationService.validateInParallel(request.getItems());
+
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        for (OrderItemRequest itemRequest : request.getItems()) {
-            ProductInfo product = productFeignClient.getProductWithLock(itemRequest.getProductId());
-
-            if (product.getStockQuantity() < itemRequest.getQuantity()) {
-                throw BusinessException.insufficientStock(product.getId());
-            }
+        for (int i = 0; i < request.getItems().size(); i++) {
+            OrderItemRequest itemRequest = request.getItems().get(i);
+            ProductInfo product = validatedProducts.get(i);
 
             BigDecimal itemTotal = product.getPrice().multiply(new BigDecimal(itemRequest.getQuantity()));
             totalAmount = totalAmount.add(itemTotal);

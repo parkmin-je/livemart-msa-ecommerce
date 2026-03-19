@@ -222,6 +222,28 @@ function MegaMenu({ category, onClose }: { category: typeof CATEGORIES[0]; onClo
   );
 }
 
+// ── 다크모드 토글 훅 ──────────────────────────────────────────
+function useDarkMode() {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('livemart-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setIsDark(stored === 'dark' || (!stored && prefersDark));
+  }, []);
+
+  const toggle = useCallback(() => {
+    setIsDark(prev => {
+      const next = !prev;
+      document.documentElement.classList.toggle('dark', next);
+      localStorage.setItem('livemart-theme', next ? 'dark' : 'light');
+      return next;
+    });
+  }, []);
+
+  return { isDark, toggle };
+}
+
 // ── 메인 컴포넌트 ─────────────────────────────────────────────
 export function GlobalNav() {
   const pathname = usePathname();
@@ -237,6 +259,7 @@ export function GlobalNav() {
   const [activeMega, setActiveMega] = useState<string | null>(null);
   const megaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const { isDark, toggle: toggleDark } = useDarkMode();
 
   const totalQty = cartItems.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -561,6 +584,29 @@ export function GlobalNav() {
                   </div>
                   <span className="text-[11px] font-medium">장바구니</span>
                 </a>
+
+                {/* 다크모드 토글 */}
+                <button
+                  onClick={toggleDark}
+                  className="hidden sm:flex flex-col items-center gap-0.5 px-3 py-2 transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.45)' }}
+                  aria-label={isDark ? '라이트 모드' : '다크 모드'}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#0E0E0E'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.45)'; }}
+                >
+                  {isDark ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                  )}
+                  <span className="text-[11px] font-medium">{isDark ? '라이트' : '다크'}</span>
+                </button>
 
                 {/* 모바일 햄버거 */}
                 <button

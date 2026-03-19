@@ -47,6 +47,37 @@
     --shadow-mega:  0 24px 64px rgba(0,0,0,0.18);
   }
 
+  /* ── Dark Mode — 시스템 설정 또는 .dark 클래스 ── */
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+      --bg:           #0F0F0F;
+      --bg-card:      #1A1A1A;
+      --bg-warm:      #1E1E1E;
+      --text:         #F0EEE7;
+      --text-2:       #C8C4BC;
+      --text-3:       #7A7672;
+      --text-4:       #4A4642;
+      --border:       #2A2A2A;
+      --border-2:     #222222;
+      --shadow-card:  0 1px 4px rgba(0,0,0,0.3);
+      --shadow-hover: 0 12px 40px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
+    }
+  }
+
+  html.dark {
+    --bg:           #0F0F0F;
+    --bg-card:      #1A1A1A;
+    --bg-warm:      #1E1E1E;
+    --text:         #F0EEE7;
+    --text-2:       #C8C4BC;
+    --text-3:       #7A7672;
+    --text-4:       #4A4642;
+    --border:       #2A2A2A;
+    --border-2:     #222222;
+    --shadow-card:  0 1px 4px rgba(0,0,0,0.3);
+    --shadow-hover: 0 12px 40px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
+  }
+
   *, *::before, *::after { box-sizing: border-box; }
 
   html {
