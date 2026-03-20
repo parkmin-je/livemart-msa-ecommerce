@@ -63,6 +63,12 @@ spring:
 
 server:
   port: 8082
+  tomcat:
+    threads:
+      max: 400        # 기본 200 → 400 (50k 동시 접속 대응)
+      min-spare: 20
+    accept-count: 200   # 대기 큐 크기
+    connection-timeout: 20000
 
 management:
   endpoints:
@@ -101,3 +107,7 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+# 로컬 개발: 호스트명 해결 타임아웃 단축 (Cannot determine local hostname WARN 방지)
+spring.cloud.inetutils.timeout-seconds: 1
+logging.level.com.netflix.discovery: ERROR
+logging.level.com.netflix.eureka: ERROR
