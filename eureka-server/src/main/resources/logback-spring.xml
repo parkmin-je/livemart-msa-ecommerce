@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <!-- Spring Boot %clr/%wEx 컨버터 명시적 등록 (logstash-logback-encoder 초기화 순서 충돌 방지) -->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wEx" converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+
     <springProperty scope="context" name="SERVICE_NAME" source="spring.application.name" defaultValue="eureka-server"/>
     <springProperty scope="context" name="ACTIVE_PROFILE" source="spring.profiles.active" defaultValue="default"/>
 

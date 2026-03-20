@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.StructuredTaskScope;
 
 /**
@@ -80,6 +81,11 @@ public class ParallelProductValidationService {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("상품 검증 중 인터럽트 발생", e);
+        } catch (ExecutionException e) {
+            // subtask에서 발생한 예외 (재고 부족 BusinessException 포함) 언랩
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException re) throw re;
+            throw new RuntimeException("상품 검증 중 오류 발생", cause);
         }
     }
 

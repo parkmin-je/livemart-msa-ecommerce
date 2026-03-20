@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8888
 
 spring:
   application:
@@ -32,14 +32,9 @@ spring:
         proto-enabled: true
         prefix-enabled: true
 
-      # 전역 기본 필터: 모든 라우트에 Rate Limiting 적용
-      # IP 기반 기본 처리량: 초당 100 요청, 버스트 최대 200
+      # 전역 기본 필터
+      # RequestRateLimiter는 로컬 개발 환경에서 KeyResolver 충돌로 403 유발 — 제거
       default-filters:
-        - name: RequestRateLimiter
-          args:
-            redis-rate-limiter.replenishRate: 100
-            redis-rate-limiter.burstCapacity: 200
-            redis-rate-limiter.requestedTokens: 1
         - name: CircuitBreaker
           args:
             name: default
@@ -101,6 +96,14 @@ spring:
           filters:
             - RewritePath=/api/returns/(?<segment>.*), /api/returns/${segment}
 
+        # Delivery Service (Order Service)
+        - id: delivery-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/delivery/**
+          filters:
+            - RewritePath=/api/delivery/(?<segment>.*), /api/delivery/${segment}
+
         # Payment Service - 결제
         - id: payment-service
           uri: lb://payment-service
@@ -109,13 +112,13 @@ spring:
           filters:
             - RewritePath=/api/payments/(?<segment>.*), /api/v1/payments/${segment}
 
-        # Inventory Service (미구현 - 라우팅만 유지)
+        # Inventory Service
         - id: inventory-service
           uri: lb://inventory-service
           predicates:
             - Path=/api/inventory/**
           filters:
-            - RewritePath=/api/inventory/(?<segment>.*), /api/inventory/${segment}
+            - RewritePath=/api/inventory/(?<segment>.*), /api/v1/inventory/${segment}
 
         # Notification Service (미구현 - 라우팅만 유지)
         - id: notification-service
@@ -131,7 +134,23 @@ spring:
           predicates:
             - Path=/api/analytics/**
           filters:
-            - RewritePath=/api/analytics/(?<segment>.*), /api/analytics/${segment}
+            - RewritePath=/api/analytics/(?<segment>.*), /api/v1/analytics/${segment}
+
+        # Analytics Dashboard Service (realtime)
+        - id: analytics-dashboard-service
+          uri: lb://analytics-service
+          predicates:
+            - Path=/api/dashboard/**
+          filters:
+            - RewritePath=/api/dashboard/(?<segment>.*), /api/v1/dashboard/${segment}
+
+        # Seller Dashboard (Product Service)
+        - id: seller-dashboard
+          uri: lb://product-service
+          predicates:
+            - Path=/api/sellers/**
+          filters:
+            - RewritePath=/api/sellers/(?<segment>.*), /api/sellers/${segment}
 
         # AI Service - 추천/설명생성/챗봇
         - id: ai-service
@@ -215,3 +234,8 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+
+# 로컬 개발: 호스트명 해결 타임아웃 단축 (Cannot determine local hostname WARN 방지)
+spring.cloud.inetutils.timeout-seconds: 1
+logging.level.com.netflix.discovery: ERROR
+logging.level.com.netflix.eureka: ERROR
