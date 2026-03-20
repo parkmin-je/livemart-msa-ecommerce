@@ -48,7 +48,7 @@ public class SellerAgentService {
             );
 
             OpenAiRequest aiRequest = OpenAiRequest.builder()
-                    .model(useHunter ? "openrouter/hunter-alpha" : "gpt-4o-mini")
+                    .model(useHunter ? "xiaomi/mimo-v2-pro" : "gpt-4o-mini")
                     .messages(messages)
                     .temperature(0.7)
                     .maxTokens(2000)
