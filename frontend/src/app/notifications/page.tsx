@@ -72,21 +72,23 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
+    const uid = localStorage.getItem('userId');
+    setUserId(uid);
+    if (!uid) { setLoading(false); return; }
 
     // 기존 알림 조회
-    fetch(`/api/notifications/user/${userId}`, { credentials: 'include' })
+    fetch(`/api/notifications/user/${uid}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setNotifications(d.content || d || []))
       .catch(() => {})
       .finally(() => setLoading(false));
 
     // SSE 실시간 알림 연결
-    const es = new EventSource(`/api/notifications/stream/${userId}`);
+    const es = new EventSource(`/api/notifications/stream/${uid}`);
     eventSourceRef.current = es;
     es.onopen = () => setConnected(true);
     es.onmessage = (e) => {
@@ -98,7 +100,8 @@ export default function NotificationsPage() {
     es.onerror = () => setConnected(false);
 
     return () => { es.close(); setConnected(false); };
-  }, [userId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const markRead = async (id: number) => {
     setNotifications(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));

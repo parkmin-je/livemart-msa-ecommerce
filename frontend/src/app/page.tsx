@@ -80,7 +80,7 @@ const CATEGORIES = [
 ];
 
 async function fetchProducts(): Promise<Product[]> {
-  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
   try {
     const res = await fetch(`${apiUrl}/api/products?page=0&size=20`, {
       next: { revalidate: 60 },
@@ -401,12 +401,10 @@ export default async function Home() {
                 <a
                   key={item.title}
                   href={item.href}
-                  className="flex items-center gap-5 px-5 py-4 group transition-colors"
+                  className="flex items-center gap-5 px-5 py-4 group transition-colors hover:bg-[#FAFAF8]"
                   style={{
                     borderBottom: i < 2 ? '1px solid rgba(14,14,14,0.05)' : 'none',
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#FAFAF8'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
                 >
                   <span
                     className="font-bebas tabular-nums leading-none flex-shrink-0 w-10"
@@ -527,10 +525,8 @@ export default async function Home() {
           <WelcomeCouponBanner />
           <a
             href="/seller"
-            className="group flex items-center justify-between px-7 py-6 text-white transition-colors"
+            className="group flex items-center justify-between px-7 py-6 text-white transition-colors hover:bg-[#161616]"
             style={{ background: '#0A0A0A' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#161616'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#0A0A0A'; }}
           >
             <div>
               <div
@@ -616,10 +612,8 @@ export default async function Home() {
                     <li key={link.label}>
                       <a
                         href={link.href}
-                        className="text-sm transition-colors"
+                        className="text-sm transition-colors hover:!text-white/75"
                         style={{ color: 'rgba(255,255,255,0.35)' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.75)'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.35)'; }}
                       >
                         {link.label}
                       </a>

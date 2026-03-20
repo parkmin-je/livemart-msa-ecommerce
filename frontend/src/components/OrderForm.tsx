@@ -81,7 +81,7 @@ export function OrderForm() {
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
     try {
-      const res = await fetch(`/api/coupons/${couponCode}/preview?orderAmount=${subtotal}`);
+      const res = await fetch(`/api/coupons/${couponCode}/preview?orderAmount=${subtotal}`, { credentials: 'include' });
       if (res.ok) {
         const d = await res.json();
         setCouponDiscount(d.discountAmount || 0);

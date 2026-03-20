@@ -4,9 +4,9 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
-// OAuth2: Next.js rewrite → api-gateway(8080) → user-service
+// OAuth2: Next.js rewrite → api-gateway(8888) → user-service
 const USER_SERVICE = '';
-// API 프록시 (Next.js next.config.js → localhost:8080 → user-service)
+// API 프록시 (Next.js next.config.js → localhost:8888 → user-service)
 const API_BASE = '/api/users';
 
 type Mode = 'login' | 'signup';

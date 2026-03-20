@@ -6,7 +6,7 @@ import { GlobalNav } from '@/components/GlobalNav';
 
 export default function AdminCouponsPage() {
   const router = useRouter();
-  useEffect(() => { router.push('/admin'); }, []);
+  useEffect(() => { router.push('/admin'); }, [router]);
   return (
     <main className="min-h-screen bg-gray-50">
       <GlobalNav />

@@ -158,6 +158,14 @@
   }
   .btn-ghost:hover { color: var(--text); background: var(--bg-warm); }
 
+  .btn-outline-red {
+    @apply btn text-sm;
+    border: 1.5px solid var(--brand);
+    color: var(--brand);
+    padding: 0.5rem 1rem;
+  }
+  .btn-outline-red:hover { background: var(--brand-dim); }
+
   .btn-sm { @apply px-4 py-2 text-xs; }
   .btn-lg { @apply px-7 py-4 text-base; }
   .btn-xl { @apply px-8 py-5 text-lg; }
@@ -183,8 +191,12 @@
     @apply inline-flex items-center px-2 py-0.5 text-[11px] font-black tracking-wide;
     letter-spacing: 0.04em;
   }
-  .badge-red   { @apply badge bg-red-50 text-red-700; }
-  .badge-sale  { background: var(--brand); color: #fff; }
+  .badge-red    { @apply badge bg-red-50 text-red-700; }
+  .badge-yellow { @apply badge bg-yellow-50 text-yellow-700; }
+  .badge-blue   { @apply badge bg-blue-50 text-blue-700; }
+  .badge-green  { @apply badge bg-green-50 text-green-700; }
+  .badge-purple { @apply badge bg-purple-50 text-purple-700; }
+  .badge-sale   { background: var(--brand); color: #fff; }
   .badge-new   { background: #00A854; color: #fff; }
   .badge-hot   { background: #FF8C00; color: #fff; }
   .badge-best  { background: #0055FF; color: #fff; }
