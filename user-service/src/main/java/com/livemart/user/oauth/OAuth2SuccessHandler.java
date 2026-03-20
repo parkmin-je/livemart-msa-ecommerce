@@ -17,8 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 /**
@@ -96,12 +94,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         log.info("OAuth2 login success: userId={}, email={}, needOnboarding={}", user.getId(), email, needOnboarding);
 
         // 비민감 정보만 URL 파라미터로 전달 (토큰 제외)
+        // .encode() 를 명시해야 queryParam 값이 정확히 한 번만 인코딩됨
         String redirectUrl = UriComponentsBuilder.fromUriString(redirectUri)
                 .queryParam("userId", user.getId())
-                .queryParam("name", URLEncoder.encode(user.getName(), StandardCharsets.UTF_8))
+                .queryParam("name", user.getName())
                 .queryParam("role", user.getRole().name())
                 .queryParam("needOnboarding", needOnboarding)
-                .build().toUriString();
+                .build().encode().toUriString();
 
         response.sendRedirect(redirectUrl);
     }

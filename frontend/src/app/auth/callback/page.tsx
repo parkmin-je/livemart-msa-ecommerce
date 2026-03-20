@@ -29,8 +29,15 @@ function CallbackContent() {
 
     if (userId) {
       // 토큰은 httpOnly 쿠키로 이미 설정됨 — 비민감 정보만 localStorage에 저장
+      // searchParams.get()은 이미 URL 디코딩을 수행하므로 추가 decodeURIComponent 불필요
       localStorage.setItem('userId', userId);
-      if (name) localStorage.setItem('userName', decodeURIComponent(name));
+      if (name) {
+        try {
+          localStorage.setItem('userName', decodeURIComponent(name));
+        } catch {
+          localStorage.setItem('userName', name);
+        }
+      }
       localStorage.setItem('userRole', role);
 
       const needOnboarding = searchParams.get('needOnboarding') === 'true';
