@@ -108,6 +108,9 @@ public class SecurityConfig {
                     .userService(customOAuth2UserService))
                 .successHandler(oAuth2SuccessHandler)
                 .failureHandler((request, response, exception) -> {
+                    org.slf4j.LoggerFactory.getLogger(SecurityConfig.class)
+                        .error("OAuth2 login FAILED — type={}, msg={}",
+                            exception.getClass().getSimpleName(), exception.getMessage(), exception);
                     String baseUrl = oauth2RedirectUri.replaceAll("/auth/callback.*", "");
                     response.sendRedirect(baseUrl + "/auth?error=oauth2_failed");
                 })
