@@ -180,9 +180,9 @@ export const paymentApi = {
     return response.data;
   },
 
-  // 결제 취소
+  // 결제 환불 (transactionId 기반)
   cancelPayment: async (transactionId: string) => {
-    const response = await apiClient.post(`/api/payments/${transactionId}/cancel`);
+    const response = await apiClient.post('/api/payments/refund', { transactionId });
     return response.data;
   },
 
