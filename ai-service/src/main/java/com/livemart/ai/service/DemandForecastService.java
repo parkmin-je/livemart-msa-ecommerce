@@ -45,7 +45,7 @@ public class DemandForecastService {
 
             boolean useHunter = hunterAlphaClient.isEnabled();
             OpenAiRequest aiRequest = OpenAiRequest.builder()
-                    .model(useHunter ? "openrouter/hunter-alpha" : "gpt-4o-mini")
+                    .model(useHunter ? "xiaomi/mimo-v2-pro" : "gpt-4o-mini")
                     .messages(List.of(
                             OpenAiRequest.Message.system("이커머스 수요 예측 전문가입니다. JSON만 응답하세요."),
                             OpenAiRequest.Message.user(prompt)
