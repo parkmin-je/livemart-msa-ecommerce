@@ -149,6 +149,21 @@ public class UserController {
         return ResponseEntity.ok("User Service is running");
     }
 
+    @Operation(summary = "비밀번호 변경")
+    @PutMapping("/{userId}/password")
+    @PreAuthorize("#userId == authentication.principal")
+    public ResponseEntity<Void> changePassword(
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> body) {
+        String currentPassword = body.get("currentPassword");
+        String newPassword = body.get("newPassword");
+        if (currentPassword == null || newPassword == null || newPassword.length() < 8) {
+            return ResponseEntity.badRequest().build();
+        }
+        userService.changePassword(userId, currentPassword, newPassword);
+        return ResponseEntity.noContent().build();
+    }
+
     // ─── 관리자 전용 ──────────────────────────────────────────────
 
     @Operation(summary = "전체 사용자 목록 조회 (관리자)")

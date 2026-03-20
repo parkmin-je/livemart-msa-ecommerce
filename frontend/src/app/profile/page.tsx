@@ -139,7 +139,7 @@ export default function ProfilePage() {
     Promise.all([
       fetch(`/api/users/${userId}`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`/api/orders/user/${userId}?page=0&size=100`, { credentials: 'include' }).then(r => r.ok ? r.json() : { content: [] }).catch(() => ({ content: [] })),
-      fetch(`/api/users/${userId}/mfa/status`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`/api/v1/mfa/status`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).catch(() => null),
     ]).then(([userData, ordersData, mfaData]) => {
       if (userData) setProfile({ name: userData.name || name, email: userData.email || '', phoneNumber: userData.phoneNumber || '' });
       if (ordersData?.content) {
@@ -213,7 +213,7 @@ export default function ProfilePage() {
       if (mfa.enabled) {
         const currentPw = window.prompt('MFA 비활성화를 위해 현재 비밀번호를 입력하세요:');
         if (!currentPw) { setMfaLoading(false); return; }
-        const res = await fetch(`/api/users/${userId}/mfa/disable`, {
+        const res = await fetch(`/api/v1/mfa/disable`, {
           method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ currentPassword: currentPw }),
         });
@@ -221,7 +221,7 @@ export default function ProfilePage() {
         setMfa({ enabled: false });
         toast.success('MFA가 비활성화되었습니다');
       } else {
-        const res = await fetch(`/api/users/${userId}/mfa/setup`, { method: 'POST', credentials: 'include' });
+        const res = await fetch(`/api/v1/mfa/setup`, { method: 'POST', credentials: 'include' });
         if (!res.ok) throw new Error('MFA 설정 실패');
         const data = await res.json();
         if (data.qrCodeUrl) {
