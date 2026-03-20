@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { GlobalNav } from '@/components/GlobalNav';
 import toast from 'react-hot-toast';
+import SellerAgentPanel from './components/SellerAgentPanel';
 
 interface DashboardData {
   totalRevenue?: number;
@@ -40,7 +41,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default function SellerPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<'dashboard' | 'products' | 'orders'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'products' | 'orders' | 'agent'>('dashboard');
   const [data, setData] = useState<DashboardData>({});
   const [products, setProducts] = useState<Array<{ id: number; name: string; price: number; stockQuantity: number; categoryId?: number }>>([]);
   const [loading, setLoading] = useState(true);
@@ -127,6 +128,7 @@ export default function SellerPage() {
     { id: 'dashboard', label: '대시보드' },
     { id: 'products', label: '상품 관리' },
     { id: 'orders', label: '주문 관리' },
+    { id: 'agent', label: '🤖 AI 에이전트' },
   ];
 
   const KPI = [
@@ -174,7 +176,7 @@ export default function SellerPage() {
               <button
                 key={t.id}
                 onClick={() => {
-                  setTab(t.id as 'dashboard' | 'products' | 'orders');
+                  setTab(t.id as 'dashboard' | 'products' | 'orders' | 'agent');
                   if (t.id === 'products') setShowForm(false);
                 }}
                 className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
@@ -202,7 +204,7 @@ export default function SellerPage() {
             {TABS.map(t => (
               <button
                 key={t.id}
-                onClick={() => setTab(t.id as 'dashboard' | 'products' | 'orders')}
+                onClick={() => setTab(t.id as 'dashboard' | 'products' | 'orders' | 'agent')}
                 className={`flex-shrink-0 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
                   tab === t.id ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500'
                 }`}
@@ -489,6 +491,15 @@ export default function SellerPage() {
                     </tbody>
                   </table>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* AI 에이전트 */}
+          {tab === 'agent' && (
+            <div className="max-w-2xl">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
+                <SellerAgentPanel />
               </div>
             </div>
           )}
