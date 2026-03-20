@@ -48,15 +48,17 @@ export function RealtimeDashboard() {
   useEffect(() => {
     let eventSource: EventSource | null = null;
     let reconnectTimer: NodeJS.Timeout | null = null;
+    let retryDelay = 1000; // 지수 백오프 초기값 1s
+    const MAX_RETRY_DELAY = 30000; // 최대 30s
 
     const connectSSE = () => {
       try {
-        // SSE (Server-Sent Events) 연결
-        eventSource = new EventSource('http://localhost:8087/api/v1/dashboard/stream');
+        eventSource = new EventSource('/api/analytics/v1/dashboard/stream');
 
         eventSource.onopen = () => {
-          console.log('SSE connected successfully');
+          console.log('SSE connected');
           setConnected(true);
+          retryDelay = 1000; // 연결 성공 시 백오프 리셋
         };
 
         eventSource.addEventListener('metrics', (event) => {
@@ -65,33 +67,26 @@ export function RealtimeDashboard() {
             setMetrics(data);
             setConnected(true);
 
-            // 매출 히스토리 업데이트 (최근 20개)
-            setSalesHistory((prev) => {
-              const newHistory = [...prev, data.todayRevenue];
-              return newHistory.slice(-20);
-            });
-
-            // 시간 라벨 업데이트
+            setSalesHistory((prev) => [...prev, data.todayRevenue].slice(-20));
             setTimeLabels((prev) => {
               const time = new Date(data.timestamp).toLocaleTimeString('ko-KR');
-              const newLabels = [...prev, time];
-              return newLabels.slice(-20);
+              return [...prev, time].slice(-20);
             });
           } catch (error) {
             console.error('Error parsing metrics:', error);
           }
         });
 
-        eventSource.onerror = (error) => {
-          console.error('SSE connection error:', error);
+        eventSource.onerror = () => {
           setConnected(false);
           eventSource?.close();
 
-          // 5초 후 재연결 시도
+          // 지수 백오프: 1s → 2s → 4s → 8s → 16s → 30s (최대)
+          console.log(`SSE reconnecting in ${retryDelay / 1000}s...`);
           reconnectTimer = setTimeout(() => {
-            console.log('Attempting to reconnect SSE...');
+            retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
             connectSSE();
-          }, 5000);
+          }, retryDelay);
         };
       } catch (error) {
         console.error('Error creating EventSource:', error);
@@ -102,12 +97,8 @@ export function RealtimeDashboard() {
     connectSSE();
 
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
+      eventSource?.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
     };
   }, []);
 

@@ -26,7 +26,7 @@ export default function CartPage() {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
     try {
-      const res = await fetch(`/api/coupons/${couponCode.trim()}/preview?orderAmount=${subtotal}`);
+      const res = await fetch(`/api/coupons/${couponCode.trim()}/preview?orderAmount=${subtotal}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         const disc = data.discountAmount || 0;

@@ -118,10 +118,20 @@ function SearchContent() {
     try {
       let items: Product[] = [];
       if (q.trim()) {
-        const res = await productApi.searchProducts(q);
-        items = res.content || res || [];
+        // Try Elasticsearch first, fall back to regular search if ES is unavailable
+        try {
+          const res = await productApi.searchProducts(q);
+          items = res.content || res || [];
+        } catch {
+          // ES failed (503 or other error) - fall back to regular product search
+          const res = await productApi.getProducts({ page: 0, size: 50, search: q });
+          items = (res.content || res || []).filter((p: Product) =>
+            p.name?.toLowerCase().includes(q.toLowerCase()) ||
+            p.description?.toLowerCase().includes(q.toLowerCase())
+          );
+        }
       } else if (catId) {
-        const res = await fetch(`/api/products/category/${catId}?page=0&size=30`).then(r => r.json());
+        const res = await fetch(`/api/products/category/${catId}?page=0&size=30`, { credentials: 'include' }).then(r => r.json());
         items = res.content || [];
       } else {
         const res = await productApi.getProducts({ page: 0, size: 30 });
@@ -140,8 +150,8 @@ function SearchContent() {
     setLoading(false);
   };
 
-  useEffect(() => { doSearch(initialQ, initialCat); }, [initialQ, initialCat]);
-  useEffect(() => { if (products.length > 0 || loading) doSearch(query, cat); }, [sort, priceMin, priceMax]);
+  useEffect(() => { doSearch(initialQ, initialCat); }, [initialQ, initialCat]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { doSearch(query, cat); }, [sort, priceMin, priceMax]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

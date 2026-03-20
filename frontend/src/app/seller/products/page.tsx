@@ -10,7 +10,7 @@ export default function SellerProductsPage() {
   useEffect(() => {
     // 판매자 메인 페이지의 products 탭으로 리다이렉트
     router.push('/seller');
-  }, []);
+  }, [router]);
 
   return (
     <main className="min-h-screen bg-gray-50">
