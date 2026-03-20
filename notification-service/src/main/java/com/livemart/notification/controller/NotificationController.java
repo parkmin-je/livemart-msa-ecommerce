@@ -62,6 +62,20 @@ public class NotificationController {
         );
     }
 
+    @Operation(summary = "알림 읽음 처리", description = "특정 알림을 읽음 처리합니다")
+    @PutMapping("/user/{userId}/{notificationId}/read")
+    public Mono<Void> markAsRead(
+            @PathVariable Long userId,
+            @PathVariable String notificationId) {
+        return notificationService.markAsRead(userId, notificationId);
+    }
+
+    @Operation(summary = "전체 알림 읽음 처리", description = "사용자의 모든 알림을 읽음 처리합니다")
+    @PutMapping("/user/{userId}/read-all")
+    public Mono<Void> markAllAsRead(@PathVariable Long userId) {
+        return notificationService.markAllAsRead(userId);
+    }
+
     @Operation(summary = "헬스체크")
     @GetMapping("/health")
     public Mono<String> health() {

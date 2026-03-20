@@ -126,6 +126,65 @@ public class NotificationService {
                 });
     }
 
+    /**
+     * 알림 읽음 처리
+     */
+    public Mono<Void> markAsRead(Long userId, String notificationId) {
+        String key = NOTIFICATION_KEY_PREFIX + userId;
+        return reactiveRedisTemplate.opsForList()
+                .range(key, 0, -1)
+                .map(n -> {
+                    if (notificationId.equals(n.getId()) && !n.isRead()) {
+                        return Notification.builder()
+                                .id(n.getId())
+                                .userId(n.getUserId())
+                                .type(n.getType())
+                                .title(n.getTitle())
+                                .message(n.getMessage())
+                                .referenceId(n.getReferenceId())
+                                .read(true)
+                                .createdAt(n.getCreatedAt())
+                                .build();
+                    }
+                    return n;
+                })
+                .collectList()
+                .flatMap(notifications -> {
+                    if (notifications.isEmpty()) return Mono.empty();
+                    return reactiveRedisTemplate.delete(key)
+                            .then(reactiveRedisTemplate.opsForList()
+                                    .rightPushAll(key, notifications)
+                                    .then(reactiveRedisTemplate.expire(key, Duration.ofDays(30)).then()));
+                });
+    }
+
+    /**
+     * 전체 알림 읽음 처리
+     */
+    public Mono<Void> markAllAsRead(Long userId) {
+        String key = NOTIFICATION_KEY_PREFIX + userId;
+        return reactiveRedisTemplate.opsForList()
+                .range(key, 0, -1)
+                .map(n -> Notification.builder()
+                        .id(n.getId())
+                        .userId(n.getUserId())
+                        .type(n.getType())
+                        .title(n.getTitle())
+                        .message(n.getMessage())
+                        .referenceId(n.getReferenceId())
+                        .read(true)
+                        .createdAt(n.getCreatedAt())
+                        .build())
+                .collectList()
+                .flatMap(notifications -> {
+                    if (notifications.isEmpty()) return Mono.empty();
+                    return reactiveRedisTemplate.delete(key)
+                            .then(reactiveRedisTemplate.opsForList()
+                                    .rightPushAll(key, notifications)
+                                    .then(reactiveRedisTemplate.expire(key, Duration.ofDays(30)).then()));
+                });
+    }
+
     // ── private helpers ──────────────────────────────────────────────────────
 
     private void pushToLocalSink(Notification notification) {
