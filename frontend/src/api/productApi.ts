@@ -176,19 +176,19 @@ export const paymentApi = {
       paymentMethod: data.method,  // method -> paymentMethod
       cardToken: data.cardNumber,  // cardNumber -> cardToken
     };
-    const response = await apiClient.post('/api/v1/payments', requestData);
+    const response = await apiClient.post('/api/payments', requestData);
     return response.data;
   },
 
   // 결제 취소
   cancelPayment: async (transactionId: string) => {
-    const response = await apiClient.post(`/api/v1/payments/${transactionId}/cancel`);
+    const response = await apiClient.post(`/api/payments/${transactionId}/cancel`);
     return response.data;
   },
 
   // 주문번호로 결제 조회
   getPaymentByOrderNumber: async (orderNumber: string) => {
-    const response = await apiClient.get(`/api/v1/payments/order/${orderNumber}`);
+    const response = await apiClient.get(`/api/payments/order/${orderNumber}`);
     return response.data;
   },
 };
@@ -326,7 +326,7 @@ export const couponApi = {
 export const searchApi = {
   autocomplete: async (keyword: string) => {
     const response = await apiClient.get('/api/products/search/autocomplete', {
-      params: { keyword },
+      params: { prefix: keyword },
     });
     return response.data;
   },
@@ -335,7 +335,7 @@ export const searchApi = {
 export const dashboardApi = {
   // 실시간 메트릭 조회 (REST)
   getMetrics: async () => {
-    const response = await apiClient.get('/api/v1/dashboard/metrics');
+    const response = await apiClient.get('/api/analytics/v1/dashboard/metrics');
     return response.data;
   },
 

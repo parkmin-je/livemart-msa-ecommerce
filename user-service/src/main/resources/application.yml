@@ -4,11 +4,14 @@ spring:
   threads:
     virtual:
       enabled: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.mail.MailHealthContributorAutoConfiguration
 
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/userdb
     username: ${DB_USERNAME:userapp}
-    password: ${DB_PASSWORD}
+    password: ${DB_PASSWORD:user123}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -35,8 +38,8 @@ spring:
   mail:
     host: smtp.naver.com
     port: 587
-    username: ${SMTP_USERNAME}
-    password: ${SMTP_PASSWORD}
+    username: ${SMTP_USERNAME:dev@example.com}
+    password: ${SMTP_PASSWORD:devpassword}
     properties:
       mail:
         smtp:
@@ -56,9 +59,9 @@ spring:
         registration:
           # 카카오 로그인
           kakao:
-            client-id: ${KAKAO_CLIENT_ID}
-            client-secret: ${KAKAO_CLIENT_SECRET}
-            redirect-uri: "${OAUTH2_BASE_URL:http://localhost}/login/oauth2/code/{registrationId}"
+            client-id: ${KAKAO_CLIENT_ID:dev-kakao-id}
+            client-secret: ${KAKAO_CLIENT_SECRET:dev-kakao-secret}
+            redirect-uri: "${OAUTH2_BASE_URL:http://localhost:8888}/login/oauth2/code/{registrationId}"
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
             scope:
@@ -67,9 +70,9 @@ spring:
 
           # 네이버 로그인
           naver:
-            client-id: ${NAVER_CLIENT_ID}
-            client-secret: ${NAVER_CLIENT_SECRET}
-            redirect-uri: "${OAUTH2_BASE_URL:http://localhost}/login/oauth2/code/{registrationId}"
+            client-id: ${NAVER_CLIENT_ID:dev-naver-id}
+            client-secret: ${NAVER_CLIENT_SECRET:dev-naver-secret}
+            redirect-uri: "${OAUTH2_BASE_URL:http://localhost:8888}/login/oauth2/code/{registrationId}"
             authorization-grant-type: authorization_code
             scope:
               - name
@@ -78,9 +81,9 @@ spring:
 
           # 구글 로그인
           google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: "${OAUTH2_BASE_URL:http://localhost}/login/oauth2/code/{registrationId}"
+            client-id: ${GOOGLE_CLIENT_ID:dev-google-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:dev-google-secret}
+            redirect-uri: "${OAUTH2_BASE_URL:http://localhost:8888}/login/oauth2/code/{registrationId}"
             scope:
               - profile
               - email
@@ -108,13 +111,13 @@ server:
   forward-headers-strategy: framework
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:dev-local-jwt-secret-key-minimum-32-characters-long}
   expiration: 86400000
   refresh-expiration: 604800000
 
 # OAuth2 성공 후 프론트엔드 리다이렉트 URI
 oauth2:
-  redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3002/auth/callback}
+  redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/auth/callback}
 
 # 쿠키 보안 설정 (개발: false, 프로덕션 HTTPS: true)
 app:
@@ -135,6 +138,8 @@ management:
     redis:
       enabled: false
     elasticsearch:
+      enabled: false
+    mail:
       enabled: false
   tracing:
     sampling:
@@ -158,6 +163,13 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
     register-with-eureka: true
     fetch-registry: true
+    healthcheck:
+      enabled: false
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+
+# 로컬 개발: 호스트명 해결 타임아웃 단축 (Cannot determine local hostname WARN 방지)
+spring.cloud.inetutils.timeout-seconds: 1
+logging.level.com.netflix.discovery: ERROR
+logging.level.com.netflix.eureka: ERROR

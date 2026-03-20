@@ -127,7 +127,9 @@ export default function ProductDetailPage() {
     if (!reviewForm.content.trim()) { toast.error('리뷰 내용을 입력해주세요.'); return; }
     setSubmitting(true);
     try {
-      await reviewApi.createReview(productId, { userId: parseInt(localStorage.getItem('userId')||'1'), ...reviewForm });
+      const uid = localStorage.getItem('userId');
+      if (!uid) { toast.error('로그인이 필요합니다.'); setSubmitting(false); return; }
+      await reviewApi.createReview(productId, { userId: parseInt(uid), ...reviewForm });
       toast.success('리뷰가 등록됐습니다!');
       setShowReviewForm(false);
       setReviewForm({ rating:5, title:'', content:'' });

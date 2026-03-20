@@ -7,6 +7,7 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -63,6 +64,12 @@ public class ExceptionHandlerConfig {
     public ProblemDetail handleBusiness(BusinessException ex) {
         log.warn("Business error [{}]: {}", ex.getCode(), ex.getMessage());
         return ProblemDetailFactory.create(HttpStatus.valueOf(ex.getStatus()), ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ProblemDetail handleAccessDenied(AuthorizationDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return ProblemDetailFactory.create(HttpStatus.FORBIDDEN, "Access Denied", "권한이 없습니다");
     }
 
     @ExceptionHandler(Exception.class)

@@ -9,7 +9,9 @@ import toast from 'react-hot-toast';
 interface WishItem {
   id: number;
   productId: number;
-  product: { id: number; name: string; price: number; imageUrl?: string; description?: string; stockQuantity?: number };
+  productName: string;
+  productPrice: number;
+  productImageUrl?: string;
 }
 
 export default function WishlistPage() {
@@ -17,30 +19,31 @@ export default function WishlistPage() {
   const { addItem } = useCartStore();
   const [items, setItems] = useState<WishItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    fetch(`/api/users/${userId}/wishlist`, { credentials: 'include' })
+    const uid = localStorage.getItem('userId');
+    setUserId(uid);
+    if (!uid) { setLoading(false); return; }
+    fetch(`/api/users/${uid}/wishlist`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setItems(d.content || d || []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [userId]);
+  }, []);
 
-  const removeWish = async (wishId: number) => {
+  const removeWish = async (item: WishItem) => {
     try {
-      await fetch(`/api/users/${userId}/wishlist/${wishId}`, {
+      await fetch(`/api/users/${userId}/wishlist/${item.productId}`, {
         method: 'DELETE', credentials: 'include',
       });
-      setItems(items.filter(i => i.id !== wishId));
+      setItems(prev => prev.filter(i => i.id !== item.id));
       toast.success('위시리스트에서 제거됐습니다');
     } catch { toast.error('제거 실패'); }
   };
 
   const addToCart = (item: WishItem) => {
-    addItem({ productId: item.product.id, name: item.product.name, price: item.product.price, quantity: 1, imageUrl: item.product.imageUrl });
+    addItem({ productId: item.productId, name: item.productName, price: item.productPrice, quantity: 1, imageUrl: item.productImageUrl });
     toast.success('장바구니에 추가됐습니다!');
   };
 
@@ -99,16 +102,14 @@ export default function WishlistPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {items.map((item) => {
-              const discountRate = [0,5,10,15,20,25,30][item.product.id % 7];
-              const rating = [4.2,4.5,4.7,4.8,4.3,4.6,4.9][item.product.id % 7];
-              const originalPrice = discountRate > 0 ? Math.round(item.product.price / (1 - discountRate/100) / 100) * 100 : 0;
-              const isLowStock = item.product.stockQuantity != null && item.product.stockQuantity > 0 && item.product.stockQuantity < 10;
-              const isOutOfStock = item.product.stockQuantity === 0;
+              const discountRate = [0,5,10,15,20,25,30][item.productId % 7];
+              const rating = [4.2,4.5,4.7,4.8,4.3,4.6,4.9][item.productId % 7];
+              const originalPrice = discountRate > 0 ? Math.round(item.productPrice / (1 - discountRate/100) / 100) * 100 : 0;
               return (
                 <div key={item.id} className="bg-white border border-gray-200 overflow-hidden group hover:border-gray-400 transition-all">
-                  <div className="relative aspect-square bg-gray-100 cursor-pointer" onClick={() => router.push(`/products/${item.product.id}`)}>
-                    {item.product.imageUrl ? (
-                      <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="relative aspect-square bg-gray-100 cursor-pointer" onClick={() => router.push(`/products/${item.productId}`)}>
+                    {item.productImageUrl ? (
+                      <img src={item.productImageUrl} alt={item.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,23 +117,15 @@ export default function WishlistPage() {
                         </svg>
                       </div>
                     )}
-                    {/* 배지들 */}
-                    <div className="absolute top-2 left-2 flex flex-col gap-1">
-                      {discountRate > 0 && (
+                    {/* 할인 배지 */}
+                    {discountRate > 0 && (
+                      <div className="absolute top-2 left-2">
                         <span className="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5">{discountRate}% 할인</span>
-                      )}
-                      {isLowStock && (
-                        <span className="bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5">{item.product.stockQuantity}개 남음</span>
-                      )}
-                    </div>
-                    {isOutOfStock && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <span className="bg-black/70 text-white text-sm font-bold px-4 py-2">품절</span>
                       </div>
                     )}
                     {/* 위시 제거 버튼 */}
                     <button
-                      onClick={e => { e.stopPropagation(); removeWish(item.id); }}
+                      onClick={e => { e.stopPropagation(); removeWish(item); }}
                       className="absolute top-2 right-2 w-8 h-8 bg-white flex items-center justify-center shadow text-red-500 hover:scale-110 transition-transform"
                       title="위시리스트 제거"
                     >
@@ -144,9 +137,9 @@ export default function WishlistPage() {
                   <div className="p-3">
                     <h3
                       className="text-sm font-medium text-gray-900 line-clamp-2 mb-1.5 cursor-pointer hover:text-red-600 leading-snug"
-                      onClick={() => router.push(`/products/${item.product.id}`)}
+                      onClick={() => router.push(`/products/${item.productId}`)}
                     >
-                      {item.product.name}
+                      {item.productName}
                     </h3>
                     {/* 별점 */}
                     <div className="flex items-center gap-1 mb-2">
@@ -168,15 +161,14 @@ export default function WishlistPage() {
                         </div>
                       )}
                       <p className="text-base font-black text-gray-900">
-                        {item.product.price.toLocaleString()}<span className="text-sm font-normal text-gray-500 ml-0.5">원</span>
+                        {item.productPrice.toLocaleString()}<span className="text-sm font-normal text-gray-500 ml-0.5">원</span>
                       </p>
                     </div>
                     <button
-                      onClick={() => !isOutOfStock && addToCart(item)}
-                      disabled={isOutOfStock}
-                      className="w-full text-sm py-2 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 text-white hover:bg-red-700"
+                      onClick={() => addToCart(item)}
+                      className="w-full text-sm py-2 font-semibold transition-all bg-red-600 text-white hover:bg-red-700"
                     >
-                      {isOutOfStock ? '품절' : '장바구니 담기'}
+                      장바구니 담기
                     </button>
                   </div>
                 </div>

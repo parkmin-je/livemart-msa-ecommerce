@@ -15,8 +15,6 @@ interface ChatResponse {
   escalateToHuman: boolean;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
 /**
  * AI CS 챗봇 위젯
  * 우하단 플로팅 버튼 → 슬라이드업 채팅 패널
@@ -67,8 +65,8 @@ export function AiChatbot() {
     try {
       const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
 
-      // SSE 스트리밍 호출
-      const response = await fetch(`${API_URL}/api/ai/chat/stream`, {
+      // SSE 스트리밍 호출 — Next.js rewrite → api-gateway(8888)
+      const response = await fetch('/api/ai/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -124,7 +122,7 @@ export function AiChatbot() {
 
       // 세션 ID가 없으면 서버에서 새로 받기
       if (!sessionId) {
-        const nonStreamRes = await fetch(`${API_URL}/api/ai/chat`, {
+        const nonStreamRes = await fetch('/api/ai/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

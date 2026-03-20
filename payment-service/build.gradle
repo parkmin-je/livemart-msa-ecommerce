@@ -27,5 +27,4 @@ dependencies {
 contracts {
     packageWithBaseClasses = 'com.livemart.payment.contract'
     failOnNoContracts = false
-    implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
 }

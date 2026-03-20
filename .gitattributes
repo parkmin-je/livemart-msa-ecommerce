@@ -1,0 +1,86 @@
+# ─── Default behavior ─────────────────────────────────────
+* text=auto eol=lf
+
+# ─── Source code ──────────────────────────────────────────
+*.java    text eol=lf
+*.kt      text eol=lf
+*.groovy  text eol=lf
+*.gradle  text eol=lf
+*.kts     text eol=lf
+*.scala   text eol=lf
+
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.js      text eol=lf
+*.jsx     text eol=lf
+*.mjs     text eol=lf
+*.cjs     text eol=lf
+*.css     text eol=lf
+*.scss    text eol=lf
+*.html    text eol=lf
+
+*.py      text eol=lf
+*.rb      text eol=lf
+*.go      text eol=lf
+*.rs      text eol=lf
+
+# ─── Config & Data ────────────────────────────────────────
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.json    text eol=lf
+*.toml    text eol=lf
+*.ini     text eol=lf
+*.properties text eol=lf
+*.xml     text eol=lf
+*.sql     text eol=lf
+
+# ─── Scripts ──────────────────────────────────────────────
+*.sh      text eol=lf
+Makefile  text eol=lf
+gradlew   text eol=lf
+
+# Windows scripts (force CRLF)
+*.bat     text eol=crlf
+*.ps1     text eol=crlf
+
+# ─── Docs ─────────────────────────────────────────────────
+*.md      text eol=lf
+*.txt     text eol=lf
+*.adoc    text eol=lf
+
+# ─── Proto ────────────────────────────────────────────────
+*.proto   text eol=lf
+
+# ─── Docker ───────────────────────────────────────────────
+Dockerfile     text eol=lf
+Dockerfile.*   text eol=lf
+.dockerignore  text eol=lf
+
+# ─── Terraform ────────────────────────────────────────────
+*.tf      text eol=lf
+*.tfvars  text eol=lf
+
+# ─── Binary (never diff/merge) ────────────────────────────
+*.jar     binary
+*.war     binary
+*.class   binary
+*.zip     binary
+*.tar     binary
+*.tar.gz  binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.svg     binary
+*.ico     binary
+*.pdf     binary
+*.woff    binary
+*.woff2   binary
+*.ttf     binary
+*.eot     binary
+
+# ─── Linguist overrides (GitHub language stats) ───────────
+*.gradle    linguist-language=Groovy
+*.proto     linguist-language=Protocol Buffer
+docs/archive/** linguist-documentation=true
+tests/k6/** linguist-language=JavaScript

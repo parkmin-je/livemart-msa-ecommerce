@@ -80,7 +80,7 @@ const CATEGORIES = [
 ];
 
 async function fetchProducts(): Promise<Product[]> {
-  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
   try {
     const res = await fetch(`${apiUrl}/api/products?page=0&size=20`, {
       next: { revalidate: 60 },
@@ -159,7 +159,7 @@ export default async function Home() {
   const newArrivals = [...products].reverse().slice(0, 10);
 
   return (
-    <main className="min-h-screen pb-14 md:pb-0" style={{ background: '#F7F6F1' }}>
+    <main className="min-h-screen pb-14 md:pb-0" style={{ background: 'var(--bg)' }}>
       <GlobalNav />
 
       {/* Hero — full viewport width */}
@@ -265,6 +265,89 @@ export default async function Home() {
           </div>
         </div>
 
+        {/* ── LiveMart Bento Grid — 플랫폼 핵심 지표 ── */}
+        <div style={{ borderTop: '1px solid rgba(14,14,14,0.07)', paddingTop: '2.5rem', paddingBottom: '2.5rem' }}>
+          <SectionHeader title="LiveMart 현황" eyebrow="Platform Stats" subtitle="실시간 플랫폼 성과" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {/* 대형 카드 — 월 거래액 */}
+            <div
+              className="col-span-2 row-span-2 flex flex-col justify-between p-6 md:p-8"
+              style={{ background: '#0A0A0A', minHeight: '200px' }}
+            >
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-3" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  월 거래액 (GMV)
+                </div>
+                <div className="font-bebas leading-none" style={{ fontSize: 'clamp(3rem, 8vw, 5.5rem)', color: '#E8001D', letterSpacing: '0.01em' }}>
+                  ₩2.4B
+                </div>
+                <div className="text-sm mt-2 font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  전월 대비 <span style={{ color: '#22C55E' }}>+18.3%</span> 성장
+                </div>
+              </div>
+              <div className="flex items-end gap-1 mt-6" style={{ height: '48px' }}>
+                {[40, 55, 45, 70, 60, 85, 75, 90, 80, 95, 88, 100].map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex-1"
+                    style={{
+                      height: `${h}%`,
+                      background: i === 11 ? '#E8001D' : `rgba(232,0,29,${0.15 + i * 0.06})`,
+                      transition: 'height 0.5s ease',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* 활성 사용자 */}
+            <div className="p-5" style={{ background: '#fff', border: '1px solid rgba(14,14,14,0.08)' }}>
+              <div className="text-[10px] font-black uppercase tracking-[0.15em] mb-3" style={{ color: 'rgba(14,14,14,0.3)' }}>
+                활성 사용자
+              </div>
+              <div className="font-bebas leading-none" style={{ fontSize: '2.8rem', color: '#0E0E0E' }}>
+                847K
+              </div>
+              <div className="text-xs mt-1.5 flex items-center gap-1" style={{ color: '#22C55E' }}>
+                <span>▲</span> 12.1% MoM
+              </div>
+            </div>
+
+            {/* 평균 배송 */}
+            <div className="p-5" style={{ background: '#2563EB', minHeight: '110px' }}>
+              <div className="text-[10px] font-black uppercase tracking-[0.15em] mb-3 text-white/50">
+                평균 배송
+              </div>
+              <div className="font-bebas leading-none text-white" style={{ fontSize: '2.8rem' }}>
+                13.2H
+              </div>
+              <div className="text-xs mt-1.5 text-white/50">업계 최고 수준</div>
+            </div>
+
+            {/* 셀러 수 */}
+            <div className="p-5" style={{ background: '#fff', border: '1px solid rgba(14,14,14,0.08)' }}>
+              <div className="text-[10px] font-black uppercase tracking-[0.15em] mb-3" style={{ color: 'rgba(14,14,14,0.3)' }}>
+                입점 셀러
+              </div>
+              <div className="font-bebas leading-none" style={{ fontSize: '2.8rem', color: '#0E0E0E' }}>
+                32K+
+              </div>
+              <div className="text-xs mt-1.5" style={{ color: 'rgba(14,14,14,0.35)' }}>검증된 공식 셀러</div>
+            </div>
+
+            {/* 상품 수 */}
+            <div className="p-5" style={{ background: '#F0EEE7', border: '1px solid rgba(14,14,14,0.08)' }}>
+              <div className="text-[10px] font-black uppercase tracking-[0.15em] mb-3" style={{ color: 'rgba(14,14,14,0.3)' }}>
+                등록 상품
+              </div>
+              <div className="font-bebas leading-none" style={{ fontSize: '2.8rem', color: '#0E0E0E' }}>
+                5.2M
+              </div>
+              <div className="text-xs mt-1.5" style={{ color: 'rgba(14,14,14,0.35)' }}>매일 1,200종 신규</div>
+            </div>
+          </div>
+        </div>
+
         {/* ── AI 추천 ── */}
         <div style={{ borderTop: '1px solid rgba(14,14,14,0.07)' }}>
           <AiRecommendations />
@@ -318,12 +401,10 @@ export default async function Home() {
                 <a
                   key={item.title}
                   href={item.href}
-                  className="flex items-center gap-5 px-5 py-4 group transition-colors"
+                  className="flex items-center gap-5 px-5 py-4 group transition-colors hover:bg-[#FAFAF8]"
                   style={{
                     borderBottom: i < 2 ? '1px solid rgba(14,14,14,0.05)' : 'none',
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#FAFAF8'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
                 >
                   <span
                     className="font-bebas tabular-nums leading-none flex-shrink-0 w-10"
@@ -444,10 +525,8 @@ export default async function Home() {
           <WelcomeCouponBanner />
           <a
             href="/seller"
-            className="group flex items-center justify-between px-7 py-6 text-white transition-colors"
+            className="group flex items-center justify-between px-7 py-6 text-white transition-colors hover:bg-[#161616]"
             style={{ background: '#0A0A0A' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#161616'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#0A0A0A'; }}
           >
             <div>
               <div
@@ -533,10 +612,8 @@ export default async function Home() {
                     <li key={link.label}>
                       <a
                         href={link.href}
-                        className="text-sm transition-colors"
+                        className="text-sm transition-colors hover:!text-white/75"
                         style={{ color: 'rgba(255,255,255,0.35)' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.75)'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.35)'; }}
                       >
                         {link.label}
                       </a>

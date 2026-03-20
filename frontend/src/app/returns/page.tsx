@@ -53,21 +53,21 @@ export default function ReturnsPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const fetchReturns = () => {
-    if (!userId) return;
-    fetch(`/api/returns/user/${userId}`, { credentials: 'include' })
+  const fetchReturns = (uid: string) => {
+    return fetch(`/api/returns/user/${uid}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setReturns(d.content || d || []))
       .catch(() => {});
   };
 
   useEffect(() => {
-    if (!userId) { setLoading(false); return; }
-    fetchReturns();
-    setLoading(false);
-  }, [userId]);
+    const uid = localStorage.getItem('userId');
+    setUserId(uid);
+    if (!uid) { setLoading(false); return; }
+    fetchReturns(uid).finally(() => setLoading(false));
+  }, []);
 
   const submitReturn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +80,6 @@ export default function ReturnsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: Number(form.orderId),
-          userId: Number(userId),
           returnType: form.returnType,
           reason: form.reason,
           reasonDetail: form.detail || null,
@@ -93,7 +92,7 @@ export default function ReturnsPage() {
       toast.success('반품/교환 신청이 완료되었습니다');
       setTab('list');
       setForm({ orderId: '', returnType: 'RETURN', reason: REASON_OPTIONS[0].value, detail: '' });
-      fetchReturns();
+      if (userId) fetchReturns(userId);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : '오류 발생');
     }

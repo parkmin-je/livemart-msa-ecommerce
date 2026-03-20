@@ -13,6 +13,8 @@ import com.livemart.product.repository.CategoryRepository;
 import com.livemart.product.repository.ProductRepository;
 import com.livemart.product.repository.ProductSearchRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -39,7 +41,10 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private final ProductSearchRepository productSearchRepository;
+    // Elasticsearch: @Lazy로 주입 — ES 미기동 시에도 서비스 시작 가능
+    @Autowired @Lazy
+    private ProductSearchRepository productSearchRepository;
+
     private final KafkaTemplate<String, ProductEvent> kafkaTemplate;
     private final KafkaTemplate<String, StockEvent> stockKafkaTemplate;
     @org.springframework.beans.factory.annotation.Qualifier("dlqKafkaTemplate")

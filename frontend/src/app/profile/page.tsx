@@ -156,9 +156,12 @@ export default function ProfilePage() {
 
     fetch(`/api/coupons?active=true`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
-      .then((data: unknown[]) => setStats(s => ({ ...s, couponCount: Array.isArray(data) ? data.length : 0 })))
+      .then((data: unknown) => {
+        const arr = Array.isArray(data) ? data : (data as { content?: unknown[] })?.content ?? [];
+        setStats(s => ({ ...s, couponCount: arr.length }));
+      })
       .catch(() => {});
-  }, []);
+  }, [router]);
 
   const loadAddresses = () => {
     const userId = localStorage.getItem('userId');
