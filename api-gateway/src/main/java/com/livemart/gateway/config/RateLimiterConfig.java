@@ -25,9 +25,10 @@ public class RateLimiterConfig {
 
     /**
      * 기본 KeyResolver: Authorization 헤더의 JWT subject(userId) 또는 IP 기반
-     * bean name 명시 + @Primary 제거 (Spring Cloud Gateway SpEL 이름 조회 충돌 방지)
+     * @Primary: RequestRateLimiterGatewayFilterFactory가 자동으로 이 빈을 사용
      */
-    @Bean("userKeyResolver")
+    @Bean
+    @Primary
     public KeyResolver userKeyResolver() {
         return exchange -> {
             String auth = exchange.getRequest().getHeaders().getFirst("Authorization");

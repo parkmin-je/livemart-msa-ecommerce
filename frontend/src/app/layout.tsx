@@ -39,8 +39,24 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#E8001D',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#E8001D' },
+    { media: '(prefers-color-scheme: dark)', color: '#0F0F0F' },
+  ],
 };
+
+// Dark mode 초기화 스크립트 — FOUC 방지 (SSR에서 실행)
+const darkModeScript = `
+(function() {
+  try {
+    var stored = localStorage.getItem('livemart-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (!stored && prefersDark)) {
+      document.documentElement.classList.add('dark');
+    }
+  } catch(e) {}
+})();
+`;
 
 export default function RootLayout({
   children,
@@ -49,7 +65,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" className={`${notoSansKR.variable} ${bebasNeue.variable}`}>
-      <body className={notoSansKR.className}>
+      <head>
+        {/* Dark mode 초기화 — FOUC(Flash of Unstyled Content) 방지 */}
+        <script dangerouslySetInnerHTML={{ __html: darkModeScript }} />
+      </head>
+      <body className={notoSansKR.className} style={{ background: 'var(--bg)', color: 'var(--text)' }}>
         <WebVitals />
         <Providers>{children}</Providers>
         <AiChatbot />

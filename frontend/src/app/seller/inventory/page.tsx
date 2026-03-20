@@ -5,13 +5,14 @@ import { GlobalNav } from '@/components/GlobalNav';
 import { productApi } from '@/api/productApi';
 import toast from 'react-hot-toast';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE = '';
 
 interface InventoryItem {
   id: number;
   name: string;
   price: number;
   stockQuantity: number;
+  categoryName?: string;
   category?: string;
 }
 
@@ -56,19 +57,11 @@ export default function SellerInventoryPage() {
 
   const handleStockUpdate = async (productId: number, quantity: number) => {
     try {
-      const res = await fetch(`${API_BASE}/api/products/${productId}/stock`, {
+      const res = await fetch(`${API_BASE}/api/products/${productId}/stock?stockQuantity=${quantity}`, {
         method: 'PUT',
-        credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stockQuantity: quantity }),
+        credentials: 'include',
       });
-      if (!res.ok) {
-        // Try alternative endpoint
-        await fetch(`${API_BASE}/api/products/${productId}`, {
-          method: 'PUT',
-          credentials: 'include', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stockQuantity: quantity }),
-        });
-      }
+      if (!res.ok) throw new Error('재고 수정 실패');
       toast.success('재고가 수정되었습니다.');
       setEditingId(null);
       fetchProducts();
@@ -239,7 +232,7 @@ export default function SellerInventoryPage() {
                     )}
                     <td className="px-5 py-3 text-sm font-medium text-gray-900">{product.name}</td>
                     <td className="px-5 py-3">
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs border border-gray-200">{product.category || '-'}</span>
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs border border-gray-200">{product.categoryName || product.category || '-'}</span>
                     </td>
                     <td className="px-5 py-3 text-sm text-gray-700">{product.price?.toLocaleString()}원</td>
                     <td className="px-5 py-3">

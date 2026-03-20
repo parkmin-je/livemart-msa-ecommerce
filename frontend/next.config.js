@@ -40,16 +40,18 @@ const nextConfig = {
               "default-src 'self'",
               // Next.js는 런타임에 inline script/style을 사용하므로 nonce 기반이 이상적이나,
               // App Router 정적 생성 환경에서 unsafe-inline은 필수. unsafe-eval은 제거.
-              "script-src 'self' 'unsafe-inline' https://js.tosspayments.com",
+              "script-src 'self' 'unsafe-inline' https://js.tosspayments.com https://t1.daumcdn.net",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://cdn.livemart.com http://localhost:* https:",
-              "connect-src 'self' http://localhost:* ws://localhost:* https://api.livemart.com https://*.tosspayments.com",
-              "frame-src https://js.tosspayments.com https://pay.toss.im",
+              "connect-src 'self' http://localhost:* ws://localhost:* https://api.livemart.com https://*.tosspayments.com https://t1.daumcdn.net",
+              "frame-src https://js.tosspayments.com https://pay.toss.im https://postcode.map.daum.net",
               "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self'",
-              "upgrade-insecure-requests",
+              // upgrade-insecure-requests는 HTTPS 프로덕션 환경에서만 활성화
+              // 로컬 HTTP(localhost)에서는 fetch()가 차단되므로 제외
+              ...(process.env.NODE_ENV === 'production' ? ["upgrade-insecure-requests"] : []),
             ].join('; '),
           },
         ],
@@ -66,7 +68,7 @@ const nextConfig = {
 
   // ── API 프록시 리라이트 ───────────────────────────────────
   async rewrites() {
-    const apiBase = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://api-gateway:8080';
+    const apiBase = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
     return [
       { source: '/oauth2/:path*', destination: `${apiBase}/oauth2/:path*` },
       { source: '/login/:path*',  destination: `${apiBase}/login/:path*`  },

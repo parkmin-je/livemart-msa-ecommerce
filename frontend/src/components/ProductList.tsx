@@ -16,6 +16,7 @@ interface Product {
   stockQuantity: number;
   imageUrl?: string;
   category?: string;
+  categoryName?: string;
   categoryId?: number;
 }
 
@@ -67,7 +68,7 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
     queryKey: ['products', page, categoryId, pageSize],
     queryFn: () => {
       if (categoryId) {
-        return fetch(`/api/products/category/${categoryId}?page=${page}&size=${pageSize}`)
+        return fetch(`/api/products/category/${categoryId}?page=${page}&size=${pageSize}`, { credentials: 'include' })
           .then(r => r.json())
           .then(d => ({ content: d.content || d, totalPages: d.totalPages || 1, totalElements: d.totalElements || 0 }));
       }
@@ -77,7 +78,10 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
     placeholderData: (prev) => prev,
   });
 
-  const rawProducts: Product[] = data?.content || [];
+  const rawProducts: Product[] = (data?.content || []).map((p: Product) => ({
+    ...p,
+    category: p.category || p.categoryName,
+  }));
   const products = sortProducts(rawProducts, sortBy);
   const totalPages = data?.totalPages || 1;
   const totalElements = data?.totalElements || 0;

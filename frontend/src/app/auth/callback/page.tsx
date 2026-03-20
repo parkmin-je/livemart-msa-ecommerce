@@ -54,7 +54,7 @@ function CallbackContent() {
       setMessage('로그인 정보가 없습니다. 다시 시도해주세요.');
       setTimeout(() => router.push('/auth'), 2500);
     }
-  }, []);
+  }, [searchParams, router]);
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">

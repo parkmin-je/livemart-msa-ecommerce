@@ -50,11 +50,14 @@ export default function SellerPage() {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiDesc, setAiDesc] = useState<AiDescription | null>(null);
 
-  const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    const uid = localStorage.getItem('userId');
+    setUserId(uid);
+    const dashUrl = uid ? `/api/sellers/${uid}/dashboard` : '/api/sellers/me/dashboard';
     Promise.all([
-      fetch(`/api/sellers/${userId || 1}/dashboard`, { credentials: 'include' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch(dashUrl, { credentials: 'include' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       fetch('/api/products?page=0&size=50', { credentials: 'include' }).then(r => r.json()).catch(() => ({ content: [] })),
     ]).then(([dash, prods]) => {
       setData(dash);

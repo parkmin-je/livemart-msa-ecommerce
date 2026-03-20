@@ -10,6 +10,7 @@ interface Product {
   price: number;
   stockQuantity: number;
   imageUrl?: string;
+  categoryName?: string;
   category?: { name: string };
 }
 
@@ -25,17 +26,23 @@ export function ProductGrid({ products }: { products: Product[] }) {
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
-    products.forEach(p => { if (p.category?.name) cats.add(p.category.name); });
+    products.forEach(p => {
+      const catName = p.categoryName || p.category?.name;
+      if (catName) cats.add(catName);
+    });
     return Array.from(cats).sort();
   }, [products]);
 
   const filtered = useMemo(() => {
-    let result = products.filter(p =>
-      (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       p.description?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (!selectedCategory || p.category?.name === selectedCategory) &&
-      p.price >= priceRange[0] && p.price <= priceRange[1]
-    );
+    let result = products.filter(p => {
+      const catName = p.categoryName || p.category?.name;
+      return (
+        (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         p.description?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (!selectedCategory || catName === selectedCategory) &&
+        p.price >= priceRange[0] && p.price <= priceRange[1]
+      );
+    });
 
     switch (sortBy) {
       case 'price_asc': result.sort((a, b) => a.price - b.price); break;
@@ -172,9 +179,9 @@ export function ProductGrid({ products }: { products: Product[] }) {
               <a href={`/products/${product.id}`} className="hover:text-blue-600">
                 <h3 className="text-lg font-semibold text-gray-900 truncate">{product.name}</h3>
               </a>
-              {product.category && (
+              {(product.categoryName || product.category?.name) && (
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                  {product.category.name}
+                  {product.categoryName || product.category?.name}
                 </span>
               )}
             </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { GlobalNav } from '@/components/GlobalNav';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE = '';
 
 const STATUSES = ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const;
 
@@ -52,7 +52,7 @@ export default function AdminOrdersPage() {
     try {
       const url = statusFilter
         ? `${API_BASE}/api/orders/status/${statusFilter}?page=${page}&size=20`
-        : `${API_BASE}/api/orders/user/1?page=${page}&size=20`;
+        : `${API_BASE}/api/orders?page=${page}&size=20`;
       const res = await fetch(url, {
         credentials: 'include',
       });

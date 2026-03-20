@@ -32,8 +32,6 @@ interface Product {
   name: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
 /**
  * 개인화 상품 추천 섹션 — 구매 이력 + 실제 상품 목록 기반
  * - GET /api/orders/user/{userId}?page=0&size=10  → 최근 주문에서 productIds, categories 추출
@@ -56,10 +54,10 @@ export function AiRecommendations() {
   const loadRecommendations = async (uid: string) => {
     setLoading(true);
     try {
-      // 1. 구매 이력 + 상품 목록 병렬 fetch
+      // 1. 구매 이력 + 상품 목록 병렬 fetch — Next.js rewrite → api-gateway(8888)
       const [ordersRes, productsRes] = await Promise.all([
-        fetch(`${API_URL}/api/orders/user/${uid}?page=0&size=10`, { credentials: 'include' }),
-        fetch(`${API_URL}/api/products?page=0&size=50`, { credentials: 'include' }),
+        fetch(`/api/orders/user/${uid}?page=0&size=10`, { credentials: 'include' }),
+        fetch('/api/products?page=0&size=50', { credentials: 'include' }),
       ]);
 
       const ordersData = ordersRes.ok ? await ordersRes.json() : { content: [] };
@@ -91,8 +89,8 @@ export function AiRecommendations() {
       // 상품이 없으면 추천 불가
       if (availableProductNames.length === 0) return;
 
-      // 4. AI 추천 요청
-      const res = await fetch(`${API_URL}/api/ai/recommend`, {
+      // 4. AI 추천 요청 — Next.js rewrite → api-gateway(8888)
+      const res = await fetch('/api/ai/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -163,7 +161,7 @@ export function AiRecommendations() {
           {recommendations.map((item, i) => (
             <a
               key={i}
-              href={`/search?keyword=${encodeURIComponent(item.productName)}`}
+              href={`/search?q=${encodeURIComponent(item.productName)}`}
               className="group block"
             >
               {/* Image placeholder */}
