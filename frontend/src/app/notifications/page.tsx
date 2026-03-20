@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { GlobalNav } from '@/components/GlobalNav';
 
 interface Notification {
-  id: number;
+  id: string;
   type: string;
   title: string;
   message: string;
@@ -14,7 +14,11 @@ interface Notification {
 
 function NotificationTypeIcon({ type }: { type: string }) {
   const cls = "w-5 h-5";
-  switch (type) {
+  const t = type?.startsWith('ORDER') ? 'ORDER'
+    : type?.startsWith('PAYMENT') ? 'PAYMENT'
+    : type?.startsWith('STOCK') ? 'DELIVERY'
+    : type;
+  switch (t) {
     case 'ORDER':
       return (
         <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,10 +107,10 @@ export default function NotificationsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const markRead = async (id: number) => {
+  const markRead = async (id: string) => {
     setNotifications(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
     try {
-      await fetch(`/api/notifications/${id}/read`, {
+      await fetch(`/api/notifications/user/${userId}/${id}/read`, {
         method: 'PUT', credentials: 'include',
       });
     } catch {}
@@ -123,14 +127,15 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const TYPE_COLOR: Record<string, string> = {
-    ORDER: 'bg-blue-50 text-blue-600',
-    PAYMENT: 'bg-green-50 text-green-600',
-    DELIVERY: 'bg-purple-50 text-purple-600',
-    PROMOTION: 'bg-red-50 text-red-600',
-    SYSTEM: 'bg-gray-100 text-gray-600',
-    REVIEW: 'bg-yellow-50 text-yellow-600',
-    RETURN: 'bg-orange-50 text-orange-600',
+  const getTypeColor = (type: string): string => {
+    if (type?.startsWith('ORDER')) return 'bg-blue-50 text-blue-600';
+    if (type?.startsWith('PAYMENT')) return 'bg-green-50 text-green-600';
+    if (type?.startsWith('STOCK') || type === 'DELIVERY') return 'bg-purple-50 text-purple-600';
+    if (type === 'PROMOTION') return 'bg-red-50 text-red-600';
+    if (type === 'SYSTEM') return 'bg-gray-100 text-gray-600';
+    if (type === 'REVIEW') return 'bg-yellow-50 text-yellow-600';
+    if (type === 'RETURN') return 'bg-orange-50 text-orange-600';
+    return 'bg-gray-100 text-gray-500';
   };
 
   return (
@@ -187,7 +192,7 @@ export default function NotificationsPage() {
                   !n.read ? 'border-l-4 border-l-red-600 border-t-gray-200 border-r-gray-200 border-b-gray-200' : 'border-gray-200'
                 }`}
               >
-                <div className={`flex-shrink-0 w-9 h-9 flex items-center justify-center ${TYPE_COLOR[n.type] || 'bg-gray-100 text-gray-500'}`}>
+                <div className={`flex-shrink-0 w-9 h-9 flex items-center justify-center ${getTypeColor(n.type)}`}>
                   <NotificationTypeIcon type={n.type} />
                 </div>
                 <div className="flex-1 min-w-0">

@@ -136,6 +136,24 @@ public class UserService {
         return UserResponse.from(userRepository.save(user));
     }
 
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+
+        if (user.isOAuthUser()) {
+            throw new IllegalStateException("소셜 로그인 계정은 비밀번호를 변경할 수 없습니다");
+        }
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 올바르지 않습니다");
+        }
+
+        user.updatePassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password changed: userId={}", userId);
+    }
+
     // ─── 관리자 전용 ──────────────────────────────────────────────
 
     public List<UserResponse> getAllUsers() {

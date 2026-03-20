@@ -57,6 +57,14 @@ spring:
           filters:
             - RewritePath=/(?<segment>.*), /${segment}
 
+        # User Service - MFA API
+        - id: user-service-mfa
+          uri: lb://user-service
+          predicates:
+            - Path=/api/v1/mfa/**
+          filters:
+            - RewritePath=/api/v1/mfa(?<segment>.*), /api/v1/mfa${segment}
+
         # User Service - 인증 API (이메일 인증 등)
         - id: user-service-auth
           uri: lb://user-service
@@ -110,7 +118,7 @@ spring:
           predicates:
             - Path=/api/payments/**
           filters:
-            - RewritePath=/api/payments/(?<segment>.*), /api/v1/payments/${segment}
+            - RewritePath=/api/payments(?<segment>.*), /api/v1/payments${segment}
 
         # Inventory Service
         - id: inventory-service

@@ -82,7 +82,7 @@ export default function AdminUsersPage() {
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch = !searchTerm || u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = !roleFilter || u.role === roleFilter;
+    const matchesRole = !roleFilter || u.role === roleFilter || (roleFilter === 'CUSTOMER' && u.role === 'USER');
     return matchesSearch && matchesRole;
   });
 
@@ -90,7 +90,7 @@ export default function AdminUsersPage() {
     total: users.length,
     admins: users.filter(u => u.role === 'ADMIN').length,
     sellers: users.filter(u => u.role === 'SELLER').length,
-    customers: users.filter(u => u.role === 'CUSTOMER' || u.role === 'USER').length,
+    customers: users.filter(u => u.role === 'USER').length,
   };
 
   const getRoleBadge = (role: string) => {
@@ -213,7 +213,7 @@ export default function AdminUsersPage() {
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           className="px-2 py-1 border border-gray-300 text-xs focus:outline-none focus:border-gray-500 bg-white"
                         >
-                          <option value="CUSTOMER">일반</option>
+                          <option value="USER">일반</option>
                           <option value="SELLER">판매자</option>
                           <option value="ADMIN">관리자</option>
                         </select>
