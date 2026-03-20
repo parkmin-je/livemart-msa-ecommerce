@@ -11,5 +11,5 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.7.0'
     testImplementation 'org.testcontainers:kafka'
     testImplementation 'io.projectreactor:reactor-test'
-    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+    implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
 }
