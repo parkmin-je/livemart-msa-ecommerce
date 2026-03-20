@@ -17,6 +17,12 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
 
+    public List<CategoryResponse> getAllCategories() {
+        return categoryRepository.findAllWithChildren().stream()
+                .map(CategoryResponse::from)
+                .collect(Collectors.toList());
+    }
+
     public List<CategoryResponse> getRootCategories() {
         return categoryRepository.findByParentIsNull().stream()
                 .map(CategoryResponse::from)

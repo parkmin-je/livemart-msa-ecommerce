@@ -79,6 +79,17 @@ subprojects {
         implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
     }
 
+    // Java 21 Preview APIs (StructuredTaskScope JEP 453, etc.) — compile + runtime
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += ['--enable-preview']
+        options.release = 21
+    }
+
+    // bootRun JVM 옵션 (BootRun은 기본적으로 별도 프로세스 실행)
+    tasks.withType(org.springframework.boot.gradle.tasks.run.BootRun).configureEach {
+        jvmArgs '--enable-preview', '-Xmx512m'
+    }
+
     tasks.named('test') {
         useJUnitPlatform()
         jvmArgs '--enable-preview'

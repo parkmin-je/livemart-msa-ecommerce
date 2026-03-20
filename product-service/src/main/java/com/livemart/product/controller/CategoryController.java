@@ -19,6 +19,13 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
+    @Operation(summary = "전체 카테고리 조회", description = "모든 카테고리를 조회합니다")
+    @GetMapping
+    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
+        List<CategoryResponse> response = categoryService.getAllCategories();
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(summary = "최상위 카테고리 조회", description = "모든 최상위 카테고리를 조회합니다")
     @GetMapping("/root")
     public ResponseEntity<List<CategoryResponse>> getRootCategories() {

@@ -8,21 +8,21 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/analyticsdb
     username: ${DB_USERNAME:analyticsapp}
-    password: ${DB_PASSWORD}
+    password: ${DB_PASSWORD:analytics123}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
 
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: false
-    validate-on-migrate: true
-    out-of-order: false
+    baseline-on-migrate: true
+    validate-on-migrate: false
+    out-of-order: true
 
 server:
   port: 8087
@@ -45,3 +45,8 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+
+# 로컬 개발: 호스트명 해결 타임아웃 단축 (Cannot determine local hostname WARN 방지)
+spring.cloud.inetutils.timeout-seconds: 1
+logging.level.com.netflix.discovery: ERROR
+logging.level.com.netflix.eureka: ERROR

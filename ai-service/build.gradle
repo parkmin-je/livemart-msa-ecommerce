@@ -1,20 +1,9 @@
-// Spring AI BOM — ai-service 전용 (전체 프로젝트에 오염 방지)
-configurations.all {
-    resolutionStrategy.eachDependency { details ->
-        // Spring AI 내부 reactor-core 버전 충돌 방지
-        if (details.requested.group == 'io.projectreactor' && details.requested.name == 'reactor-core') {
-            details.useVersion '3.6.11'
-        }
-    }
-}
-
+// ai-service — WebFlux 기반 AI 챗봇/추천 서비스
+// Note: Spring AI 1.0.0은 별도 인증 저장소 필요 (repo.spring.io/release)
+// → 현재 빌드는 OpenAI REST 직접 호출 방식으로 동작
+//   (OPENAI_API_KEY 환경변수 설정 시 GPT-4o-mini, 미설정 시 데모 모드 자동 전환)
 dependencies {
     implementation project(':common')
-
-    // Spring AI — OpenAI ChatClient + Tool Calling + Streaming
-    // Spring AI 1.0.0 GA (Maven Central, Spring Boot 3.4 호환)
-    implementation platform('org.springframework.ai:spring-ai-bom:1.0.0')
-    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
 
     // WebFlux 단독 사용 (Reactor Netty) — MVC/WebFlux 충돌 방지
     // Flux<String> SSE 스트리밍이 Netty에서 올바르게 동작
@@ -24,11 +13,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.kafka:spring-kafka'
-    // WebFlux 기반 OpenAPI
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.7.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     runtimeOnly 'org.postgresql:postgresql'
     testImplementation 'org.testcontainers:postgresql'
-    implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
 }
