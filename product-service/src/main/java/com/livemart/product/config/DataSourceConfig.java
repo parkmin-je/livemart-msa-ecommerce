@@ -50,9 +50,10 @@ public class DataSourceConfig {
         HikariConfig config = new HikariConfig();
 
         // Connection Pool Size
-        config.setMaximumPoolSize(20);           // 최대 커넥션 수
-        config.setMinimumIdle(5);                 // 최소 유휴 커넥션 수
-        config.setConnectionTimeout(30000);       // 30초 (커넥션 획득 대기)
+        // 고부하 최적화: ((코어 수 * 2) + 스핀들) × 1.2 여유분 → 30개
+        config.setMaximumPoolSize(30);           // 최대 커넥션 수 (20 → 30)
+        config.setMinimumIdle(10);                // 최소 유휴 커넥션 수 (5 → 10)
+        config.setConnectionTimeout(20000);       // 20초 (빠른 실패: 30s → 20s)
         config.setIdleTimeout(600000);            // 10분 (유휴 커넥션 제거 시간)
         config.setMaxLifetime(1800000);           // 30분 (커넥션 최대 생존 시간)
         config.setValidationTimeout(5000);        // 5초 (커넥션 검증 타임아웃)

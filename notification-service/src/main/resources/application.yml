@@ -1,6 +1,11 @@
 spring:
   application:
     name: notification-service
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
@@ -66,3 +71,8 @@ eureka:
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
+
+# 로컬 개발: 호스트명 해결 타임아웃 단축 (Cannot determine local hostname WARN 방지)
+spring.cloud.inetutils.timeout-seconds: 1
+logging.level.com.netflix.discovery: ERROR
+logging.level.com.netflix.eureka: ERROR
