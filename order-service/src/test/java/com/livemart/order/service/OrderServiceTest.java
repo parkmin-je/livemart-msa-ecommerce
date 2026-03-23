@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -42,6 +43,96 @@ class OrderServiceTest {
 
     @Mock
     private KafkaTemplate<String, OrderEvent> kafkaTemplate;
+
+    @Mock
+    private ParallelProductValidationService parallelValidationService;
+
+    @Nested
+    @DisplayName("주문 생성")
+    class CreateOrderTest {
+
+        @Test
+        @DisplayName("성공 - 재고·결제 정상 시 PENDING 상태로 주문 생성 및 Kafka 이벤트 발행")
+        void createOrder_success() {
+            // given
+            OrderItemRequest itemRequest = OrderItemRequest.builder()
+                    .productId(10L)
+                    .quantity(2)
+                    .build();
+
+            OrderCreateRequest request = OrderCreateRequest.builder()
+                    .userId(1L)
+                    .items(List.of(itemRequest))
+                    .deliveryAddress("서울시 강남구 테헤란로 1")
+                    .phoneNumber("010-1234-5678")
+                    .paymentMethod("CARD")
+                    .build();
+
+            ProductInfo product = new ProductInfo(10L, "테스트 상품", BigDecimal.valueOf(15000), 10);
+
+            given(parallelValidationService.validateInParallel(request.getItems()))
+                    .willReturn(List.of(product));
+            given(productFeignClient.getProduct(10L)).willReturn(product);
+            willDoNothing().given(productFeignClient).updateStock(anyLong(), anyInt());
+
+            PaymentResponse paymentResponse = new PaymentResponse();
+            paymentResponse.setTransactionId("TXN-TEST-001");
+            given(paymentFeignClient.processPayment(any(PaymentRequest.class)))
+                    .willReturn(paymentResponse);
+
+            given(orderRepository.save(any(Order.class))).willAnswer(inv -> inv.getArgument(0));
+            given(kafkaTemplate.send(anyString(), anyString(), any(OrderEvent.class))).willReturn(null);
+
+            // when
+            OrderResponse response = orderService.createOrder(request);
+
+            // then
+            assertThat(response).isNotNull();
+            assertThat(response.getStatus()).isEqualTo(OrderStatus.PENDING);
+            assertThat(response.getUserId()).isEqualTo(1L);
+            assertThat(response.getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(30000)); // 15000 × 2
+            assertThat(response.getPaymentTransactionId()).isEqualTo("TXN-TEST-001");
+
+            then(orderRepository).should().save(any(Order.class));
+            then(kafkaTemplate).should().send(eq("order-events"), anyString(), any(OrderEvent.class));
+        }
+
+        @Test
+        @DisplayName("실패 - 결제 오류 시 저장된 주문 롤백(삭제)")
+        void createOrder_paymentFailed_rollback() {
+            // given
+            OrderItemRequest itemRequest = OrderItemRequest.builder()
+                    .productId(20L)
+                    .quantity(1)
+                    .build();
+
+            OrderCreateRequest request = OrderCreateRequest.builder()
+                    .userId(2L)
+                    .items(List.of(itemRequest))
+                    .deliveryAddress("부산시 해운대구")
+                    .phoneNumber("010-9999-9999")
+                    .paymentMethod("CARD")
+                    .build();
+
+            ProductInfo product = new ProductInfo(20L, "결제실패 상품", BigDecimal.valueOf(100000), 5);
+
+            given(parallelValidationService.validateInParallel(request.getItems()))
+                    .willReturn(List.of(product));
+            given(productFeignClient.getProduct(20L)).willReturn(product);
+            willDoNothing().given(productFeignClient).updateStock(anyLong(), anyInt());
+            given(orderRepository.save(any(Order.class))).willAnswer(inv -> inv.getArgument(0));
+
+            given(paymentFeignClient.processPayment(any(PaymentRequest.class)))
+                    .willThrow(new RuntimeException("결제 서버 응답 없음"));
+
+            // when & then
+            assertThatThrownBy(() -> orderService.createOrder(request))
+                    .isInstanceOf(RuntimeException.class);
+
+            // 결제 실패 시 주문 삭제(롤백) 호출 검증
+            then(orderRepository).should().delete(any(Order.class));
+        }
+    }
 
     @Nested
     @DisplayName("주문 조회")

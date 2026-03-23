@@ -103,6 +103,29 @@
 
 ---
 
+## OWASP Top 10 대응 현황 (2021 기준)
+
+| # | 취약점 | 대응 방법 | 상태 |
+|---|-------|---------|------|
+| A01 | Broken Access Control | Spring Security `@PreAuthorize`, Istio AuthorizationPolicy (service-to-service), RBAC (K8s) | ✅ |
+| A02 | Cryptographic Failures | JWT HS512, TLS 1.3, Istio mTLS STRICT, httpOnly/Secure Cookie, 민감정보 로그 제외 | ✅ |
+| A03 | Injection | JPA 파라미터 바인딩 (PreparedStatement), Spring Security CSRF 토큰, Bean Validation 입력 검증 | ✅ |
+| A04 | Insecure Design | Transactional Outbox (이중 송금 방지), 결제 서비스 격리, ADR 기반 보안 결정 기록 | ✅ |
+| A05 | Security Misconfiguration | Trivy 컨테이너 스캔 (CI), Gitleaks (하드코딩 시크릿 탐지), Helm secret 템플릿, 비-root Docker 실행 | ✅ |
+| A06 | Vulnerable Components | Dependabot (주간 자동 PR), `npm audit` (CI), Trivy SCA, CodeQL 분석 | ✅ |
+| A07 | Identification & Authentication Failures | OAuth2 PKCE / client_secret_post, JWT Blacklist (Redis), Access Token 15분 TTL, Refresh Token Rotation | ✅ |
+| A08 | Software & Data Integrity Failures | Docker 이미지 서명 (GHCR), Helm provenance, Kubernetes NetworkPolicy (East-West 차단) | ✅ |
+| A09 | Security Logging & Monitoring Failures | ELK Stack 중앙 로그, Zipkin 분산 추적, Grafana 알람, Slack 실시간 알림 | ✅ |
+| A10 | Server-Side Request Forgery (SSRF) | SSRF 대상 URL 화이트리스트 (Feign Client), Istio Egress Gateway (외부 호출 제한), SecurityContext URL 검증 | ✅ |
+
+### 정기 검토 일정
+
+- **분기별**: OWASP ZAP DAST 전체 스캔 결과 검토
+- **반기별**: 외부 침투 테스트 (계획 중)
+- **연간**: OWASP Top 10 개정 사항 반영
+
+---
+
 ## Bug Bounty
 
 현재 공식 Bug Bounty 프로그램은 운영하지 않으나, 중요 취약점 제보자에게는

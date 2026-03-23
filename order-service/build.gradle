@@ -1,3 +1,16 @@
+plugins {
+    id 'org.springframework.cloud.contract' version "${springCloudContractVersion}"
+}
+
+contracts {
+    // 계약 파일 위치 (기본값: src/test/resources/contracts)
+    contractsDslDir = file("src/test/resources/contracts")
+    // 생성된 테스트가 상속할 베이스 클래스
+    baseClassForTests = "com.livemart.order.contract.ContractVerifierBase"
+    // 테스트 모드: MockMvc (서블릿 기반)
+    testMode = "MOCKMVC"
+}
+
 dependencies {
     implementation project(':common')
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -25,4 +38,7 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:kafka'
     implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
+
+    // Spring Cloud Contract — Producer-side 계약 검증
+    testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-verifier'
 }
