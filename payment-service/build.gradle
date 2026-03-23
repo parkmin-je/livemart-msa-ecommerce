@@ -1,5 +1,5 @@
 plugins {
-    id 'org.springframework.cloud.contract' version '4.1.4'
+    id 'org.springframework.cloud.contract' version '5.0.2'
 }
 
 dependencies {
