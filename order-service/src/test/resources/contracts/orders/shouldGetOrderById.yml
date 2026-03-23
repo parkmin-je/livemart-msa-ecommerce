@@ -1,0 +1,28 @@
+description: "주문 단건 조회 API 계약 — GET /api/orders/{id}"
+name: "shouldGetOrderById"
+request:
+  method: GET
+  urlPath: /api/orders/1
+  headers:
+    Accept: application/json
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    id: 1
+    orderNumber: "ORD-20240101-ABCD1234"
+    userId: 1
+    status: "PENDING"
+    totalAmount: 30000
+  matchers:
+    body:
+      - path: $.id
+        type: by_type
+      - path: $.orderNumber
+        type: by_regex
+        value: "ORD-[0-9]{14}-[0-9A-F]{8}"
+      - path: $.status
+        type: by_equality
+      - path: $.totalAmount
+        type: by_type

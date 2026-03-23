@@ -1,0 +1,41 @@
+description: "주문 생성 API 계약 — POST /api/orders"
+name: "shouldCreateOrder"
+request:
+  method: POST
+  url: /api/orders
+  headers:
+    Content-Type: application/json
+  body:
+    userId: 1
+    items:
+      - productId: 10
+        quantity: 2
+    deliveryAddress: "서울시 강남구 테헤란로 1"
+    phoneNumber: "010-1234-5678"
+    paymentMethod: "CARD"
+  matchers:
+    body:
+      - path: $.userId
+        type: by_type
+      - path: $.items[0].productId
+        type: by_type
+      - path: $.items[0].quantity
+        type: by_type
+response:
+  status: 201
+  headers:
+    Content-Type: application/json
+  body:
+    orderNumber: "ORD-20240101-ABCD1234"
+    userId: 1
+    status: "PENDING"
+    totalAmount: 30000
+  matchers:
+    body:
+      - path: $.orderNumber
+        type: by_regex
+        value: "ORD-[0-9]{14}-[0-9A-F]{8}"
+      - path: $.status
+        type: by_equality
+      - path: $.totalAmount
+        type: by_type
