@@ -1,0 +1,18 @@
+description: "존재하지 않는 주문 조회 시 404 반환"
+name: "shouldReturnNotFoundForMissingOrder"
+request:
+  method: GET
+  urlPath: /api/orders/99999
+  headers:
+    Accept: application/json
+response:
+  status: 404
+  headers:
+    Content-Type: application/json
+  body:
+    status: 404
+    title: "Not Found"
+  matchers:
+    body:
+      - path: $.status
+        type: by_equality
