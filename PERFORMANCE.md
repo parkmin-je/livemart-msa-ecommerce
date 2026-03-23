@@ -111,3 +111,39 @@ k6 run tests/k6/spike-test.js
 | payment-service | 99.9% | < 500ms | ✅ |
 | product-service | 99.5% | < 500ms | ✅ |
 | user-service | 99.9% | < 300ms | ✅ |
+
+---
+
+## Error Budget (월간 기준)
+
+> Error Budget = 1 - SLO. 월 43,200분(30일) 기준으로 계산.
+
+| 서비스 | SLO | Error Budget (분/월) | 소진 기준 |
+|--------|-----|---------------------|---------|
+| api-gateway | 99.9% | **43.2분** | 누적 다운타임 43분 초과 시 신규 배포 중단 |
+| payment-service | 99.9% | **43.2분** | 결제 장애 = 즉시 P1 에스컬레이션 |
+| user-service | 99.9% | **43.2분** | 로그인 불가 = 즉시 P1 에스컬레이션 |
+| order-service | 99.5% | **216분** | 버짓 50% 소진 시 배포 속도 감소 |
+| product-service | 99.5% | **216분** | 버짓 50% 소진 시 배포 속도 감소 |
+
+### Error Budget 정책
+
+- **0~50% 소진**: 정상 배포 허용. 주간 리뷰에서 트렌드 모니터링.
+- **50~75% 소진**: 신규 기능 배포 제한. 안정성 개선 작업 우선.
+- **75~100% 소진**: 기능 배포 전면 중단. Hotfix + 신뢰성 개선만 허용.
+- **100% 초과**: SLO 재협상 또는 즉각 사후 검토(Post-Mortem) 필수.
+
+### 측정 방법 (Prometheus)
+
+```promql
+# api-gateway 5분 단위 가용성 (5xx 제외 비율)
+sum(rate(http_server_requests_seconds_count{service="api-gateway",status!~"5.."}[5m]))
+/
+sum(rate(http_server_requests_seconds_count{service="api-gateway"}[5m]))
+
+# 월간 Error Budget 잔여 (분)
+(1 - 0.999) * 43200
+- (sum_over_time(up{job="api-gateway"}[30d]) == 0) * 5  # 다운 감지 간격(5분)
+```
+
+Grafana 대시보드 **"SLO / Error Budget"** 패널에서 실시간 확인 가능 (`http://localhost:3001`).
