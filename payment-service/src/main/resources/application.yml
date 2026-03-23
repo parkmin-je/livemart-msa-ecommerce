@@ -1,7 +1,7 @@
 toss:
   payments:
-    client-key: ${TOSS_CLIENT_KEY:test_ck_dev_dummy}
-    secret-key: ${TOSS_SECRET_KEY:test_sk_dev_dummy}
+    client-key: ${TOSS_CLIENT_KEY}
+    secret-key: ${TOSS_SECRET_KEY}
 
 server:
   port: 8084
@@ -18,7 +18,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5437}/paymentdb
     username: ${DB_USERNAME:paymentapp}
-    password: ${DB_PASSWORD:payment123}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5

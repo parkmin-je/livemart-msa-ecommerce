@@ -223,26 +223,90 @@ service ProductGrpcService {
 
 ## 실행 방법
 
-### 로컬 개발
+### 사전 요구사항
+
+| 도구 | 버전 |
+|------|------|
+| Java (JDK) | 21 이상 |
+| Docker Desktop | 최신 |
+| Gradle | 8.5 이상 (또는 `./gradlew` Wrapper 사용) |
+
+### 1단계 — 환경 변수 설정
+
 ```bash
-# 인프라 기동 (PostgreSQL · Redis · Kafka · Elasticsearch)
-docker-compose -f docker-compose-infra.yml up -d
-
-# 전체 빌드
-./gradlew build -x test --parallel
-
-# 개별 서비스 실행
-./gradlew :order-service:bootRun
-./gradlew :product-service:bootRun
+# .env.example → .env 복사 후 실제 값 입력
+cp .env.example .env
+# .env 파일에서 CHANGE_ME 항목 모두 채우기 (JWT_SECRET, DB 비밀번호, OAuth2 키 등)
 ```
 
+> `.env` 파일은 `.gitignore`에 등록되어 있습니다. **절대 커밋하지 마세요.**
+
+### 2단계 — 인프라 기동
+
+```bash
+# PostgreSQL · MySQL · Redis · Kafka · Elasticsearch · Zipkin · Prometheus · Grafana
+docker-compose up -d
+
+# 헬스체크 확인
+docker-compose ps
+```
+
+### 3단계 — 전체 빌드
+
+```bash
+./gradlew build -x test --parallel
+```
+
+### 4단계 — 서비스 기동 (순서 중요)
+
+```bash
+# 1. Service Discovery
+./gradlew :eureka-server:bootRun &
+
+# 2. API Gateway (Eureka 등록 후 약 10초 대기)
+./gradlew :api-gateway:bootRun &
+
+# 3. 비즈니스 서비스 (로컬 프로파일 — .env 파일 자동 참조)
+./gradlew :user-service:bootRun     -Dspring.profiles.active=local &
+./gradlew :product-service:bootRun  -Dspring.profiles.active=local &
+./gradlew :order-service:bootRun    -Dspring.profiles.active=local &
+./gradlew :payment-service:bootRun  -Dspring.profiles.active=local &
+./gradlew :inventory-service:bootRun -Dspring.profiles.active=local &
+
+# 4. 프론트엔드
+cd frontend && npm install && npm run dev
+```
+
+> 운영 환경에서는 `local` 프로파일 없이 환경변수를 직접 주입합니다.
+
+### 서비스 포트 맵
+
+| 서비스 | 포트 | 비고 |
+|--------|------|------|
+| Next.js Frontend | 3000 | |
+| API Gateway | 8888 | 모든 외부 요청 진입점 |
+| Eureka Dashboard | 8761 | 서비스 등록 현황 |
+| user-service | 8085 | |
+| product-service | 8082 | |
+| order-service | 8083 | |
+| payment-service | 8084 | |
+| inventory-service | 8088 | |
+| analytics-service | 8087 | |
+| notification-service | 8086 | |
+| ai-service | 8090 | |
+| Grafana | 3001 | `GRAFANA_ADMIN_PASSWORD` 참고 |
+| Prometheus | 9090 | |
+| Zipkin | 9411 | |
+
 ### Kubernetes 배포
+
 ```bash
 kubectl apply -f k8s/
 helm install livemart helm/livemart/ -f helm/livemart/values-production.yaml
 ```
 
 ### 테스트 실행
+
 ```bash
 # 단위 + 통합 + 커버리지 리포트
 ./gradlew :order-service:test :order-service:jacocoTestReport
@@ -255,9 +319,11 @@ k6 run tests/load/k6-order-flow.js
 ```
 
 ### 모니터링 접속
+
 ```bash
+# 로컬: http://localhost:3001  (GRAFANA_ADMIN_USER / GRAFANA_ADMIN_PASSWORD)
+# K8s:
 kubectl port-forward -n livemart svc/grafana 13000:3000
-# → http://localhost:13000  (admin / admin)
 ```
 
 ---

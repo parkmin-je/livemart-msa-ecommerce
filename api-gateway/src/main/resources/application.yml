@@ -228,10 +228,35 @@ management:
     tracing:
       endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
 
+# ── Resilience4j Circuit Breaker 상세 설정 ────────────────────
+# automaticTransitionFromOpenToHalfOpenEnabled: true 로 서비스 재시작 후 자동 복구
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 60
+        waitDurationInOpenState: 15s            # 15초 대기 후 Half-Open 전환
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true  # 핵심: 자동 복구
+        registerHealthIndicator: true
+    instances:
+      default:
+        baseConfig: default
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 15s
+    instances:
+      default:
+        baseConfig: default
+
 logging:
   level:
     org.springframework.cloud.gateway: INFO
     org.springframework.cloud.gateway.filter.ratelimit: DEBUG
+    io.github.resilience4j.circuitbreaker: DEBUG     # CB 상태 변화 로그
 
 eureka:
   client:
