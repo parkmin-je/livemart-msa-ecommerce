@@ -7,7 +7,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'com.google.firebase:firebase-admin:9.4.2'
+    implementation 'com.google.firebase:firebase-admin:9.8.0'
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.7.0'
     testImplementation 'org.testcontainers:kafka'
     testImplementation 'io.projectreactor:reactor-test'
