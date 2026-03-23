@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '3.4.1' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
     id 'org.graalvm.buildtools.native' version '0.10.4' apply false
+    id 'org.sonarqube' version '5.1.0.4882' apply false
 }
 
 allprojects {
@@ -146,4 +147,15 @@ subprojects {
     }
 
     // Virtual Threads (Java 21 Project Loom) - enabled via application.yml
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "livemart-msa-ecommerce"
+        property "sonar.projectName", "LiveMart MSA E-Commerce"
+        property "sonar.sourceEncoding", "UTF-8"
+        property "sonar.java.source", "21"
+        property "sonar.exclusions", "**/generated/**,**/dto/**,**/*MapperImpl*,**/*Application*"
+        property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
+    }
 }

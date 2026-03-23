@@ -208,6 +208,51 @@ jobs:
           done
 
 
+  # ── SonarQube 정적 분석 ───────────────────────────────────────
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: coverage/
+          merge-multiple: false
+
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          ./gradlew sonarqube \
+            -Dsonar.projectKey=livemart-msa-ecommerce \
+            -Dsonar.projectName="LiveMart MSA E-Commerce" \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.coverage.jacoco.xmlReportPaths=coverage/*/jacocoTestReport.xml \
+            -Dsonar.java.source=21 \
+            -Dsonar.qualitygate.wait=false \
+            --no-daemon
+        continue-on-error: true
+
   # ── Lighthouse CI (Core Web Vitals) ─────────────────────────────
   lighthouse:
     name: Lighthouse CI
@@ -245,7 +290,7 @@ jobs:
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [test, architecture-test, build-backend, build-frontend, lighthouse]
+    needs: [test, architecture-test, build-backend, build-frontend, lighthouse, sonarqube]
     if: always()
 
     steps:
@@ -259,6 +304,7 @@ jobs:
           echo "| Build Backend | ${{ needs.build-backend.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build Frontend | ${{ needs.build-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Lighthouse CI | ${{ needs.lighthouse.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SonarQube | ${{ needs.sonarqube.result }} |" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ needs.test.result }}" == "failure" ]]; then
             echo "❌ Tests FAILED — PR cannot be merged" >> $GITHUB_STEP_SUMMARY
