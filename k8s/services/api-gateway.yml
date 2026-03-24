@@ -21,7 +21,7 @@ spec:
         app: api-gateway
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
+        prometheus.io/port: "8888"
         prometheus.io/path: "/actuator/prometheus"
     spec:
       containers:
@@ -29,7 +29,7 @@ spec:
           image: livemart/api-gateway:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8080
+            - containerPort: 8888
           envFrom:
             - configMapRef:
                 name: livemart-config
@@ -42,14 +42,14 @@ spec:
               cpu: "1000m"
           startupProbe:
             tcpSocket:
-              port: 8080
+              port: 8888
             failureThreshold: 60
             periodSeconds: 10
             timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8080
+              port: 8888
             initialDelaySeconds: 120
             timeoutSeconds: 5
             periodSeconds: 10
@@ -57,7 +57,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /actuator/health
-              port: 8080
+              port: 8888
             initialDelaySeconds: 240
             timeoutSeconds: 5
             periodSeconds: 30
@@ -72,6 +72,6 @@ spec:
   selector:
     app: api-gateway
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 8888
+      targetPort: 8888
   type: LoadBalancer
