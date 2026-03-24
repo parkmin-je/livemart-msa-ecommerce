@@ -92,7 +92,7 @@ export default function NotificationsPage() {
       .finally(() => setLoading(false));
 
     // SSE 실시간 알림 연결
-    const es = new EventSource(`/api/notifications/stream/${uid}`);
+    const es = new EventSource(`/api/notifications/stream/${uid}`, { withCredentials: true });
     eventSourceRef.current = es;
     es.onopen = () => setConnected(true);
     es.onmessage = (e) => {
