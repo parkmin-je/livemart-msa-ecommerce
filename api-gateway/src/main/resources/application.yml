@@ -33,12 +33,8 @@ spring:
         prefix-enabled: true
 
       # 전역 기본 필터
+      # CircuitBreaker는 default-filters에서 제거 — 단일 CB가 모든 서비스를 차단하는 문제 방지
       # RequestRateLimiter는 로컬 개발 환경에서 KeyResolver 충돌로 403 유발 — 제거
-      default-filters:
-        - name: CircuitBreaker
-          args:
-            name: default
-            fallbackUri: forward:/fallback
 
       routes:
         # User Service - API

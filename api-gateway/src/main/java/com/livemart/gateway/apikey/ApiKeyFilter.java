@@ -1,5 +1,7 @@
 package com.livemart.gateway.apikey;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -29,6 +32,7 @@ import java.util.List;
 public class ApiKeyFilter implements GlobalFilter, Ordered {
 
     private final ApiKeyService apiKeyService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String API_KEY_HEADER = "X-API-Key";
 
@@ -70,10 +74,11 @@ public class ApiKeyFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        // 2. JWT 쿠키 또는 Authorization Bearer → 다운스트림에서 JWT 검증 (API Key 불필요)
+        // 2. JWT 쿠키 또는 Authorization Bearer → 사용자 컨텍스트 헤더 주입 후 통과
         if (hasJwtAuth(request)) {
             log.debug("JWT auth detected, skipping API key check: path={}", path);
-            return chain.filter(exchange);
+            ServerHttpRequest mutated = injectUserContextHeaders(request);
+            return chain.filter(exchange.mutate().request(mutated).build());
         }
 
         // 3. API Key 검증 (B2B 클라이언트)
@@ -107,6 +112,54 @@ public class ApiKeyFilter implements GlobalFilter, Ordered {
                 apiKeyService.incrementErrors(apiKey);
                 return Mono.error(throwable);
             });
+    }
+
+    /**
+     * JWT 쿠키 또는 Authorization 헤더에서 사용자 정보를 파싱하여
+     * X-User-Id, X-User-Role, X-User-Email 헤더를 추가한 요청 반환.
+     * 서명 검증 없이 페이로드만 디코딩 (API Gateway가 이미 신뢰 경계)
+     */
+    private ServerHttpRequest injectUserContextHeaders(ServerHttpRequest request) {
+        String token = extractJwtToken(request);
+        if (token == null) return request;
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length != 3) return request;
+            String payloadB64 = parts[1];
+            // Base64URL padding 보정
+            int mod = payloadB64.length() % 4;
+            if (mod == 2) payloadB64 += "==";
+            else if (mod == 3) payloadB64 += "=";
+            byte[] decoded = Base64.getUrlDecoder().decode(payloadB64);
+            JsonNode payload = objectMapper.readTree(decoded);
+            ServerHttpRequest.Builder builder = request.mutate();
+            if (payload.has("sub"))   builder.header("X-User-Id",    payload.get("sub").asText());
+            if (payload.has("role"))  builder.header("X-User-Role",  payload.get("role").asText());
+            if (payload.has("email")) builder.header("X-User-Email", payload.get("email").asText());
+            return builder.build();
+        } catch (Exception e) {
+            log.debug("Failed to parse JWT payload for header injection: {}", e.getMessage());
+            return request;
+        }
+    }
+
+    private String extractJwtToken(ServerHttpRequest request) {
+        List<String> cookies = request.getHeaders().get("Cookie");
+        if (cookies != null) {
+            for (String cookieHeader : cookies) {
+                for (String part : cookieHeader.split(";")) {
+                    String trimmed = part.trim();
+                    if (trimmed.startsWith("access_token=")) {
+                        return trimmed.substring("access_token=".length());
+                    }
+                }
+            }
+        }
+        String auth = request.getHeaders().getFirst("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            return auth.substring(7);
+        }
+        return null;
     }
 
     private boolean isPublicPath(String path) {
