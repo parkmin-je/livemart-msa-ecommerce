@@ -29,8 +29,8 @@ const AUTH_REQUIRED_PATHS = [
 /** ADMIN 전용 경로 */
 const ADMIN_PATHS = ['/admin'];
 
-/** SELLER 이상 경로 */
-const SELLER_PATHS = ['/seller'];
+/** SELLER 이상 경로 — /seller는 클라이언트에서 판매자 등록 랜딩 표시를 위해 제외 */
+const SELLER_PATHS: string[] = [];
 
 /** JWT payload 디코딩 (서명 검증 없이 claims만 읽음 — Edge Runtime에서 crypto 제약) */
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
