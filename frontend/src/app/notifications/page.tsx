@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { GlobalNav } from '@/components/GlobalNav';
 
 interface Notification {
@@ -76,36 +76,91 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
+
+  // 지수 백오프 재연결 — 최대 8회 시도 (2s → 3s → 4.5s → ... → 60s)
+  const connectSSE = useCallback((uid: string) => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    const es = new EventSource(`/api/notifications/stream/${uid}`, { withCredentials: true });
+    eventSourceRef.current = es;
+
+    es.onopen = () => {
+      setConnected(true);
+      setReconnecting(false);
+      retryCountRef.current = 0;
+    };
+
+    es.onmessage = (e) => {
+      try {
+        const n = JSON.parse(e.data);
+        // heartbeat/comment 이벤트는 data가 없으므로 id 체크
+        if (n && n.id) {
+          setNotifications(prev => {
+            // 중복 방지
+            if (prev.some(p => p.id === n.id)) return prev;
+            return [n, ...prev];
+          });
+        }
+      } catch {}
+    };
+
+    es.onerror = () => {
+      es.close();
+      eventSourceRef.current = null;
+      setConnected(false);
+
+      const count = retryCountRef.current;
+      if (count < 8) {
+        retryCountRef.current++;
+        setReconnecting(true);
+        // 지수 백오프: 2s, 3s, 4.5s, 6.75s, 10s, 15s, 22.5s, 34s
+        const delay = Math.min(2000 * Math.pow(1.5, count), 60000);
+        retryTimerRef.current = setTimeout(() => connectSSE(uid), delay);
+      } else {
+        setReconnecting(false);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const uid = localStorage.getItem('userId');
     setUserId(uid);
     if (!uid) { setLoading(false); return; }
 
-    // 기존 알림 조회
     fetch(`/api/notifications/user/${uid}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setNotifications(d.content || d || []))
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    // SSE 실시간 알림 연결
-    const es = new EventSource(`/api/notifications/stream/${uid}`, { withCredentials: true });
-    eventSourceRef.current = es;
-    es.onopen = () => setConnected(true);
-    es.onmessage = (e) => {
-      try {
-        const n = JSON.parse(e.data);
-        setNotifications(prev => [n, ...prev]);
-      } catch {}
-    };
-    es.onerror = () => setConnected(false);
+    connectSSE(uid);
 
-    return () => { es.close(); setConnected(false); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      setConnected(false);
+      setReconnecting(false);
+    };
+  }, [connectSSE]);
+
+  const manualReconnect = () => {
+    if (!userId) return;
+    retryCountRef.current = 0;
+    setReconnecting(true);
+    connectSSE(userId);
+  };
 
   const markRead = async (id: string) => {
     setNotifications(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
@@ -138,6 +193,13 @@ export default function NotificationsPage() {
     return 'bg-gray-100 text-gray-500';
   };
 
+  // 연결 상태 표시
+  const connStatus = connected
+    ? { dot: 'bg-green-500', text: '실시간 연결됨', action: null }
+    : reconnecting
+      ? { dot: 'bg-yellow-400 animate-pulse', text: '재연결 중...', action: null }
+      : { dot: 'bg-gray-300', text: '연결 끊김', action: manualReconnect };
+
   return (
     <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
       <GlobalNav />
@@ -146,8 +208,16 @@ export default function NotificationsPage() {
           <div>
             <h1 className="text-xl font-bold text-gray-900">알림 센터</h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-gray-300'}`} />
-              <span className="text-xs text-gray-500">{connected ? '실시간 연결됨' : '연결 끊김'}</span>
+              <span className={`w-2 h-2 rounded-full ${connStatus.dot}`} />
+              <span className="text-xs text-gray-500">{connStatus.text}</span>
+              {connStatus.action && (
+                <button
+                  onClick={connStatus.action}
+                  className="text-xs text-red-600 underline hover:no-underline ml-1"
+                >
+                  다시 연결
+                </button>
+              )}
             </div>
           </div>
           {unreadCount > 0 && (

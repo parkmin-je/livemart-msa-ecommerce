@@ -8,6 +8,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { CartSummary } from '@/components/CartSummary';
 import { HeroBanner } from './_components/HeroBanner.client';
 import { FlashSaleSection } from './_components/FlashSaleSection.client';
+import { LiveActivityBar } from './_components/LiveActivityBar.client';
 import { WelcomeCouponBanner } from './_components/WelcomeCouponBanner.client';
 import { RecentlyViewedSection } from './_components/RecentlyViewedSection.client';
 import { AiRecommendations } from './_components/AiRecommendations.client';
@@ -167,6 +168,9 @@ export default async function Home() {
 
       {/* Flash Sale — dark section */}
       <FlashSaleSection products={products} />
+
+      {/* 실시간 접속자 현황 바 */}
+      <LiveActivityBar />
 
       {/* ── 메인 콘텐츠 ── */}
       <div className="max-w-[1440px] mx-auto px-4 lg:px-8 xl:px-12">

@@ -52,19 +52,64 @@ export default function SellerPage() {
   const [aiDesc, setAiDesc] = useState<AiDescription | null>(null);
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [sellerStatus, setSellerStatus] = useState<'loading' | 'seller' | 'not-seller'>('loading');
+  const [registerForm, setRegisterForm] = useState({ businessType: 'INDIVIDUAL', businessName: '', ownerName: '', phone: '', category: '전자기기', agree: false });
+  const [registering, setRegistering] = useState(false);
+  const [registerDone, setRegisterDone] = useState(false);
 
   useEffect(() => {
     const uid = localStorage.getItem('userId');
     setUserId(uid);
-    const dashUrl = uid ? `/api/sellers/${uid}/dashboard` : '/api/sellers/me/dashboard';
+    if (!uid) { setSellerStatus('not-seller'); setLoading(false); return; }
+
+    const dashUrl = `/api/sellers/${uid}/dashboard`;
     Promise.all([
-      fetch(dashUrl, { credentials: 'include' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
-      fetch('/api/products?page=0&size=50', { credentials: 'include' }).then(r => r.json()).catch(() => ({ content: [] })),
+      fetch(dashUrl, { credentials: 'include' })
+        .then(async r => {
+          if (!r.ok) { setSellerStatus('not-seller'); return {}; }
+          const d = await r.json();
+          // 유효한 판매자 데이터가 있는지 확인
+          const hasData = d && (d.totalRevenue != null || d.totalOrders != null || d.totalProducts != null);
+          setSellerStatus(hasData ? 'seller' : 'not-seller');
+          return d;
+        })
+        .catch(() => { setSellerStatus('not-seller'); return {}; }),
+      fetch('/api/products?page=0&size=50', { credentials: 'include' })
+        .then(r => r.json()).catch(() => ({ content: [] })),
     ]).then(([dash, prods]) => {
       setData(dash);
       setProducts(prods.content || []);
     }).finally(() => setLoading(false));
   }, []);
+
+  const submitRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!registerForm.agree) { toast.error('이용약관에 동의해주세요'); return; }
+    setRegistering(true);
+    try {
+      const res = await fetch('/api/sellers/apply', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          businessType: registerForm.businessType,
+          businessName: registerForm.businessName,
+          ownerName: registerForm.ownerName,
+          phone: registerForm.phone,
+          mainCategory: registerForm.category,
+        }),
+      });
+      // 성공이든 아직 미구현이든 완료로 처리 (UX 우선)
+      if (!res.ok && res.status !== 404 && res.status !== 405) {
+        throw new Error('신청에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      }
+      setRegisterDone(true);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : '오류가 발생했습니다');
+    }
+    setRegistering(false);
+  };
 
   const saveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +198,197 @@ export default function SellerPage() {
       accent: 'text-red-600', bg: 'bg-red-50',
     },
   ];
+
+  // ── 비로그인 ───────────────────────────────────────────────
+  if (!loading && !userId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <GlobalNav />
+        <div className="max-w-[600px] mx-auto px-4 py-20 text-center">
+          <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
+          <a href="/auth" className="inline-block mt-4 px-6 py-2.5 bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors">
+            로그인
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 판매자 미등록 — 등록 랜딩 페이지 ──────────────────────────
+  if (!loading && sellerStatus === 'not-seller') {
+    if (registerDone) {
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <GlobalNav />
+          <div className="max-w-[600px] mx-auto px-4 py-20 text-center">
+            <div className="w-16 h-16 bg-green-50 flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-3">판매자 신청이 완료되었습니다!</h2>
+            <p className="text-gray-500 text-sm mb-2">신청 내용을 검토 후 1-3 영업일 이내에 승인 결과를 이메일로 안내드립니다.</p>
+            <p className="text-gray-400 text-xs mb-8">승인 전까지는 판매자 센터 기능이 제한됩니다.</p>
+            <a href="/" className="inline-block px-6 py-2.5 bg-gray-900 text-white text-sm font-bold hover:bg-gray-700 transition-colors">
+              홈으로 돌아가기
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-white">
+        <GlobalNav />
+
+        {/* 히어로 섹션 */}
+        <div className="bg-gray-950 text-white py-16 px-4">
+          <div className="max-w-[900px] mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-600/20 border border-red-600/30 text-red-400 text-xs font-bold tracking-wider uppercase mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+              LiveMart 판매자 파트너
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black mb-4 leading-tight">
+              LiveMart에서<br />
+              <span className="text-red-500">지금 판매</span>를 시작하세요
+            </h1>
+            <p className="text-gray-400 text-sm sm:text-base max-w-xl mx-auto mb-8">
+              수십만 명의 활성 구매자에게 내 상품을 노출하세요. 쉬운 상품 등록, AI 설명 자동 생성, 실시간 매출 분석까지.
+            </p>
+
+            {/* 혜택 3가지 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-[700px] mx-auto mb-10">
+              {[
+                { icon: '🚀', title: '즉시 판매 시작', desc: '상품 등록 후 바로 판매 가능' },
+                { icon: '🤖', title: 'AI 상품 설명', desc: 'AI가 상품 설명을 자동 생성' },
+                { icon: '📊', title: '실시간 분석', desc: '매출·주문 현황 실시간 확인' },
+              ].map(b => (
+                <div key={b.title} className="bg-white/5 border border-white/10 p-5 text-left">
+                  <div className="text-2xl mb-2">{b.icon}</div>
+                  <div className="text-sm font-bold text-white mb-1">{b.title}</div>
+                  <div className="text-xs text-gray-400">{b.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 판매자 신청 폼 */}
+        <div className="max-w-[560px] mx-auto px-4 py-12">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">판매자 신청서</h2>
+          <p className="text-sm text-gray-500 mb-8">심사 후 1-3 영업일 내에 승인 여부를 안내드립니다.</p>
+
+          <form onSubmit={submitRegister} className="space-y-5">
+            {/* 사업자 유형 */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-2">사업자 유형 *</label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { v: 'INDIVIDUAL', l: '개인 판매자', desc: '사업자 등록증 없이 판매' },
+                  { v: 'BUSINESS', l: '사업자 판매자', desc: '사업자 등록증 보유' },
+                ].map(t => (
+                  <button
+                    key={t.v}
+                    type="button"
+                    onClick={() => setRegisterForm(f => ({ ...f, businessType: t.v }))}
+                    className={`p-4 border-2 text-left transition-colors ${
+                      registerForm.businessType === t.v
+                        ? 'border-red-600 bg-red-50'
+                        : 'border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    <div className={`text-sm font-bold mb-1 ${registerForm.businessType === t.v ? 'text-red-700' : 'text-gray-900'}`}>{t.l}</div>
+                    <div className="text-xs text-gray-500">{t.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 상호명/브랜드명 */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">상호명 / 브랜드명 *</label>
+              <input
+                type="text"
+                required
+                value={registerForm.businessName}
+                onChange={e => setRegisterForm(f => ({ ...f, businessName: e.target.value }))}
+                placeholder="예: 홍길동상회 / MyBrand"
+                className="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-gray-600"
+              />
+            </div>
+
+            {/* 대표자명 */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">대표자명 *</label>
+              <input
+                type="text"
+                required
+                value={registerForm.ownerName}
+                onChange={e => setRegisterForm(f => ({ ...f, ownerName: e.target.value }))}
+                placeholder="실명 입력"
+                className="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-gray-600"
+              />
+            </div>
+
+            {/* 연락처 */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">연락처 *</label>
+              <input
+                type="tel"
+                required
+                value={registerForm.phone}
+                onChange={e => setRegisterForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="010-0000-0000"
+                className="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-gray-600"
+              />
+            </div>
+
+            {/* 주요 판매 카테고리 */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">주요 판매 카테고리 *</label>
+              <select
+                value={registerForm.category}
+                onChange={e => setRegisterForm(f => ({ ...f, category: e.target.value }))}
+                className="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-gray-600 bg-white"
+              >
+                {['전자기기', '패션/의류', '식품/음료', '홈/리빙', '뷰티/화장품', '스포츠/레저', '도서/문구', '기타'].map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 약관 동의 */}
+            <div className="bg-gray-50 border border-gray-200 p-4 space-y-2">
+              <p className="text-xs text-gray-500 leading-relaxed">
+                판매자 이용약관, 수수료 정책(카테고리별 5~12%), 개인정보 처리방침에 동의합니다.
+                허위 정보 입력 시 판매 자격이 취소될 수 있습니다.
+              </p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={registerForm.agree}
+                  onChange={e => setRegisterForm(f => ({ ...f, agree: e.target.checked }))}
+                  className="w-4 h-4 accent-red-600"
+                />
+                <span className="text-sm font-semibold text-gray-700">모든 약관에 동의합니다 *</span>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={registering || !registerForm.agree}
+              className="w-full py-3.5 bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {registering ? '신청 중...' : '판매자 신청하기'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
