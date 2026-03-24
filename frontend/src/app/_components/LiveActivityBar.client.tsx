@@ -18,6 +18,9 @@ export function LiveActivityBar() {
   const retryCount = useRef(0);
 
   useEffect(() => {
+    // 기본값으로 초기화 (analytics 서비스 없어도 표시)
+    setMetrics({ activeUsers: 0, dailyOrders: 0, revenue: 0 });
+
     const connect = () => {
       if (retryRef.current) clearTimeout(retryRef.current);
       if (esRef.current) esRef.current.close();
@@ -33,13 +36,12 @@ export function LiveActivityBar() {
       es.onmessage = (e) => {
         try {
           const data = JSON.parse(e.data);
-          if (data && typeof data === 'object') {
+          if (data && typeof data === 'object' && Object.keys(data).length > 0) {
             setMetrics(data);
           }
         } catch {}
       };
 
-      // 'metrics' 이벤트명으로 오는 경우 처리
       es.addEventListener('metrics', (e) => {
         try {
           const data = JSON.parse((e as MessageEvent).data);
@@ -51,23 +53,22 @@ export function LiveActivityBar() {
         es.close();
         esRef.current = null;
         setIsLive(false);
-        if (retryCount.current < 5) {
+        if (retryCount.current < 3) {
           retryCount.current++;
           retryRef.current = setTimeout(connect, 5000 * retryCount.current);
         }
       };
     };
 
-    // REST fallback: SSE 대신 polling으로 메트릭 조회
+    // REST polling — 성공 시 실제 데이터 표시
     const fetchMetrics = () => {
       fetch('/api/dashboard/metrics', { credentials: 'include' })
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) setMetrics(d); })
+        .then(d => { if (d && typeof d === 'object') setMetrics(prev => ({ ...prev, ...d })); })
         .catch(() => {});
     };
 
     connect();
-    // SSE가 안 되는 경우 30초마다 REST polling 병행
     fetchMetrics();
     const pollId = setInterval(fetchMetrics, 30000);
 
@@ -78,12 +79,9 @@ export function LiveActivityBar() {
     };
   }, []);
 
-  // 데이터가 없으면 렌더링 안함 (공간 차지 방지)
-  if (!metrics) return null;
-
-  const activeUsers = metrics.activeUsers ?? 0;
-  const dailyOrders = metrics.dailyOrders ?? 0;
-  const revenue = metrics.revenue ?? 0;
+  const activeUsers = metrics?.activeUsers ?? 0;
+  const dailyOrders = metrics?.dailyOrders ?? 0;
+  const revenue = metrics?.revenue ?? 0;
 
   return (
     <div
@@ -150,7 +148,7 @@ export function LiveActivityBar() {
             </div>
 
             {/* 인기상품 (있을 때만) */}
-            {metrics.topProducts && metrics.topProducts[0] && (
+            {metrics?.topProducts && metrics.topProducts[0] && (
               <>
                 <div className="w-px h-3.5 bg-gray-200 flex-shrink-0 hidden sm:block" />
                 <div className="items-center gap-2 hidden sm:flex">
