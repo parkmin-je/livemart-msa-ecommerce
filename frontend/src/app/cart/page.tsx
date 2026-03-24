@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
 import { GlobalNav } from '@/components/GlobalNav';
@@ -13,6 +13,20 @@ export default function CartPage() {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponLoading, setCouponLoading] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set(items.map(i => i.productId)));
+  const [relatedProducts, setRelatedProducts] = useState<Array<{id:number;name:string;price:number;imageUrl:string}>>([]);
+
+  useEffect(() => {
+    const firstId = items[0]?.productId;
+    const url = firstId ? `/api/products/${firstId}/related` : `/api/products?size=6`;
+    fetch(url, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        const list = Array.isArray(d) ? d : (d.content || []);
+        setRelatedProducts(list.slice(0, 6).map((p: {id:number;name:string;price:number;imageUrl:string}) => ({ id: p.id, name: p.name, price: p.price, imageUrl: p.imageUrl })));
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const subtotal = items
     .filter(i => selectedItems.has(i.productId))
@@ -238,22 +252,20 @@ export default function CartPage() {
             <div>
               <h2 className="text-base font-bold text-gray-900 mb-3">함께 구매하면 좋은 상품</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-                {[
-                  { id: 101, name: 'USB-C 충전케이블 3m', price: 12900, badge: 'BEST' },
-                  { id: 102, name: '노트북 파우치 15인치', price: 24900, badge: 'HOT' },
-                  { id: 103, name: '무선 마우스', price: 19900, badge: '-20%' },
-                  { id: 104, name: '모니터 클리너 세트', price: 8900, badge: 'NEW' },
-                  { id: 105, name: '케이블 정리 클립', price: 5900, badge: '추천' },
-                  { id: 106, name: '스마트폰 거치대', price: 15900, badge: '-15%' },
-                ].map(item => (
+                {relatedProducts.map(item => (
                   <a key={item.id} href={`/products/${item.id}`}
                     className="bg-white border border-gray-200 p-3 hover:border-gray-400 transition-all group text-center">
-                    <div className="aspect-square bg-gray-100 flex items-center justify-center mb-2 group-hover:bg-gray-50 transition-colors">
-                      <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                      </svg>
+                    <div className="aspect-square bg-gray-100 overflow-hidden mb-2">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
-                    <span className="inline-block text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 mb-1">{item.badge}</span>
                     <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug mb-1">{item.name}</p>
                     <p className="text-sm font-bold text-gray-900">{item.price.toLocaleString()}원</p>
                   </a>

@@ -69,9 +69,13 @@ const nextConfig = {
   // ── API 프록시 리라이트 ───────────────────────────────────
   async rewrites() {
     const apiBase = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
+    // SSE 스트리밍은 kubectl port-forward가 연결을 끊으므로 notification-service 직접 연결
+    const notifBase = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:8086';
     return [
       { source: '/oauth2/:path*', destination: `${apiBase}/oauth2/:path*` },
       { source: '/login/:path*',  destination: `${apiBase}/login/:path*`  },
+      // SSE 엔드포인트는 게이트웨이 우회, notification-service 직접 연결
+      { source: '/api/notifications/stream/:uid', destination: `${notifBase}/api/notifications/stream/:uid` },
       { source: '/api/:path*',    destination: `${apiBase}/api/:path*`    },
     ];
   },
