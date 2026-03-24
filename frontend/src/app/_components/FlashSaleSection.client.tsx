@@ -2,6 +2,31 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+// 이미지 오류 처리를 위한 개별 컴포넌트
+function FlashProductImage({ imageUrl, name, hovered }: { imageUrl?: string; name: string; hovered: boolean }) {
+  const [err, setErr] = useState(false);
+  return imageUrl && !err ? (
+    <img
+      src={imageUrl}
+      alt={name}
+      className="w-full h-full object-cover"
+      style={{
+        transform: hovered ? 'scale(1.06)' : 'scale(1)',
+        transition: 'transform 0.5s cubic-bezier(0.22,1,0.36,1)',
+      }}
+      loading="lazy"
+      onError={() => setErr(true)}
+    />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center">
+      <svg className="w-8 h-8" style={{ color: '#333' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    </div>
+  );
+}
+
 interface Product {
   id: number;
   name: string;
@@ -160,25 +185,7 @@ export function FlashSaleSection({ products }: { products: Product[] }) {
                     transition: 'outline 0.2s ease',
                   }}
                 >
-                  {p.imageUrl ? (
-                    <img
-                      src={p.imageUrl}
-                      alt={p.name}
-                      className="w-full h-full object-cover"
-                      style={{
-                        transform: activeIdx === i ? 'scale(1.06)' : 'scale(1)',
-                        transition: 'transform 0.5s cubic-bezier(0.22,1,0.36,1)',
-                      }}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <svg className="w-8 h-8" style={{ color: '#333' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  )}
+                  <FlashProductImage imageUrl={p.imageUrl} name={p.name} hovered={activeIdx === i} />
 
                   {/* Discount badge — Bebas Neue */}
                   <div

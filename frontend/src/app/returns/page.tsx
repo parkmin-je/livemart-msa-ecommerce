@@ -54,12 +54,30 @@ export default function ReturnsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [myOrders, setMyOrders] = useState<Array<{ id: number; orderNumber?: string; status: string; totalAmount: number; createdAt: string; items?: Array<{ productName: string }> }>>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   const fetchReturns = (uid: string) => {
     return fetch(`/api/returns/user/${uid}`, { credentials: 'include' })
       .then(r => r.json())
       .then(d => setReturns(d.content || d || []))
       .catch(() => {});
+  };
+
+  const fetchMyOrders = (uid: string) => {
+    setOrdersLoading(true);
+    fetch(`/api/orders/user/${uid}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        const list = d.content || d || [];
+        // 반품 가능한 상태: DELIVERED, PAYMENT_COMPLETED
+        const eligible = list.filter((o: { status: string }) =>
+          ['DELIVERED', 'PAYMENT_COMPLETED', 'CONFIRMED', 'SHIPPED'].includes(o.status)
+        );
+        setMyOrders(eligible);
+      })
+      .catch(() => {})
+      .finally(() => setOrdersLoading(false));
   };
 
   useEffect(() => {
@@ -116,7 +134,13 @@ export default function ReturnsPage() {
           {[{ id: 'list', label: '신청 내역' }, { id: 'new', label: '반품/교환 신청' }].map(t => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id as 'list' | 'new')}
+              onClick={() => {
+                setTab(t.id as 'list' | 'new');
+                // '신청' 탭으로 이동 시 주문 목록 자동 로드
+                if (t.id === 'new' && userId && myOrders.length === 0) {
+                  fetchMyOrders(userId);
+                }
+              }}
               className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
                 tab === t.id ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
@@ -125,6 +149,63 @@ export default function ReturnsPage() {
             </button>
           ))}
         </div>
+
+        {tab === 'new' && myOrders.length === 0 && !ordersLoading && userId && (
+          <div
+            className="bg-blue-50 border border-blue-200 p-4 mb-4 flex items-start gap-3 cursor-pointer hover:bg-blue-100 transition-colors"
+            onClick={() => fetchMyOrders(userId)}
+          >
+            <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm text-blue-800 font-semibold">주문 번호를 모르시나요?</p>
+              <p className="text-xs text-blue-600 mt-0.5">클릭하면 내 주문 목록에서 선택할 수 있습니다.</p>
+            </div>
+          </div>
+        )}
+
+        {tab === 'new' && ordersLoading && (
+          <div className="bg-white border border-gray-200 p-4 mb-4 flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-gray-300 border-t-red-600 rounded-full animate-spin" />
+            <span className="text-sm text-gray-500">주문 목록 불러오는 중...</span>
+          </div>
+        )}
+
+        {tab === 'new' && myOrders.length > 0 && (
+          <div className="bg-white border border-gray-200 p-4 mb-4">
+            <p className="text-xs font-semibold text-gray-600 mb-3">반품/교환 가능한 주문 선택</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {myOrders.map(o => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, orderId: String(o.id) }))}
+                  className={`w-full text-left p-3 border-2 transition-colors ${
+                    form.orderId === String(o.id)
+                      ? 'border-red-600 bg-red-50'
+                      : 'border-gray-200 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {o.orderNumber || `주문 #${o.id}`}
+                      </span>
+                      {o.items && o.items[0] && (
+                        <span className="text-xs text-gray-500 ml-2">{o.items[0].productName}</span>
+                      )}
+                    </div>
+                    <span className="text-xs font-bold text-gray-700">{o.totalAmount.toLocaleString()}원</span>
+                  </div>
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    {new Date(o.createdAt).toLocaleDateString('ko-KR')}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {tab === 'list' ? (
           loading ? (
@@ -221,15 +302,41 @@ export default function ReturnsPage() {
               <h2 className="font-bold text-gray-900 text-sm">반품/교환 신청</h2>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">주문 번호 *</label>
-                <input
-                  type="number"
-                  value={form.orderId}
-                  onChange={e => setForm(f => ({ ...f, orderId: e.target.value }))}
-                  placeholder="주문 번호 입력 (예: 123)"
-                  className="w-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-gray-500"
-                  required
-                />
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  주문 번호 *
+                  {myOrders.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => userId && fetchMyOrders(userId)}
+                      className="ml-2 text-red-600 underline text-xs font-normal"
+                    >
+                      주문 목록에서 선택
+                    </button>
+                  )}
+                </label>
+                {form.orderId && myOrders.find(o => String(o.id) === form.orderId) ? (
+                  <div className="flex items-center justify-between border border-red-600 bg-red-50 px-3 py-2">
+                    <span className="text-sm font-semibold text-red-700">
+                      {myOrders.find(o => String(o.id) === form.orderId)?.orderNumber || `주문 #${form.orderId}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, orderId: '' }))}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      변경
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="number"
+                    value={form.orderId}
+                    onChange={e => setForm(f => ({ ...f, orderId: e.target.value }))}
+                    placeholder="주문 번호 입력 (예: 123)"
+                    className="w-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-gray-500"
+                    required
+                  />
+                )}
               </div>
 
               <div>

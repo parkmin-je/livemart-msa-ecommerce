@@ -83,24 +83,44 @@ export default function AdminPage() {
   const [savingCoupon, setSavingCoupon] = useState(false);
 
   useEffect(() => {
-    // Fetch statistics independently
+    // 주문 전체 목록으로 통계 직접 계산 (통계 API가 없거나 실패할 경우 대비)
+    const computeStatsFromOrders = (orderData: AdminOrder[]) => {
+      const total = orderData.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+      const pending = orderData.filter(o => o.status === 'PENDING').length;
+      const cancelled = orderData.filter(o => o.status === 'CANCELLED').length;
+      return { totalOrders: orderData.length, totalRevenue: total, pendingOrders: pending, cancelledOrders: cancelled };
+    };
+
+    // 통계 + 상품수 + 회원수 병렬 조회
     Promise.all([
       fetch('/api/orders/query/statistics', { credentials: 'include' })
-        .then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        .then(r => r.ok ? r.json() : null).catch(() => null),
       fetch('/api/products?page=0&size=1', { credentials: 'include' })
-        .then(r => r.ok ? r.json() : { totalElements: 0 }).catch(() => ({ totalElements: 0 })),
+        .then(r => r.ok ? r.json() : null).catch(() => null),
       fetch('/api/users/count', { credentials: 'include' })
-        .then(r => r.ok ? r.json() : { count: 0 }).catch(() => ({ count: 0 })),
-    ]).then(([s, p, u]) => {
+        .then(r => r.ok ? r.json() : null).catch(() => null),
+      // 통계 API 실패 대비: 최근 200건으로 직접 계산
+      fetch('/api/orders?page=0&size=200&sort=createdAt,desc', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([s, p, u, allOrdersData]) => {
+      const allOrders: AdminOrder[] = Array.isArray(allOrdersData)
+        ? allOrdersData
+        : (allOrdersData?.content || []);
+      const computed = computeStatsFromOrders(allOrders);
+
       setStats({
-        ...s,
+        // 통계 API 값 우선, 없으면 계산값 사용
+        totalOrders: s?.totalOrders ?? (allOrdersData?.totalElements ?? computed.totalOrders),
+        totalRevenue: s?.totalRevenue ?? computed.totalRevenue,
         totalProducts: p?.totalElements ?? 0,
-        totalUsers: u?.count ?? 0,
+        totalUsers: u?.count ?? u?.total ?? u?.totalUsers ?? 0,
+        pendingOrders: s?.pendingOrders ?? computed.pendingOrders,
+        cancelledOrders: s?.cancelledOrders ?? computed.cancelledOrders,
       });
       setStatsLoading(false);
     });
 
-    // Fetch orders independently
+    // Fetch orders for display (recent 20)
     fetch('/api/orders?page=0&size=20&sort=createdAt,desc', { credentials: 'include' })
       .then(r => r.ok ? r.json() : { content: [] }).catch(() => ({ content: [] }))
       .then(o => {
