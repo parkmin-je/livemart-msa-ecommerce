@@ -26,38 +26,6 @@ function getDiscount(id: number): number {
 function getOriginal(price: number, d: number): number {
   return d === 0 ? price : Math.round(price / (1 - d / 100) / 100) * 100;
 }
-function getRating(id: number): number {
-  return [4.2, 4.5, 4.7, 4.8, 4.3, 4.6, 4.9, 4.4, 4.1, 4.7, 4.0, 4.8, 4.5, 4.2][id % 14];
-}
-function getReviews(id: number): number {
-  return [127, 2341, 89, 456, 1203, 78, 3421, 234, 567, 892, 45, 1823, 312, 78][id % 14];
-}
-function getBadge(id: number, discount: number): 'BEST' | 'NEW' | 'HOT' | null {
-  if (discount >= 20) return null;
-  return ([null, 'BEST', 'NEW', null, 'HOT', 'BEST', null, 'NEW', 'HOT', null, 'BEST', null, 'NEW', null] as const)[id % 14];
-}
-
-const BADGE_STYLES = {
-  BEST: { bg: '#0055FF', label: 'BEST' },
-  NEW:  { bg: '#00A854', label: 'NEW'  },
-  HOT:  { bg: '#FF6B00', label: 'HOT'  },
-};
-
-/* ── Star Rating ── */
-function Stars({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-[2px]" aria-label={`${rating}점`}>
-      {[1,2,3,4,5].map(s => (
-        <svg key={s} className="w-2.5 h-2.5"
-          fill={s <= Math.floor(rating) ? '#FBBF24' : s - 0.5 <= rating ? '#FCD34D' : '#D1D5DB'}
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ))}
-    </div>
-  );
-}
 
 /* ── Skeleton ── */
 export function ProductCardSkeleton() {
@@ -97,9 +65,6 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const discount = getDiscount(product.id);
   const original = getOriginal(product.price, discount);
-  const rating = getRating(product.id);
-  const reviews = getReviews(product.id);
-  const badge = getBadge(product.id, discount);
   const outOfStock = (product.stockQuantity ?? 1) === 0;
   const lowStock = !outOfStock && (product.stockQuantity ?? 99) < 10;
   const freeShip = product.price >= 50000;
@@ -207,25 +172,12 @@ export function ProductCard({ product }: ProductCardProps) {
               -{discount}%
             </span>
           )}
-          {badge && !discount && (
-            <span
-              className="font-bebas text-white px-2 py-0.5 leading-tight"
-              style={{
-                background: BADGE_STYLES[badge].bg,
-                fontSize: '0.85rem',
-                letterSpacing: '0.04em',
-                animation: 'badgePop 0.35s cubic-bezier(0.175,0.885,0.32,1.275) both 0.05s',
-              }}
-            >
-              {BADGE_STYLES[badge].label}
-            </span>
-          )}
           {lowStock && (
             <span
               className="text-white text-[10px] font-black px-2 py-0.5"
               style={{
                 background: '#0A0A0A',
-                animation: 'badgePop 0.35s cubic-bezier(0.175,0.885,0.32,1.275) both 0.1s',
+                animation: 'badgePop 0.35s cubic-bezier(0.175,0.885,0.32,1.275) both 0.05s',
               }}
             >
               {product.stockQuantity}개 남음
@@ -296,13 +248,6 @@ export function ProductCard({ product }: ProductCardProps) {
         >
           {product.name}
         </h3>
-
-        {/* Rating */}
-        <div className="flex items-center gap-1.5 mb-2.5">
-          <Stars rating={rating} />
-          <span className="text-[11px] font-bold tabular-nums" style={{ color: '#3A3A3A' }}>{rating.toFixed(1)}</span>
-          <span className="text-[11px] tabular-nums" style={{ color: '#AEAEAE' }}>({reviews.toLocaleString()})</span>
-        </div>
 
         {/* Price block */}
         <div className="mb-3">

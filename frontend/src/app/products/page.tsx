@@ -38,21 +38,34 @@ function ProductsContent() {
   const selectedLabel = CATEGORIES.find(c => c.id === selectedCat)?.label ?? '전체';
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
+    <main className="min-h-screen pb-14 md:pb-0" style={{ background: '#F7F6F1' }}>
       <GlobalNav />
 
       {/* Page header */}
-      <div className="bg-white border-b border-gray-100">
+      <div style={{ background: '#FFFFFF', borderBottom: '1px solid rgba(14,14,14,0.07)' }}>
         <div className="max-w-[1280px] mx-auto px-4 py-5">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Products</p>
-              <h1 className="text-2xl font-black text-gray-950 tracking-tight">{selectedLabel}</h1>
+              <p
+                className="uppercase tracking-widest mb-1"
+                style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(14,14,14,0.35)' }}
+              >
+                Products
+              </p>
+              <h1
+                className="font-bebas tracking-wide leading-none"
+                style={{ fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', color: '#0E0E0E', letterSpacing: '0.04em' }}
+              >
+                {selectedLabel}
+              </h1>
             </div>
             {selectedCat !== undefined && (
               <button
                 onClick={() => handleCatChange(undefined)}
-                className="text-xs text-gray-400 hover:text-gray-700 transition-colors flex items-center gap-1"
+                className="flex items-center gap-1 transition-colors"
+                style={{ fontSize: '12px', color: 'rgba(14,14,14,0.38)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#0E0E0E')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(14,14,14,0.38)')}
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -67,19 +80,40 @@ function ProductsContent() {
       <div className="max-w-[1280px] mx-auto px-4 py-6">
         <div className="flex gap-7 items-start">
           {/* Sidebar — desktop only */}
-          <aside className="w-52 flex-shrink-0 hidden lg:block">
-            <div className="bg-white border border-gray-100 p-5 sticky top-[148px]">
-              <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">카테고리</h3>
+          <aside className="w-48 flex-shrink-0 hidden lg:block">
+            <div
+              className="p-5 sticky top-[148px]"
+              style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}
+            >
+              <h3
+                className="uppercase tracking-widest mb-4"
+                style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(14,14,14,0.35)' }}
+              >
+                카테고리
+              </h3>
               <div className="space-y-0.5">
                 {CATEGORIES.map(c => (
                   <button
                     key={String(c.id)}
                     onClick={() => handleCatChange(c.id)}
-                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center justify-between group ${
-                      selectedCat === c.id
-                        ? 'bg-gray-950 text-white font-semibold'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
+                    className="w-full text-left px-3 py-2 text-sm flex items-center justify-between transition-colors"
+                    style={{
+                      background: selectedCat === c.id ? '#0A0A0A' : 'transparent',
+                      color: selectedCat === c.id ? '#FFFFFF' : 'rgba(14,14,14,0.55)',
+                      fontWeight: selectedCat === c.id ? 600 : 400,
+                    }}
+                    onMouseEnter={e => {
+                      if (selectedCat !== c.id) {
+                        e.currentTarget.style.background = 'rgba(14,14,14,0.04)';
+                        e.currentTarget.style.color = '#0E0E0E';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (selectedCat !== c.id) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = 'rgba(14,14,14,0.55)';
+                      }
+                    }}
                   >
                     <span>{c.label}</span>
                     {selectedCat === c.id && (
@@ -96,16 +130,19 @@ function ProductsContent() {
           {/* Main content */}
           <div className="flex-1 min-w-0">
             {/* Mobile: horizontal chip strip */}
-            <div className="flex gap-2 mb-5 overflow-x-auto pb-1 lg:hidden -mx-1 px-1">
+            <div className="flex gap-2 mb-5 overflow-x-auto pb-1 lg:hidden -mx-1 px-1 no-scrollbar">
               {CATEGORIES.map(c => (
                 <button
                   key={String(c.id)}
                   onClick={() => handleCatChange(c.id)}
-                  className={`flex-shrink-0 px-4 py-1.5 text-xs font-semibold border transition-colors ${
-                    selectedCat === c.id
-                      ? 'bg-gray-950 text-white border-gray-950'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                  }`}
+                  className="flex-shrink-0 px-4 py-1.5 text-xs font-semibold transition-colors"
+                  style={{
+                    background: selectedCat === c.id ? '#0A0A0A' : '#FFFFFF',
+                    color: selectedCat === c.id ? '#FFFFFF' : 'rgba(14,14,14,0.55)',
+                    border: selectedCat === c.id
+                      ? '1px solid #0A0A0A'
+                      : '1px solid rgba(14,14,14,0.14)',
+                  }}
                 >
                   {c.label}
                 </button>
@@ -124,16 +161,23 @@ function ProductsContent() {
 export default function ProductsPage() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
+      <main className="min-h-screen pb-14 md:pb-0" style={{ background: '#F7F6F1' }}>
         <div className="h-[140px]" />
         <div className="max-w-[1280px] mx-auto px-4 py-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-white rounded animate-pulse">
-                <div className="aspect-square bg-gray-200" />
+              <div key={i} style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+                <div
+                  className="aspect-square"
+                  style={{
+                    background: 'linear-gradient(90deg, #EDEBE4 0%, #E4E1D8 50%, #EDEBE4 100%)',
+                    backgroundSize: '600px 100%',
+                    animation: 'shimmer 1.8s ease-in-out infinite',
+                  }}
+                />
                 <div className="p-3 space-y-2">
-                  <div className="h-3 bg-gray-200 rounded w-3/4" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                  <div className="h-3 animate-pulse" style={{ background: '#EDEBE4', width: '75%' }} />
+                  <div className="h-3 animate-pulse" style={{ background: '#EDEBE4', width: '50%' }} />
                 </div>
               </div>
             ))}
