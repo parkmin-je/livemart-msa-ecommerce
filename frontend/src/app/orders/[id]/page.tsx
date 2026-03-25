@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { GlobalNav } from '@/components/GlobalNav';
+import toast from 'react-hot-toast';
 
 interface OrderItem {
   id: number;
@@ -45,7 +46,17 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELLED: 'bg-gray-100 text-gray-500 border border-gray-200',
   SHIPPED: 'bg-purple-50 text-purple-700 border border-purple-200',
   RETURN_REQUESTED: 'bg-orange-50 text-orange-700 border border-orange-200',
+  PAYMENT_COMPLETED: 'bg-blue-50 text-blue-700 border border-blue-200',
 };
+
+const CANCEL_REASONS = [
+  '단순 변심',
+  '배송 지연',
+  '상품 정보 다름',
+  '중복 주문',
+  '가격 오류',
+  '기타',
+];
 
 function getStepIndex(status: string) {
   return STATUS_STEPS.findIndex(s => s.key === status);
@@ -56,14 +67,55 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('단순 변심');
+  const [cancelling, setCancelling] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const fetchOrder = useCallback(() => {
+    return fetch(`/api/orders/${id}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        setOrder(data);
+        setLastUpdated(new Date());
+      })
+      .catch(() => setOrder(null));
+  }, [id]);
 
   useEffect(() => {
-    fetch(`/api/orders/${id}`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(setOrder)
-      .catch(() => setOrder(null))
-      .finally(() => setLoading(false));
-  }, [id]);
+    fetchOrder().finally(() => setLoading(false));
+
+    // 배송중/준비중 상태면 30초마다 polling
+    const pollId = setInterval(() => {
+      if (order && ['PAYMENT_COMPLETED', 'PREPARING', 'SHIPPED'].includes(order.status)) {
+        fetchOrder();
+      }
+    }, 30000);
+
+    return () => clearInterval(pollId);
+  }, [fetchOrder]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCancel = async () => {
+    if (!order) return;
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/cancel?reason=${encodeURIComponent(cancelReason)}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        toast.success('주문이 취소됐습니다.');
+        setShowCancelModal(false);
+        await fetchOrder();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.message || '주문 취소에 실패했습니다.');
+      }
+    } catch {
+      toast.error('주문 취소에 실패했습니다.');
+    }
+    setCancelling(false);
+  };
 
   if (loading) return (
     <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
@@ -94,7 +146,7 @@ export default function OrderDetailPage() {
 
   const stepIdx = getStepIndex(order.status);
   const isActive = !['CANCELLED', 'RETURN_REQUESTED'].includes(order.status);
-
+  const canCancel = ['PENDING', 'CONFIRMED', 'PAYMENT_PENDING', 'PAYMENT_COMPLETED'].includes(order.status);
   const defaultStatusStyle = 'bg-blue-50 text-blue-700 border border-blue-200';
 
   return (
@@ -118,9 +170,21 @@ export default function OrderDetailPage() {
               {order.orderNumber || `#${order.id}`} &middot; {new Date(order.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
-          <span className={`text-sm font-semibold px-3 py-1.5 ${STATUS_STYLE[order.status] || defaultStatusStyle}`}>
-            {STATUS_MAP[order.status] || order.status}
-          </span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className={`text-sm font-semibold px-3 py-1.5 ${STATUS_STYLE[order.status] || defaultStatusStyle}`}>
+              {STATUS_MAP[order.status] || order.status}
+            </span>
+            {/* 새로고침 버튼 */}
+            <button
+              onClick={() => fetchOrder()}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {lastUpdated ? `${lastUpdated.getHours().toString().padStart(2,'0')}:${lastUpdated.getMinutes().toString().padStart(2,'0')} 업데이트` : '새로고침'}
+            </button>
+          </div>
         </div>
 
         {/* 배송 진행 현황 */}
@@ -163,12 +227,14 @@ export default function OrderDetailPage() {
                 <span className="text-sm text-gray-700">
                   운송장 번호: <span className="font-semibold">{order.trackingNumber}</span>
                 </span>
-                <button
-                  onClick={() => router.push(`/delivery/${order.trackingNumber}`)}
+                <a
+                  href={`https://www.cjlogistics.com/ko/tool/parcel/tracking?gnbInvcNo=${order.trackingNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-xs px-3 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   배송 조회
-                </button>
+                </a>
               </div>
             )}
           </div>
@@ -180,13 +246,19 @@ export default function OrderDetailPage() {
           <div className="space-y-0 divide-y divide-gray-100">
             {(order.items || []).map((item, i) => (
               <div key={i} className="flex items-center gap-4 py-3">
-                <div className="w-16 h-16 bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                <button
+                  onClick={() => router.push(`/products/${item.productId}`)}
+                  className="w-16 h-16 bg-gray-100 overflow-hidden flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity"
+                >
                   <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
-                </div>
+                </button>
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900 text-sm">{item.productName}</p>
+                  <p
+                    className="font-medium text-gray-900 text-sm cursor-pointer hover:text-red-600 transition-colors"
+                    onClick={() => router.push(`/products/${item.productId}`)}
+                  >{item.productName}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{item.quantity}개 × {Number(item.productPrice).toLocaleString()}원</p>
                 </div>
                 <p className="font-bold text-gray-900 text-sm">{Number(item.totalPrice).toLocaleString()}원</p>
@@ -209,6 +281,19 @@ export default function OrderDetailPage() {
               <span className="text-red-600 text-lg">{Number(order.totalAmount).toLocaleString()}원</span>
             </div>
           </div>
+
+          {/* 포인트 적립 */}
+          {order.status === 'DELIVERED' && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-100 flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd"/>
+              </svg>
+              <span className="text-xs text-amber-700">
+                이 주문으로 <span className="font-bold">{Math.floor(Number(order.totalAmount) * 0.01).toLocaleString()}P</span> 포인트가 적립됐습니다
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
@@ -253,7 +338,10 @@ export default function OrderDetailPage() {
         <div className="flex gap-3 flex-wrap">
           {order.status === 'DELIVERED' && (
             <>
-              <button className="px-5 py-2 bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
+              <button
+                onClick={() => router.push(`/products/${order.items?.[0]?.productId || ''}`)}
+                className="px-5 py-2 bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
+              >
                 리뷰 작성
               </button>
               <button
@@ -264,8 +352,11 @@ export default function OrderDetailPage() {
               </button>
             </>
           )}
-          {['PENDING','CONFIRMED','PAYMENT_PENDING'].includes(order.status) && (
-            <button className="px-5 py-2 border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
+          {canCancel && (
+            <button
+              onClick={() => setShowCancelModal(true)}
+              className="px-5 py-2 border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+            >
               주문 취소
             </button>
           )}
@@ -277,6 +368,42 @@ export default function OrderDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* 주문 취소 모달 */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white w-full max-w-sm p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">주문 취소</h3>
+            <p className="text-sm text-gray-600 mb-4">취소 사유를 선택해주세요.</p>
+            <div className="space-y-2 mb-6">
+              {CANCEL_REASONS.map(reason => (
+                <label key={reason} className="flex items-center gap-3 cursor-pointer group">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${cancelReason === reason ? 'border-red-600 bg-red-600' : 'border-gray-300 group-hover:border-gray-500'}`}>
+                    {cancelReason === reason && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </div>
+                  <span className="text-sm text-gray-700">{reason}</span>
+                  <input type="radio" className="sr-only" value={reason} checked={cancelReason === reason} onChange={() => setCancelReason(reason)} />
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 py-2.5 border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+              >
+                돌아가기
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="flex-1 py-2.5 bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {cancelling ? '취소 중...' : '주문 취소'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
