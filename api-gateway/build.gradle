@@ -7,4 +7,8 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.7.0'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
+
+    // Prometheus 메트릭 (Rate Limit 거부율 노출)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 }

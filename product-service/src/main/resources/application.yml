@@ -80,10 +80,11 @@ management:
       show-details: always
   tracing:
     sampling:
-      probability: 0.1
-  zipkin:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+  otlp:
     tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
+      transport: http
   metrics:
     tags:
       application: product-service

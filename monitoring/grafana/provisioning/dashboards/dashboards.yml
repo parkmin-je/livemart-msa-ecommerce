@@ -1,0 +1,19 @@
+apiVersion: 1
+
+# Grafana 대시보드 자동 프로비저닝 설정
+# 대시보드 JSON 파일을 /etc/grafana/provisioning/dashboards/ 경로에서 자동 로딩
+# docker-compose에서 volumes 마운트 필요:
+#   - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+#   - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+
+providers:
+  - name: 'LiveMart Dashboards'
+    orgId: 1
+    folder: 'LiveMart'
+    type: file
+    disableDeletion: false          # Grafana UI에서 삭제 가능
+    updateIntervalSeconds: 30       # 30초마다 변경사항 감지
+    allowUiUpdates: true            # UI에서 대시보드 수정 허용 (개발 환경)
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true  # 디렉토리 구조를 폴더로 사용
