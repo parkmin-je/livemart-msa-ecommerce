@@ -1,5 +1,7 @@
 package com.livemart.gateway.filter;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -71,6 +74,8 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
 
     private Counter allowedCounter;
     private Counter rejectedCounter;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     public RateLimitFilter(ReactiveRedisTemplate<String, String> redisTemplate,
@@ -155,7 +160,14 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
                 }
             })
             .onErrorResume(ex -> {
-                log.error("Rate Limit 필터 오류 (Fail Open): {}", ex.getMessage());
+                log.error("Rate Limit 필터 오류 (Fail Closed): {}", ex.getMessage());
+                // 결제/주문 엔드포인트는 Fail-Closed (Redis 없으면 차단)
+                String path = exchange.getRequest().getPath().value();
+                if (path.startsWith("/api/payments") || path.startsWith("/api/orders")) {
+                    exchange.getResponse().setStatusCode(HttpStatus.SERVICE_UNAVAILABLE);
+                    return exchange.getResponse().setComplete();
+                }
+                // 일반 API는 Fail-Open 유지 (가용성)
                 return chain.filter(exchange);
             });
     }
@@ -185,27 +197,38 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
      * - 비인증 사용자: rl:ip:{ip}:{method}:{path_prefix}
      */
     private String buildRateLimitKey(ServerWebExchange exchange, String method, String path) {
-        // JWT에서 userId 추출 시도
+        // JWT에서 userId 추출 시도 (Jackson 사용 — 정규식 취약점 제거)
         String auth = exchange.getRequest().getHeaders().getFirst("Authorization");
         if (auth != null && auth.startsWith("Bearer ")) {
-            try {
-                String payload = auth.substring(7).split("\\.")[1];
-                String decoded = new String(java.util.Base64.getUrlDecoder().decode(
-                    payload + "=".repeat((4 - payload.length() % 4) % 4)
-                ));
-                // sub 클레임 추출
-                String userId = decoded.replaceAll(".*\"sub\":\"?([^\"\\}]+)\"?.*", "$1");
-                if (userId != null && !userId.equals(decoded)) {
-                    String pathPrefix = getPathPrefix(path);
-                    return String.format("rl:user:%s:%s:%s", userId, method, pathPrefix);
-                }
-            } catch (Exception ignored) {}
+            String userId = extractUserIdFromToken(auth.substring(7));
+            if (userId != null) {
+                String pathPrefix = getPathPrefix(path);
+                return String.format("rl:user:%s:%s:%s", userId, method, pathPrefix);
+            }
         }
 
         // IP 기반 (비인증)
         String ip = getClientIp(exchange);
         String pathPrefix = getPathPrefix(path);
         return String.format("rl:ip:%s:%s:%s", ip, method, pathPrefix);
+    }
+
+    /**
+     * JWT payload에서 sub 클레임 추출 — Jackson 파싱으로 정규식 취약점 제거
+     */
+    private String extractUserIdFromToken(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length != 3) return null;
+            String paddedPayload = parts[1] + "=".repeat((4 - parts[1].length() % 4) % 4);
+            String payload = new String(Base64.getUrlDecoder().decode(paddedPayload));
+            JsonNode node = objectMapper.readTree(payload);
+            JsonNode sub = node.get("sub");
+            return sub != null ? sub.asText() : null;
+        } catch (Exception e) {
+            log.warn("JWT 페이로드 파싱 실패: {}", e.getMessage());
+            return null;
+        }
     }
 
     private String getClientIp(ServerWebExchange exchange) {

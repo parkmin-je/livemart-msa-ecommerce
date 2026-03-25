@@ -205,7 +205,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,prometheus,metrics
+        include: health,prometheus  # gateway 라우팅 정보 노출 제거
+  endpoint:
+    health:
+      show-details: when-authorized  # 인가된 사용자만 상세 정보 노출
+    gateway:
+      enabled: false  # gateway 라우팅 정보 비활성화 (보안)
   health:
     redis:
       # Redis는 Rate Limiter에 사용됨 → 헬스체크 활성화
