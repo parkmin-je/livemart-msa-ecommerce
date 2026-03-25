@@ -63,10 +63,11 @@ management:
       enabled: false
   tracing:
     sampling:
-      probability: 0.1
-  zipkin:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+  otlp:
     tracing:
-      endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
+      transport: http
 
 # 로컬 개발: 호스트명 해결 타임아웃 단축 (Cannot determine local hostname WARN 방지)
 spring.cloud.inetutils.timeout-seconds: 1

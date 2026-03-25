@@ -103,10 +103,11 @@ management:
       show-details: always
   tracing:
     sampling:
-      probability: 0.1
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}  # 개발: 1.0, 운영: 0.1
   otlp:
     tracing:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+      # Jaeger OTLP HTTP 엔드포인트 (docker-compose: jaeger:4318, k8s: jaeger-collector:4318)
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
       transport: http
   metrics:
     tags:
