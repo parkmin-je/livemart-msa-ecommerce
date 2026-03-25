@@ -237,7 +237,7 @@ jobs:
           path: coverage/
           merge-multiple: false
 
-      - name: SonarQube Scan
+      - name: SonarQube Scan (Quality Gate 강제)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -249,9 +249,22 @@ jobs:
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
             -Dsonar.coverage.jacoco.xmlReportPaths=coverage/*/jacocoTestReport.xml \
             -Dsonar.java.source=21 \
-            -Dsonar.qualitygate.wait=false \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300 \
+            -Dsonar.coverage.minimum=80 \
             --no-daemon
-        continue-on-error: true
+        # Quality Gate 실패 시 PR 차단 (main 브랜치 보호)
+        continue-on-error: ${{ github.event_name == 'pull_request' && github.base_ref != 'main' }}
+
+      - name: Quality Gate 결과 요약
+        if: always()
+        run: |
+          echo "## SonarQube Quality Gate" >> $GITHUB_STEP_SUMMARY
+          echo "- 커버리지 목표: **80% 이상**" >> $GITHUB_STEP_SUMMARY
+          echo "- 보안 취약점: **0개**" >> $GITHUB_STEP_SUMMARY
+          echo "- Blocker/Critical Issues: **0개**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "SonarQube 대시보드: ${{ secrets.SONAR_HOST_URL }}/dashboard?id=livemart-msa-ecommerce" >> $GITHUB_STEP_SUMMARY
 
   # ── Lighthouse CI (Core Web Vitals) ─────────────────────────────
   lighthouse:

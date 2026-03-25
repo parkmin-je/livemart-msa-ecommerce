@@ -44,3 +44,6 @@ output "kubectl_config_command" {
   description = "kubectl 설정 명령어"
   value       = "aws eks update-kubeconfig --region ${var.aws_region} --name ${aws_eks_cluster.main.name}"
 }
+
+# 아래 출력은 MSK/OpenSearch/IAM 모듈이 추가된 environments/production/main.tf에서 관리됨
+# 루트 main.tf는 단순화를 위해 기존 리소스 출력만 유지
