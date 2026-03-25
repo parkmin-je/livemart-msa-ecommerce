@@ -9,17 +9,22 @@ function TossFailContent() {
   const message = searchParams.get('message') || '결제가 취소되었습니다.';
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <div className="bg-white rounded-2xl shadow-sm p-10 text-center max-w-sm w-full mx-4">
-        <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: '#F7F6F1' }}>
+      <div className="shadow-sm p-10 text-center max-w-sm w-full mx-4" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+        <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(234,179,8,0.1)' }}>
+          <svg className="w-8 h-8" style={{ color: 'rgb(161,98,7)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-2">결제 취소</h1>
-        <p className="text-gray-500 text-sm mb-6">{message}</p>
-        <button onClick={() => router.back()}
-          className="w-full bg-gray-900 text-white py-3 rounded-xl font-semibold text-sm hover:bg-gray-700 transition-colors">
+        <h1 className="text-xl font-bold mb-2" style={{ color: '#0E0E0E' }}>결제 취소</h1>
+        <p className="text-sm mb-6" style={{ color: 'rgba(14,14,14,0.5)' }}>{message}</p>
+        <button
+          onClick={() => router.back()}
+          className="w-full py-3 text-white font-semibold text-sm transition-colors"
+          style={{ background: '#0A0A0A' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#E8001D')}
+          onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
+        >
           돌아가기
         </button>
       </div>

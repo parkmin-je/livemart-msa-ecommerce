@@ -72,6 +72,17 @@ function NotificationTypeIcon({ type }: { type: string }) {
   }
 }
 
+function getTypeStyle(type: string): React.CSSProperties {
+  if (type?.startsWith('ORDER')) return { background: 'rgba(59,130,246,0.08)', color: 'rgb(37,99,235)' };
+  if (type?.startsWith('PAYMENT')) return { background: 'rgba(34,197,94,0.08)', color: 'rgb(21,128,61)' };
+  if (type?.startsWith('STOCK') || type === 'DELIVERY') return { background: 'rgba(168,85,247,0.08)', color: 'rgb(126,34,206)' };
+  if (type === 'PROMOTION') return { background: 'rgba(232,0,29,0.07)', color: '#E8001D' };
+  if (type === 'SYSTEM') return { background: 'rgba(14,14,14,0.06)', color: 'rgba(14,14,14,0.55)' };
+  if (type === 'REVIEW') return { background: 'rgba(234,179,8,0.08)', color: 'rgb(161,98,7)' };
+  if (type === 'RETURN') return { background: 'rgba(249,115,22,0.08)', color: 'rgb(194,65,12)' };
+  return { background: 'rgba(14,14,14,0.06)', color: 'rgba(14,14,14,0.45)' };
+}
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +93,6 @@ export default function NotificationsPage() {
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
 
-  // 지수 백오프 재연결 — 최대 8회 시도 (2s → 3s → 4.5s → ... → 60s)
   const connectSSE = useCallback((uid: string) => {
     if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     if (eventSourceRef.current) {
@@ -102,10 +112,8 @@ export default function NotificationsPage() {
     es.onmessage = (e) => {
       try {
         const n = JSON.parse(e.data);
-        // heartbeat/comment 이벤트는 data가 없으므로 id 체크
         if (n && n.id) {
           setNotifications(prev => {
-            // 중복 방지
             if (prev.some(p => p.id === n.id)) return prev;
             return [n, ...prev];
           });
@@ -122,7 +130,6 @@ export default function NotificationsPage() {
       if (count < 8) {
         retryCountRef.current++;
         setReconnecting(true);
-        // 지수 백오프: 2s, 3s, 4.5s, 6.75s, 10s, 15s, 22.5s, 34s
         const delay = Math.min(2000 * Math.pow(1.5, count), 60000);
         retryTimerRef.current = setTimeout(() => connectSSE(uid), delay);
       } else {
@@ -182,38 +189,28 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const getTypeColor = (type: string): string => {
-    if (type?.startsWith('ORDER')) return 'bg-blue-50 text-blue-600';
-    if (type?.startsWith('PAYMENT')) return 'bg-green-50 text-green-600';
-    if (type?.startsWith('STOCK') || type === 'DELIVERY') return 'bg-purple-50 text-purple-600';
-    if (type === 'PROMOTION') return 'bg-red-50 text-red-600';
-    if (type === 'SYSTEM') return 'bg-gray-100 text-gray-600';
-    if (type === 'REVIEW') return 'bg-yellow-50 text-yellow-600';
-    if (type === 'RETURN') return 'bg-orange-50 text-orange-600';
-    return 'bg-gray-100 text-gray-500';
-  };
-
-  // 연결 상태 표시
   const connStatus = connected
     ? { dot: 'bg-green-500', text: '실시간 연결됨', action: null }
     : reconnecting
       ? { dot: 'bg-yellow-400 animate-pulse', text: '재연결 중...', action: null }
-      : { dot: 'bg-gray-300', text: '연결 끊김', action: manualReconnect };
+      : { dot: 'rounded-full inline-block w-2 h-2', text: '연결 끊김', action: manualReconnect };
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
+    <main className="min-h-screen pb-14 md:pb-0" style={{ background: '#F7F6F1' }}>
       <GlobalNav />
       <div className="max-w-[700px] mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">알림 센터</h1>
+            <h1 className="text-xl font-bold" style={{ color: '#0E0E0E' }}>알림 센터</h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className={`w-2 h-2 rounded-full ${connStatus.dot}`} />
-              <span className="text-xs text-gray-500">{connStatus.text}</span>
+              <span className={`w-2 h-2 rounded-full ${connStatus.dot}`}
+                style={!connected && !reconnecting ? { background: 'rgba(14,14,14,0.25)' } : undefined} />
+              <span className="text-xs" style={{ color: 'rgba(14,14,14,0.45)' }}>{connStatus.text}</span>
               {connStatus.action && (
                 <button
                   onClick={connStatus.action}
-                  className="text-xs text-red-600 underline hover:no-underline ml-1"
+                  className="text-xs underline hover:no-underline ml-1"
+                  style={{ color: '#E8001D' }}
                 >
                   다시 연결
                 </button>
@@ -223,7 +220,10 @@ export default function NotificationsPage() {
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="text-sm font-semibold text-gray-600 border border-gray-300 hover:bg-gray-50 px-4 py-2 transition-colors"
+              className="text-sm font-semibold px-4 py-2 transition-colors"
+              style={{ border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(14,14,14,0.04)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               모두 읽음 처리 ({unreadCount})
             </button>
@@ -231,26 +231,28 @@ export default function NotificationsPage() {
         </div>
 
         {!userId ? (
-          <div className="text-center py-20 bg-white border border-gray-200">
-            <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-20" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+            <svg className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(14,14,14,0.18)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <h2 className="text-base font-bold text-gray-900 mb-2">로그인이 필요합니다</h2>
-            <a href="/auth" className="inline-block mt-4 px-5 py-2 bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
+            <h2 className="text-base font-bold mb-2" style={{ color: '#0E0E0E' }}>로그인이 필요합니다</h2>
+            <a href="/auth" className="inline-block mt-4 px-5 py-2 text-white text-sm font-semibold transition-colors" style={{ background: '#E8001D' }}>
               로그인
             </a>
           </div>
         ) : loading ? (
           <div className="space-y-2">
-            {[1,2,3,4].map(i => <div key={i} className="bg-white border border-gray-200 h-20 animate-pulse"/>)}
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-20 animate-pulse" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }} />
+            ))}
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center py-20 bg-white border border-gray-200">
-            <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-20" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+            <svg className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(14,14,14,0.18)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            <h2 className="text-base font-bold text-gray-900 mb-2">알림이 없습니다</h2>
-            <p className="text-gray-500 text-sm">주문, 배송 등 중요한 알림을 여기서 확인하세요</p>
+            <h2 className="text-base font-bold mb-2" style={{ color: '#0E0E0E' }}>알림이 없습니다</h2>
+            <p className="text-sm" style={{ color: 'rgba(14,14,14,0.5)' }}>주문, 배송 등 중요한 알림을 여기서 확인하세요</p>
           </div>
         ) : (
           <div className="space-y-1.5">
@@ -258,23 +260,30 @@ export default function NotificationsPage() {
               <div
                 key={n.id}
                 onClick={() => !n.read && markRead(n.id)}
-                className={`bg-white border p-4 flex items-start gap-3 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  !n.read ? 'border-l-4 border-l-red-600 border-t-gray-200 border-r-gray-200 border-b-gray-200' : 'border-gray-200'
-                }`}
+                className="p-4 flex items-start gap-3 cursor-pointer transition-colors"
+                style={{
+                  background: '#FFFFFF',
+                  borderTop: '1px solid rgba(14,14,14,0.07)',
+                  borderRight: '1px solid rgba(14,14,14,0.07)',
+                  borderBottom: '1px solid rgba(14,14,14,0.07)',
+                  borderLeft: !n.read ? '4px solid #E8001D' : '1px solid rgba(14,14,14,0.07)',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F7F6F1')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#FFFFFF')}
               >
-                <div className={`flex-shrink-0 w-9 h-9 flex items-center justify-center ${getTypeColor(n.type)}`}>
+                <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center" style={getTypeStyle(n.type)}>
                   <NotificationTypeIcon type={n.type} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <h3 className={`text-sm font-semibold ${n.read ? 'text-gray-500' : 'text-gray-900'}`}>{n.title}</h3>
-                    <span className="text-xs text-gray-400 flex-shrink-0">
+                    <h3 className="text-sm font-semibold" style={{ color: n.read ? 'rgba(14,14,14,0.45)' : '#0E0E0E' }}>{n.title}</h3>
+                    <span className="text-xs flex-shrink-0" style={{ color: 'rgba(14,14,14,0.35)' }}>
                       {new Date(n.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
+                  <p className="text-sm mt-0.5 line-clamp-2" style={{ color: 'rgba(14,14,14,0.5)' }}>{n.message}</p>
                 </div>
-                {!n.read && <span className="w-2 h-2 bg-red-600 rounded-full flex-shrink-0 mt-1.5" />}
+                {!n.read && <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ background: '#E8001D' }} />}
               </div>
             ))}
           </div>
