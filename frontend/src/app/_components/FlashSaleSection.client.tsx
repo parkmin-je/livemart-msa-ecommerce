@@ -144,7 +144,7 @@ export function FlashSaleSection({ products }: { products: Product[] }) {
                 LIVE
               </span>
             </div>
-            <p className="text-white/25 text-[11px] tracking-wide">번개특가 · 한정 수량 · 오늘만</p>
+            <p className="text-white/25 text-[11px] tracking-wide">한정 기간 할인 · 매 6시간 갱신</p>
           </div>
         </div>
 

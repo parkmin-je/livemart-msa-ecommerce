@@ -11,7 +11,7 @@ const BANNERS = [
     titleNum: '30',
     titleUnit: '%',
     titleSuffix: '할인',
-    sub: '베스트셀러 오늘만 특가 · 한정 수량',
+    sub: '다양한 카테고리 할인 상품을 한 곳에서 — 오늘의 특가를 놓치지 마세요',
     cta: '지금 쇼핑하기',
     ctaSub: '전체 상품 보기',
     href: '/products',
@@ -19,39 +19,33 @@ const BANNERS = [
     bgGrad: 'radial-gradient(ellipse 80% 60% at 20% 50%, #2A0000 0%, #080808 65%)',
     accent: '#E8001D',
     accentDim: 'rgba(232,0,29,0.12)',
-    pill: { text: '12,847명 참여 중', dot: true },
-    stat1: { v: '30%', l: '최대 할인' },
-    stat2: { v: '한정', l: '남은 수량' },
-    stat3: { v: '오늘만', l: '특가 기간' },
+    pill: { text: 'SALE', dot: true },
   },
   {
     id: 2,
-    eyebrow: 'ROCKET DELIVERY',
-    titleKo: '오늘 주문',
-    titleNum: '14',
-    titleUnit: 'H',
-    titleSuffix: '내 도착',
-    sub: '5만원 이상 전품목 무료배송 · 99.1% 만족도',
-    cta: '전체상품 보기',
-    ctaSub: '배송 정책 확인',
+    eyebrow: 'FREE SHIPPING',
+    titleKo: '오늘도',
+    titleNum: 'FREE',
+    titleUnit: '',
+    titleSuffix: '배송',
+    sub: '5만원 이상 주문 시 무료배송 · 실시간 배송 조회 지원',
+    cta: '상품 둘러보기',
+    ctaSub: '배송 안내',
     href: '/products',
     bg: '#010A14',
     bgGrad: 'radial-gradient(ellipse 80% 60% at 20% 50%, #00142A 0%, #010A14 65%)',
     accent: '#0EA5E9',
     accentDim: 'rgba(14,165,233,0.10)',
-    pill: { text: '평균 14시간 내 도착', dot: true },
-    stat1: { v: '99.1%', l: '고객 만족도' },
-    stat2: { v: '14H', l: '평균 도착' },
-    stat3: { v: '무료', l: '5만원 이상' },
+    pill: { text: '5만원 이상 무료', dot: false },
   },
   {
     id: 3,
     eyebrow: '2026 S/S COLLECTION',
-    titleKo: '봄 신상',
-    titleNum: '247',
+    titleKo: '봄 시즌',
+    titleNum: 'NEW',
     titleUnit: '',
-    titleSuffix: '종 입고',
-    sub: '트렌디한 봄 시즌 신상품 총출동 · 매일 업데이트',
+    titleSuffix: '컬렉션',
+    sub: '매일 업데이트되는 신상품 — 트렌디한 봄 아이템을 먼저 만나보세요',
     cta: '신상품 보기',
     ctaSub: '카테고리 전체보기',
     href: '/products',
@@ -59,28 +53,21 @@ const BANNERS = [
     bgGrad: 'radial-gradient(ellipse 80% 60% at 20% 50%, #002010 0%, #020B05 65%)',
     accent: '#22C55E',
     accentDim: 'rgba(34,197,94,0.10)',
-    pill: { text: '오늘 32종 신규 입고', dot: true },
-    stat1: { v: '247', l: '신상품 종류' },
-    stat2: { v: '매일', l: '업데이트' },
-    stat3: { v: '무료', l: '반품 정책' },
+    pill: { text: 'NEW IN', dot: false },
   },
 ];
 
 const TICKER = [
-  '🔥 플래시세일 진행 중',
-  '📦 5만원 이상 무료배송',
-  '⚡ 오늘 오후 2시 주문 → 내일 도착',
-  '🎁 신규가입 3,000원 즉시 지급',
-  '💳 카드결제 5% 추가할인',
-  '🚀 로켓배송 14시간 내 도착',
-  '⭐ VIP 회원 전용 비밀특가',
-  '🔥 플래시세일 진행 중',
-  '📦 5만원 이상 무료배송',
-  '⚡ 오늘 오후 2시 주문 → 내일 도착',
-  '🎁 신규가입 3,000원 즉시 지급',
-  '💳 카드결제 5% 추가할인',
-  '🚀 로켓배송 14시간 내 도착',
-  '⭐ VIP 회원 전용 비밀특가',
+  'FLASH SALE — 할인 상품 모아보기',
+  '5만원 이상 구매 시 무료배송',
+  '신규가입 즉시 쿠폰 지급',
+  '안전결제 — Stripe 연동',
+  '신상품 매일 업데이트',
+  'FLASH SALE — 할인 상품 모아보기',
+  '5만원 이상 구매 시 무료배송',
+  '신규가입 즉시 쿠폰 지급',
+  '안전결제 — Stripe 연동',
+  '신상품 매일 업데이트',
 ];
 
 const INTERVAL = 5600;
@@ -301,55 +288,20 @@ export function HeroBanner() {
             </div>
           </div>
 
-          {/* RIGHT: Stats panel (desktop) */}
-          <div className="hidden lg:flex flex-col items-center justify-center pr-16 xl:pr-24 flex-shrink-0 w-[320px] xl:w-[380px] relative z-10 gap-8">
-
-            {/* Decorative rings */}
-            {[0, 1, 2].map((ri) => (
-              <div
-                key={ri}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
-                style={{
-                  width: `${200 + ri * 90}px`,
-                  height: `${200 + ri * 90}px`,
-                  border: `1px solid ${b.accent}`,
-                  opacity: [0.14, 0.07, 0.03][ri],
-                  animation: `float ${5 + ri}s ease-in-out infinite`,
-                  animationDelay: `${ri * 0.8}s`,
-                }}
-              />
-            ))}
-
-            {/* Crosshair top-right */}
-            <svg
-              className="absolute top-[22%] right-[18%]"
-              width="22" height="22" viewBox="0 0 22 22" fill="none"
-              style={{ opacity: 0.2 }}
+          {/* RIGHT: Editorial mark (desktop) */}
+          <div className="hidden lg:flex items-center justify-center pr-16 xl:pr-24 flex-shrink-0 w-[280px] xl:w-[320px] relative z-10 pointer-events-none select-none">
+            <span
+              className="font-bebas leading-none"
+              style={{
+                fontSize: 'clamp(7rem, 16vw, 13rem)',
+                letterSpacing: '0.04em',
+                color: 'transparent',
+                WebkitTextStroke: `1px ${b.accent}`,
+                opacity: 0.1,
+              }}
             >
-              <path d="M11 0v22M0 11h22" stroke={b.accent} strokeWidth="0.8" />
-              <circle cx="11" cy="11" r="4" stroke={b.accent} strokeWidth="0.8" />
-            </svg>
-
-            {/* Stats */}
-            <div className="relative z-10 flex flex-col gap-6">
-              {[b.stat1, b.stat2, b.stat3].map((s, i) => (
-                <div key={i} className="flex flex-col items-center text-center">
-                  <span
-                    className="font-bebas leading-none mb-1"
-                    style={{
-                      fontSize: 'clamp(2.2rem, 4.5vw, 3.5rem)',
-                      color: i === 0 ? b.accent : 'rgba(255,255,255,0.85)',
-                      letterSpacing: '0.01em',
-                    }}
-                  >
-                    {s.v}
-                  </span>
-                  <span className="text-[10px] tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                    {s.l}
-                  </span>
-                </div>
-              ))}
-            </div>
+              LM
+            </span>
           </div>
         </div>
 

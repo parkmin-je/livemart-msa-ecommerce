@@ -190,8 +190,8 @@ export default async function Home() {
                   </svg>
                 ),
                 accent: '#2563EB',
-                title: '로켓배송',
-                desc: '오늘 주문 · 내일 도착 보장',
+                title: '빠른 배송',
+                desc: '빠른 배송 · 실시간 조회 지원',
               },
               {
                 icon: (
@@ -269,86 +269,82 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* ── LiveMart Bento Grid — 플랫폼 핵심 지표 ── */}
+        {/* ── 서비스 특징 ── */}
         <div style={{ borderTop: '1px solid rgba(14,14,14,0.07)', paddingTop: '2.5rem', paddingBottom: '2.5rem' }}>
-          <SectionHeader title="LiveMart 현황" eyebrow="Platform Stats" subtitle="실시간 플랫폼 성과" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {/* 대형 카드 — 월 거래액 */}
-            <div
-              className="col-span-2 row-span-2 flex flex-col justify-between p-6 md:p-8"
-              style={{ background: '#0A0A0A', minHeight: '200px' }}
-            >
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-3" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                  월 거래액 (GMV)
+          <SectionHeader title="LiveMart" eyebrow="Features" subtitle="직접 구현한 핵심 기능" />
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px"
+            style={{ background: 'rgba(14,14,14,0.07)', border: '1px solid rgba(14,14,14,0.07)' }}
+          >
+            {[
+              {
+                accent: '#E8001D',
+                eyebrow: '분산 트랜잭션',
+                title: '실시간 주문 처리',
+                desc: 'Kafka + Saga Choreography 패턴으로 주문·결제·재고를 분산 트랜잭션으로 안전하게 처리합니다.',
+                icon: (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                ),
+              },
+              {
+                accent: '#0EA5E9',
+                eyebrow: '스마트 검색',
+                title: 'Elasticsearch 검색',
+                desc: 'Elasticsearch + nori 형태소 분석기로 한국어 자연어 검색을 지원하고 Redis 캐싱으로 응답 속도를 높였습니다.',
+                icon: (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                ),
+              },
+              {
+                accent: '#8B5CF6',
+                eyebrow: '안전 결제',
+                title: 'Stripe 결제 연동',
+                desc: 'Stripe 결제 SDK와 멱등성 키 기반 중복 방지로 안전하고 신뢰할 수 있는 결제 처리를 구현했습니다.',
+                icon: (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                ),
+              },
+              {
+                accent: '#22C55E',
+                eyebrow: 'AI 추천',
+                title: '맞춤 상품 추천',
+                desc: 'Spring AI 1.0 + OpenRouter LLM 연동으로 구매 이력 기반 개인화 추천을 제공하고 Redis로 캐싱합니다.',
+                icon: (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                ),
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="flex flex-col p-6 md:p-7"
+                style={{ background: '#fff' }}
+              >
+                <div
+                  className="w-10 h-10 flex items-center justify-center mb-5 flex-shrink-0"
+                  style={{ background: `${item.accent}12`, color: item.accent }}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {item.icon}
+                  </svg>
                 </div>
-                <div className="font-bebas leading-none" style={{ fontSize: 'clamp(3rem, 8vw, 5.5rem)', color: '#E8001D', letterSpacing: '0.01em' }}>
-                  ₩2.4B
+                <div
+                  className="text-[10px] font-black uppercase tracking-[0.18em] mb-2"
+                  style={{ color: item.accent }}
+                >
+                  {item.eyebrow}
                 </div>
-                <div className="text-sm mt-2 font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  전월 대비 <span style={{ color: '#22C55E' }}>+18.3%</span> 성장
-                </div>
+                <h3 className="font-bold text-sm mb-3 leading-tight" style={{ color: '#0E0E0E' }}>
+                  {item.title}
+                </h3>
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(14,14,14,0.42)', wordBreak: 'keep-all' }}>
+                  {item.desc}
+                </p>
               </div>
-              <div className="flex items-end gap-1 mt-6" style={{ height: '48px' }}>
-                {[40, 55, 45, 70, 60, 85, 75, 90, 80, 95, 88, 100].map((h, i) => (
-                  <div
-                    key={i}
-                    className="flex-1"
-                    style={{
-                      height: `${h}%`,
-                      background: i === 11 ? '#E8001D' : `rgba(232,0,29,${0.15 + i * 0.06})`,
-                      transition: 'height 0.5s ease',
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* 활성 사용자 */}
-            <div className="p-5" style={{ background: '#fff', border: '1px solid rgba(14,14,14,0.08)' }}>
-              <div className="text-[10px] font-black uppercase tracking-[0.15em] mb-3" style={{ color: 'rgba(14,14,14,0.3)' }}>
-                활성 사용자
-              </div>
-              <div className="font-bebas leading-none" style={{ fontSize: '2.8rem', color: '#0E0E0E' }}>
-                847K
-              </div>
-              <div className="text-xs mt-1.5 flex items-center gap-1" style={{ color: '#22C55E' }}>
-                <span>▲</span> 12.1% MoM
-              </div>
-            </div>
-
-            {/* 평균 배송 */}
-            <div className="p-5" style={{ background: '#2563EB', minHeight: '110px' }}>
-              <div className="text-[10px] font-black uppercase tracking-[0.15em] mb-3 text-white/50">
-                평균 배송
-              </div>
-              <div className="font-bebas leading-none text-white" style={{ fontSize: '2.8rem' }}>
-                13.2H
-              </div>
-              <div className="text-xs mt-1.5 text-white/50">업계 최고 수준</div>
-            </div>
-
-            {/* 셀러 수 */}
-            <div className="p-5" style={{ background: '#fff', border: '1px solid rgba(14,14,14,0.08)' }}>
-              <div className="text-[10px] font-black uppercase tracking-[0.15em] mb-3" style={{ color: 'rgba(14,14,14,0.3)' }}>
-                입점 셀러
-              </div>
-              <div className="font-bebas leading-none" style={{ fontSize: '2.8rem', color: '#0E0E0E' }}>
-                32K+
-              </div>
-              <div className="text-xs mt-1.5" style={{ color: 'rgba(14,14,14,0.35)' }}>검증된 공식 셀러</div>
-            </div>
-
-            {/* 상품 수 */}
-            <div className="p-5" style={{ background: '#F0EEE7', border: '1px solid rgba(14,14,14,0.08)' }}>
-              <div className="text-[10px] font-black uppercase tracking-[0.15em] mb-3" style={{ color: 'rgba(14,14,14,0.3)' }}>
-                등록 상품
-              </div>
-              <div className="font-bebas leading-none" style={{ fontSize: '2.8rem', color: '#0E0E0E' }}>
-                5.2M
-              </div>
-              <div className="text-xs mt-1.5" style={{ color: 'rgba(14,14,14,0.35)' }}>매일 1,200종 신규</div>
-            </div>
+            ))}
           </div>
         </div>
 

@@ -336,11 +336,6 @@ export function ProductCard({ product }: ProductCardProps) {
           ) : (
             <span className="text-[11px]" style={{ color: '#AEAEAE' }}>배송비 3,000원</span>
           )}
-          {(product.stockQuantity ?? 0) > 10 && (
-            <span className="text-[10px]" style={{ color: '#C0BDB5' }}>
-              {((product.stockQuantity ?? 0) * 3 + product.id * 7).toLocaleString()}명 구매
-            </span>
-          )}
         </div>
 
         {/* Cart button */}
