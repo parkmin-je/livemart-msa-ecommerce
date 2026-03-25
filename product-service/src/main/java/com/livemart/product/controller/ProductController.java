@@ -19,6 +19,7 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 
 @Tag(name = "Product API", description = "상품 관리 API")
 @RestController
@@ -74,7 +75,7 @@ public class ProductController {
     public ResponseEntity<Page<ProductResponse>> searchProducts(
             @Parameter(description = "검색 키워드") @RequestParam String keyword,
             Pageable pageable) {
-        return ResponseEntity.ok(productService.searchProducts(keyword, pageable));
+        return ResponseEntity.ok(productService.searchProducts(sanitizeSearchInput(keyword), pageable));
     }
 
     @Operation(summary = "상품 수정", description = "상품 정보를 수정합니다")
@@ -108,7 +109,7 @@ public class ProductController {
     public ResponseEntity<List<ProductResponse>> fuzzySearch(
             @Parameter(description = "검색 키워드") @RequestParam String keyword,
             @Parameter(description = "오타 허용 범위 (0~2)") @RequestParam(defaultValue = "1") int fuzziness) {
-        return ResponseEntity.ok(advancedSearchService.fuzzySearch(keyword, fuzziness));
+        return ResponseEntity.ok(advancedSearchService.fuzzySearch(sanitizeSearchInput(keyword), fuzziness));
     }
 
     @Operation(summary = "고급 필터 검색", description = "가격 범위, 카테고리, 재고 여부로 필터링하는 Elasticsearch 검색")
@@ -139,7 +140,26 @@ public class ProductController {
     @GetMapping("/search/autocomplete")
     public ResponseEntity<List<String>> autocomplete(
             @Parameter(description = "검색어 prefix") @RequestParam String prefix) {
-        return ResponseEntity.ok(advancedSearchService.autocomplete(prefix));
+        return ResponseEntity.ok(advancedSearchService.autocomplete(sanitizeSearchInput(prefix)));
+    }
+
+    // ── 보안 헬퍼 ───────────────────────────────────────────────────
+
+    /**
+     * Elasticsearch 쿼리 인젝션 방어 — 특수문자 이스케이프 및 길이 제한
+     */
+    private String sanitizeSearchInput(String input) {
+        if (input == null) return null;
+        // Elasticsearch 특수문자 이스케이프
+        String[] specialChars = {"\\", "+", "-", "=", "&&", "||", ">", "<", "!", "(", ")", "{", "}", "[", "]", "^", "\"", "~", "*", "?", ":", "/"};
+        for (String special : specialChars) {
+            input = input.replace(special, "\\" + special);
+        }
+        // 최대 길이 제한
+        if (input.length() > 100) {
+            input = input.substring(0, 100);
+        }
+        return input.trim();
     }
 
     @Operation(summary = "유사 상품 추천", description = "특정 상품과 유사한 상품 목록 (More Like This)")

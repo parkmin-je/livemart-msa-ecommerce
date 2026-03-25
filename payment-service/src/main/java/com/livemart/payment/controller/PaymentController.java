@@ -2,16 +2,20 @@ package com.livemart.payment.controller;
 
 import com.livemart.common.audit.AuditLog;
 import com.livemart.common.idempotency.IdempotencyKey;
+import com.livemart.payment.client.OrderFeignClient;
 import com.livemart.payment.dto.*;
 import com.livemart.payment.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final OrderFeignClient orderFeignClient;
 
     @PostMapping
     @IdempotencyKey(prefix = "payment-process")
@@ -26,6 +31,27 @@ public class PaymentController {
     @Operation(summary = "결제 처리")
     // 내부 서비스 호출 허용 (인증은 api-gateway가 처리)
     public ResponseEntity<PaymentResponse> processPayment(@Valid @RequestBody PaymentRequest.Create request) {
+        // 서버 측 주문 금액 검증 — 클라이언트 금액 조작 방어
+        try {
+            OrderInfo order = orderFeignClient.getOrderByNumber(request.getOrderNumber());
+
+            if (order.getTotalAmount() != null && order.getTotalAmount().compareTo(request.getAmount()) != 0) {
+                log.warn("결제 금액 불일치 감지 - orderNumber: {}, 요청: {}, 실제: {}",
+                        request.getOrderNumber(), request.getAmount(), order.getTotalAmount());
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "결제 금액이 일치하지 않습니다");
+            }
+
+            if ("PAID".equals(order.getStatus()) || "PAYMENT_COMPLETED".equals(order.getStatus())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 결제 완료된 주문입니다");
+            }
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            // order-service 호출 실패 시 결제 진행 차단 (Fail-Closed)
+            log.error("주문 정보 조회 실패 - orderNumber: {}, error: {}", request.getOrderNumber(), e.getMessage());
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "주문 정보를 확인할 수 없습니다. 잠시 후 다시 시도해주세요.");
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.processPayment(request));
     }
 

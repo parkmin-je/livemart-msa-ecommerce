@@ -80,4 +80,18 @@ public class InventoryController {
     public ResponseEntity<List<InventoryResponse>> getReorderNeeded() {
         return ResponseEntity.ok(inventoryService.getItemsNeedingReorder());
     }
+
+    @PostMapping("/decrement")
+    @AuditLog(action = "DECREMENT", resource = "Inventory")
+    @Operation(summary = "재고 원자적 차감 (분산 락)",
+               description = "order-service에서 주문 확정 시 호출 — Redisson 분산 락으로 Race Condition 방어")
+    public ResponseEntity<Boolean> decrementStock(
+            @RequestParam Long productId,
+            @RequestParam int quantity) {
+        boolean success = inventoryService.decrementStock(productId, quantity);
+        if (!success) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT).body(false);
+        }
+        return ResponseEntity.ok(true);
+    }
 }
