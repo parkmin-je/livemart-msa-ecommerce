@@ -64,28 +64,28 @@ function CallbackContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center max-w-sm w-full mx-4">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#F7F6F1' }}>
+      <div className="shadow-sm p-10 text-center max-w-sm w-full mx-4" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
         {status === 'loading' && (
           <>
-            <div className="w-14 h-14 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mx-auto mb-5" />
-            <p className="text-gray-700 font-medium">{message}</p>
+            <div className="w-14 h-14 rounded-full animate-spin mx-auto mb-5" style={{ border: '4px solid rgba(232,0,29,0.15)', borderTopColor: '#E8001D' }} />
+            <p className="font-medium" style={{ color: 'rgba(14,14,14,0.7)' }}>{message}</p>
           </>
         )}
         {status === 'success' && (
           <>
-            <div className="flex justify-center mb-4"><svg className="w-14 h-14 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">로그인 성공!</h2>
-            <p className="text-gray-500 text-sm">{message}</p>
-            <p className="text-xs text-gray-400 mt-2">홈으로 이동 중...</p>
+            <div className="flex justify-center mb-4"><svg className="w-14 h-14" style={{ color: 'rgb(21,128,61)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            <h2 className="text-xl font-bold mb-2" style={{ color: '#0E0E0E' }}>로그인 성공!</h2>
+            <p className="text-sm" style={{ color: 'rgba(14,14,14,0.5)' }}>{message}</p>
+            <p className="text-xs mt-2" style={{ color: 'rgba(14,14,14,0.35)' }}>홈으로 이동 중...</p>
           </>
         )}
         {status === 'error' && (
           <>
-            <div className="flex justify-center mb-4"><svg className="w-14 h-14 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">로그인 실패</h2>
-            <p className="text-gray-500 text-sm">{message}</p>
-            <p className="text-xs text-gray-400 mt-2">잠시 후 로그인 페이지로...</p>
+            <div className="flex justify-center mb-4"><svg className="w-14 h-14" style={{ color: '#E8001D' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            <h2 className="text-xl font-bold mb-2" style={{ color: '#0E0E0E' }}>로그인 실패</h2>
+            <p className="text-sm" style={{ color: 'rgba(14,14,14,0.5)' }}>{message}</p>
+            <p className="text-xs mt-2" style={{ color: 'rgba(14,14,14,0.35)' }}>잠시 후 로그인 페이지로...</p>
           </>
         )}
       </div>
@@ -96,8 +96,8 @@ function CallbackContent() {
 export default function AuthCallbackPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="w-14 h-14 border-4 border-red-200 border-t-red-600 rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F7F6F1' }}>
+        <div className="w-14 h-14 rounded-full animate-spin" style={{ border: '4px solid rgba(232,0,29,0.15)', borderTopColor: '#E8001D' }} />
       </div>
     }>
       <CallbackContent />
