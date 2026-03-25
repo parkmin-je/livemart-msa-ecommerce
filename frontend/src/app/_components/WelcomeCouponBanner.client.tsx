@@ -40,14 +40,20 @@ export function WelcomeCouponBanner() {
   return (
     <button
       onClick={handleClick}
-      className="group w-full text-left bg-gray-950 px-6 py-5 text-white hover:bg-gray-900 transition-colors flex items-center justify-between"
+      className="group w-full text-left px-6 py-5 text-white flex items-center justify-between transition-colors"
+      style={{ background: '#0A0A0A' }}
+      onMouseEnter={e => (e.currentTarget.style.background = '#1A1A1A')}
+      onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
     >
       <div>
-        <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-[0.12em] mb-2">
+        <div
+          className="uppercase tracking-[0.12em] mb-2"
+          style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}
+        >
           Welcome Offer
         </div>
         <div className="font-bold text-base tracking-tight">신규 회원 혜택</div>
-        <div className="text-sm text-gray-400 mt-1">
+        <div className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
           {claimed
             ? '수령 완료 · 코드: WELCOME3000'
             : '가입 즉시 3,000원 쿠폰 지급'}
@@ -59,7 +65,10 @@ export function WelcomeCouponBanner() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         )}
-        <div className="w-10 h-10 rounded bg-white/8 border border-white/10 flex items-center justify-center group-hover:bg-white/15 transition-colors">
+        <div
+          className="w-10 h-10 flex items-center justify-center"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />

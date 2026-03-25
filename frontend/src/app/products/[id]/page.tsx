@@ -61,15 +61,9 @@ function Stars({ rating, size = 'sm', interactive = false, onRate }: {
   );
 }
 
-// Generate gallery images from product imageUrl + picsum variants
-function getGalleryImages(imageUrl: string | undefined, productId: number): string[] {
-  const images: string[] = [];
-  if (imageUrl) images.push(imageUrl);
-  // Add 3 picsum variant images
-  [productId * 7 + 1, productId * 11 + 3, productId * 13 + 7].forEach(seed => {
-    images.push(`https://picsum.photos/seed/${seed}/600/600`);
-  });
-  return images;
+// Use only real product image
+function getGalleryImages(imageUrl: string | undefined): string[] {
+  return imageUrl ? [imageUrl] : [];
 }
 
 // Save to recently viewed
@@ -86,42 +80,6 @@ function saveRecentlyViewed(product: Product) {
   } catch {}
 }
 
-// 로켓배송 표시 여부: 오후 2시 이전 주문 → 내일 도착
-function getRocketDeliveryMessage(): string {
-  const now = new Date();
-  const hours = now.getHours();
-  if (hours < 14) {
-    return `오늘 오후 2시 이전 주문 시 내일 도착`;
-  } else {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dayAfter = new Date(now);
-    dayAfter.setDate(dayAfter.getDate() + 2);
-    return `내일 오후 2시 이전 주문 시 ${dayAfter.getMonth()+1}/${dayAfter.getDate()} 도착`;
-  }
-}
-
-// Mock Q&A data (서버 없을 때 표시)
-function getMockQna(productId: number): QnaItem[] {
-  return [
-    {
-      id: 1,
-      question: '배송은 얼마나 걸리나요?',
-      answer: '로켓배송 상품은 오후 2시 이전 주문 시 다음날 도착합니다. 일반 배송은 2-3일 소요됩니다.',
-      userName: '구매자',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      secret: false,
-    },
-    {
-      id: 2,
-      question: `상품 ${productId}번, 색상 변경 가능한가요?`,
-      answer: undefined,
-      userName: '회원',
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      secret: false,
-    },
-  ];
-}
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -159,13 +117,12 @@ export default function ProductDetailPage() {
   const [compareList, setCompareList] = useState<number[]>([]);
 
   const discountRate = [0,0,5,10,10,15,15,20,20,25,30,0,10,15][productId % 14];
-  const rocketDeliveryMsg = getRocketDeliveryMessage();
 
   useEffect(() => {
     Promise.all([
       productApi.getProduct(productId).then(p => {
         setProduct(p);
-        const imgs = getGalleryImages(p.imageUrl, productId);
+        const imgs = getGalleryImages(p.imageUrl);
         setGalleryImages(imgs);
         saveRecentlyViewed(p);
         // Load related products by category
@@ -198,17 +155,15 @@ export default function ProductDetailPage() {
     loadStock();
     const stockInterval = setInterval(loadStock, 30000);
 
-    // Q&A 로드 (mock fallback)
+    // Q&A 로드
     fetch(`/api/products/${productId}/qna`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d && (d.content || Array.isArray(d))) {
           setQnaItems(d.content || d);
-        } else {
-          setQnaItems(getMockQna(productId));
         }
       })
-      .catch(() => setQnaItems(getMockQna(productId)));
+      .catch(() => {});
 
     return () => clearInterval(stockInterval);
   }, [productId]);
@@ -328,21 +283,38 @@ export default function ProductDetailPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-100"><GlobalNav />
+    <div className="min-h-screen" style={{ background: '#F7F6F1' }}><GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="aspect-square bg-gray-200 rounded-2xl animate-pulse"/>
-        <div className="space-y-4 pt-4">{[80,60,40,50,40,90].map((w,i)=><div key={i} className="h-5 bg-gray-200 rounded animate-pulse" style={{width:`${w}%`}}/>)}</div>
+        <div
+          className="aspect-square animate-pulse"
+          style={{ background: 'linear-gradient(90deg, #EDEBE4 0%, #E4E1D8 50%, #EDEBE4 100%)', backgroundSize: '600px 100%', animation: 'shimmer 1.8s ease-in-out infinite' }}
+        />
+        <div className="space-y-4 pt-4">
+          {[80,60,40,50,40,90].map((w,i)=>(
+            <div key={i} className="h-5 animate-pulse" style={{ background: '#EDEBE4', width:`${w}%` }}/>
+          ))}
+        </div>
       </div>
     </div>
   );
 
   if (!product) return (
-    <div className="min-h-screen bg-gray-100"><GlobalNav />
+    <div className="min-h-screen" style={{ background: '#F7F6F1' }}><GlobalNav />
       <div className="flex items-center justify-center pt-20">
-        <div className="text-center bg-white border border-gray-200 p-12 max-w-md mx-auto">
-          <div className="flex justify-center mb-4"><svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-          <h2 className="text-xl font-bold text-gray-700 mb-4">상품을 찾을 수 없습니다</h2>
-          <button onClick={()=>router.push('/products')} className="px-6 py-2 bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors">상품 목록으로</button>
+        <div className="text-center p-12 max-w-md mx-auto" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+          <div className="flex justify-center mb-4">
+            <svg className="w-16 h-16" style={{ color: 'rgba(14,14,14,0.15)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold mb-4" style={{ color: '#0E0E0E' }}>상품을 찾을 수 없습니다</h2>
+          <button
+            onClick={()=>router.push('/products')}
+            className="px-6 py-2 text-white font-semibold transition-colors"
+            style={{ background: '#E8001D' }}
+          >
+            상품 목록으로
+          </button>
         </div>
       </div>
     </div>
@@ -354,16 +326,16 @@ export default function ProductDetailPage() {
   const isLowStock = inStock && effectiveStock <= 5;
   const isFreeShipping = product.price >= 50000;
   const originalPrice = discountRate > 0 ? Math.round(product.price / (1 - discountRate/100) / 100) * 100 : product.price;
-  const displayRating = summary?.averageRating || 4.5;
+  const displayRating = summary?.averageRating ?? null;
   const reviewCount = summary?.totalCount || 0;
   const isInCompare = compareList.includes(productId);
 
   return (
-    <main className="min-h-screen bg-gray-100 pb-14 md:pb-0">
+    <main className="min-h-screen pb-14 md:pb-0" style={{ background: '#F7F6F1' }}>
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-5">
         {/* 브레드크럼 */}
-        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-5">
+        <nav className="flex items-center gap-2 text-sm mb-5" style={{ color: 'rgba(14,14,14,0.45)' }}>
           {[['홈','/'], ['상품','/products'], ...(product.categoryName ? [[product.categoryName,'#']] : [])].map(([label, href], i) => (
             <span key={label} className="flex items-center gap-2">
               {i > 0 && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>}
@@ -371,14 +343,14 @@ export default function ProductDetailPage() {
             </span>
           ))}
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
-          <span className="text-gray-700 font-medium line-clamp-1">{product.name}</span>
+          <span className="font-medium line-clamp-1" style={{ color: 'rgba(14,14,14,0.7)' }}>{product.name}</span>
         </nav>
 
         {/* 상품 메인 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* 이미지 갤러리 */}
           <div className="flex flex-col gap-3">
-            <div className="bg-white rounded-2xl overflow-hidden aspect-square shadow-sm border border-gray-100 relative group">
+            <div className="overflow-hidden aspect-square relative group" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
               {galleryImages.length > 0 ? (
                 <img src={galleryImages[selectedImageIdx]} alt={product.name}
                   className="w-full h-full object-cover transition-all duration-300"
@@ -389,15 +361,19 @@ export default function ProductDetailPage() {
                     }
                   }}/>
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100"><svg className="w-24 h-24 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+                <div className="w-full h-full flex items-center justify-center" style={{ background: '#F5F4F0' }}>
+                  <svg className="w-24 h-24" style={{ color: 'rgba(14,14,14,0.12)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
               )}
               {/* 좌우 화살표 */}
               {galleryImages.length > 1 && (
                 <>
                   <button onClick={() => setSelectedImageIdx(i => (i - 1 + galleryImages.length) % galleryImages.length)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-gray-700 text-xl">‹</button>
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xl" style={{ color: '#0E0E0E' }}>‹</button>
                   <button onClick={() => setSelectedImageIdx(i => (i + 1) % galleryImages.length)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-gray-700 text-xl">›</button>
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xl" style={{ color: '#0E0E0E' }}>›</button>
                 </>
               )}
               {/* 공유/비교 버튼 */}
@@ -407,7 +383,7 @@ export default function ProductDetailPage() {
                   className="w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow flex items-center justify-center transition-colors"
                   title="공유하기"
                 >
-                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" style={{ color: 'rgba(14,14,14,0.55)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                   </svg>
                 </button>
@@ -427,7 +403,8 @@ export default function ProductDetailPage() {
               <div className="flex gap-2">
                 {galleryImages.map((img, i) => (
                   <button key={i} onClick={() => setSelectedImageIdx(i)}
-                    className={`flex-1 aspect-square rounded-xl overflow-hidden border-2 transition-all ${selectedImageIdx === i ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'}`}>
+                    className="flex-1 aspect-square overflow-hidden transition-all"
+                  style={{ border: selectedImageIdx === i ? '2px solid #E8001D' : '1px solid rgba(14,14,14,0.12)' }}>
                     <img src={img} alt={`${product.name} ${i+1}`} className="w-full h-full object-cover"
                       onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}/>
                   </button>
@@ -436,49 +413,53 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4">
+          <div className="p-6 flex flex-col gap-4" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
             {product.categoryName && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 w-fit">
+              <span
+                className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold w-fit uppercase tracking-wider"
+                style={{ background: 'rgba(232,0,29,0.08)', color: '#E8001D' }}
+              >
                 {product.categoryName}
               </span>
             )}
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight">{product.name}</h1>
+            <h1 className="text-2xl font-bold leading-tight" style={{ color: '#0E0E0E' }}>{product.name}</h1>
 
-            <div className="flex items-center gap-2">
-              <Stars rating={Math.round(displayRating)} size="sm"/>
-              <span className="text-sm font-semibold text-gray-800">{displayRating.toFixed(1)}</span>
-              <span className="text-sm text-gray-400">({reviewCount.toLocaleString()}개 리뷰)</span>
-            </div>
+            {displayRating !== null && (
+              <div className="flex items-center gap-2">
+                <Stars rating={Math.round(displayRating)} size="sm"/>
+                <span className="text-sm font-semibold" style={{ color: '#0E0E0E' }}>{displayRating.toFixed(1)}</span>
+                <span className="text-sm" style={{ color: 'rgba(14,14,14,0.38)' }}>({reviewCount.toLocaleString()}개 리뷰)</span>
+              </div>
+            )}
 
-            <hr className="border-gray-100"/>
+            <hr style={{ borderColor: 'rgba(14,14,14,0.07)' }}/>
 
             <div>
               {discountRate > 0 && (
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-lg font-bold text-red-600">{discountRate}%</span>
-                  <span className="text-gray-400 line-through text-sm">{originalPrice.toLocaleString()}원</span>
+                  <span className="line-through text-sm" style={{ color: 'rgba(14,14,14,0.35)' }}>{originalPrice.toLocaleString()}원</span>
                 </div>
               )}
-              <div className="text-3xl font-black text-gray-900">
+              <div className="text-3xl font-black" style={{ color: '#0E0E0E' }}>
                 {product.price.toLocaleString()}<span className="text-xl font-semibold ml-1">원</span>
               </div>
             </div>
 
             {/* 배송 정보 */}
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+            <div className="p-4 space-y-2 text-sm" style={{ background: '#F7F6F1' }}>
               {isFreeShipping ? (
-                <div className="flex items-start gap-2">
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="font-bold text-blue-600">로켓배송</span>
-                    <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold">무료</span>
-                  </div>
-                  <span className="text-gray-500 text-xs">{rocketDeliveryMsg}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold" style={{ color: '#0070F3' }}>무료배송</span>
+                  <span style={{ color: 'rgba(14,14,14,0.45)' }}>· 5만원 이상</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-gray-600"><span>일반배송</span><span className="text-gray-500">· 3,000원</span></div>
+                <div className="flex items-center gap-2" style={{ color: 'rgba(14,14,14,0.55)' }}>
+                  <span>일반배송</span><span style={{ color: 'rgba(14,14,14,0.38)' }}>· 3,000원</span>
+                </div>
               )}
-              <div className="flex items-center gap-2 text-gray-600"><span>7일 이내 무료 반품</span></div>
-              <div className="flex items-center gap-2 text-gray-600"><span>안전결제 보장</span></div>
+              <div style={{ color: 'rgba(14,14,14,0.55)' }}>7일 이내 무료 반품</div>
+              <div style={{ color: 'rgba(14,14,14,0.55)' }}>Stripe 안전결제 보장</div>
             </div>
 
             {/* 재고/수량 — 실시간 polling */}
@@ -499,43 +480,56 @@ export default function ProductDetailPage() {
                   </span>
                 </div>
                 {inStock && (
-                  <div className="flex items-center rounded-xl border border-gray-200 overflow-hidden">
-                    <button onClick={()=>setQuantity(Math.max(1,quantity-1))} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-xl font-bold">−</button>
-                    <span className="w-12 text-center font-semibold text-gray-900">{quantity}</span>
-                    <button onClick={()=>setQuantity(Math.min(effectiveStock,quantity+1))} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-xl font-bold">+</button>
+                  <div className="flex items-center overflow-hidden" style={{ border: '1px solid rgba(14,14,14,0.14)' }}>
+                    <button onClick={()=>setQuantity(Math.max(1,quantity-1))} className="w-10 h-10 flex items-center justify-center text-xl font-bold transition-colors" style={{ color: 'rgba(14,14,14,0.55)' }} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.background='rgba(14,14,14,0.04)')} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.background='transparent')}>−</button>
+                    <span className="w-12 text-center font-semibold" style={{ color: '#0E0E0E', borderLeft: '1px solid rgba(14,14,14,0.1)', borderRight: '1px solid rgba(14,14,14,0.1)' }}>{quantity}</span>
+                    <button onClick={()=>setQuantity(Math.min(effectiveStock,quantity+1))} className="w-10 h-10 flex items-center justify-center text-xl font-bold transition-colors" style={{ color: 'rgba(14,14,14,0.55)' }} onMouseEnter={e=>((e.currentTarget as HTMLElement).style.background='rgba(14,14,14,0.04)')} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.background='transparent')}>+</button>
                   </div>
                 )}
               </div>
             </div>
             {inStock && quantity > 1 && (
-              <span className="text-sm text-gray-500">합계: <span className="font-bold text-gray-900">{(product.price*quantity).toLocaleString()}원</span></span>
+              <span className="text-sm" style={{ color: 'rgba(14,14,14,0.45)' }}>합계: <span className="font-bold" style={{ color: '#0E0E0E' }}>{(product.price*quantity).toLocaleString()}원</span></span>
             )}
 
             {/* 버튼들 */}
             {inStock ? (
               <div className="flex gap-3 mt-auto">
                 <button onClick={()=>setWished(!wished)}
-                  className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${wished?'border-red-500 bg-red-50 text-red-500':'border-gray-200 text-gray-400 hover:border-red-300'}`}>
+                  className="w-12 h-12 flex items-center justify-center transition-all"
+                  style={{ border: wished ? '2px solid #E8001D' : '1px solid rgba(14,14,14,0.14)', color: wished ? '#E8001D' : 'rgba(14,14,14,0.35)', background: wished ? 'rgba(232,0,29,0.05)' : 'transparent' }}>
                   <svg className="w-5 h-5" fill={wished?'currentColor':'none'} stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                   </svg>
                 </button>
-                <button onClick={handleAddToCart}
-                  className="flex-1 py-3 rounded-xl font-bold border-2 border-red-600 text-red-600 hover:bg-red-50 transition-colors">장바구니</button>
-                <button onClick={()=>{handleAddToCart();router.push('/orders/new');}}
-                  className="flex-1 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-colors">바로 구매</button>
+                <button
+                  onClick={handleAddToCart}
+                  className="flex-1 py-3 font-bold transition-colors"
+                  style={{ border: '2px solid #E8001D', color: '#E8001D' }}
+                  onMouseEnter={e=>((e.currentTarget as HTMLElement).style.background='rgba(232,0,29,0.05)')}
+                  onMouseLeave={e=>((e.currentTarget as HTMLElement).style.background='transparent')}
+                >장바구니</button>
+                <button
+                  onClick={()=>{handleAddToCart();router.push('/orders/new');}}
+                  className="flex-1 py-3 font-bold text-white transition-colors"
+                  style={{ background: '#E8001D' }}
+                  onMouseEnter={e=>(e.currentTarget.style.background='#C0001A')}
+                  onMouseLeave={e=>(e.currentTarget.style.background='#E8001D')}
+                >바로 구매</button>
               </div>
             ) : (
               <div className="flex gap-3 mt-auto">
                 <button onClick={handleRestockAlert}
-                  className={`flex-1 py-3 rounded-xl font-bold border-2 flex items-center justify-center gap-2 transition-all ${restockAlerted ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-300 text-gray-600 hover:border-orange-400 hover:text-orange-500'}`}>
+                  className="flex-1 py-3 font-bold flex items-center justify-center gap-2 transition-all"
+                  style={{ border: restockAlerted ? '2px solid #FF6B00' : '1px solid rgba(14,14,14,0.2)', color: restockAlerted ? '#FF6B00' : 'rgba(14,14,14,0.55)', background: restockAlerted ? 'rgba(255,107,0,0.05)' : 'transparent' }}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                   </svg>
                   {restockAlerted ? '알림 신청됨' : '재입고 알림 받기'}
                 </button>
                 <button onClick={handleShare}
-                  className="w-12 h-12 rounded-xl border-2 border-gray-200 flex items-center justify-center text-gray-400 hover:border-gray-400 transition-colors">
+                  className="w-12 h-12 flex items-center justify-center transition-colors"
+                  style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.38)' }}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                   </svg>
@@ -546,7 +540,7 @@ export default function ProductDetailPage() {
             {/* 공유 & 비교 (재고 있을 때) */}
             {inStock && (
               <div className="flex items-center gap-3 pt-1">
-                <button onClick={handleShare} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                <button onClick={handleShare} className="flex items-center gap-1.5 text-xs transition-colors" style={{ color: 'rgba(14,14,14,0.38)' }} onMouseEnter={e=>(e.currentTarget.style.color='rgba(14,14,14,0.65)')} onMouseLeave={e=>(e.currentTarget.style.color='rgba(14,14,14,0.38)')}>
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
                   </svg>

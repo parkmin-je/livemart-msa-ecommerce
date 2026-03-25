@@ -39,15 +39,21 @@ function sortProducts(products: Product[], sort: SortOption): Product[] {
 
 function ProductCardSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
-      <div className="aspect-square bg-gray-200" />
+    <div className="overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+      <div
+        className="aspect-square"
+        style={{
+          background: 'linear-gradient(90deg, #F0EEE7 0%, #E8E5DB 45%, #F0EEE7 100%)',
+          backgroundSize: '600px 100%',
+          animation: 'shimmer 1.8s ease-in-out infinite',
+        }}
+      />
       <div className="p-3 space-y-2">
-        <div className="h-3 bg-gray-200 rounded w-1/4" />
-        <div className="h-4 bg-gray-200 rounded" />
-        <div className="h-4 bg-gray-200 rounded w-3/4" />
-        <div className="h-3 bg-gray-200 rounded w-1/2 mt-3" />
-        <div className="h-6 bg-gray-200 rounded w-1/3" />
-        <div className="h-9 bg-gray-200 rounded mt-2" />
+        <div className="h-2.5 animate-pulse" style={{ background: '#EDEBE4', width: '30%' }} />
+        <div className="h-3.5 animate-pulse" style={{ background: '#EDEBE4' }} />
+        <div className="h-3.5 animate-pulse" style={{ background: '#EDEBE4', width: '75%' }} />
+        <div className="h-6 animate-pulse mt-2" style={{ background: '#EDEBE4', width: '40%' }} />
+        <div className="h-9 animate-pulse mt-2" style={{ background: '#EDEBE4' }} />
       </div>
     </div>
   );
@@ -96,11 +102,26 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
 
   if (error) {
     return (
-      <div className="text-center py-16 bg-white rounded-xl border border-gray-100">
-        <div className="flex justify-center mb-4"><svg className="w-14 h-14 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-        <p className="text-gray-600 font-medium mb-2">상품을 불러오지 못했습니다</p>
-        <p className="text-gray-400 text-sm mb-6">잠시 후 다시 시도해주세요</p>
-        <button onClick={() => window.location.reload()} className="btn-primary btn-sm">다시 시도</button>
+      <div
+        className="text-center py-16"
+        style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}
+      >
+        <div className="flex justify-center mb-4">
+          <svg className="w-14 h-14" style={{ color: 'rgba(14,14,14,0.15)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <p className="font-medium mb-2" style={{ color: 'rgba(14,14,14,0.65)' }}>상품을 불러오지 못했습니다</p>
+        <p className="text-sm mb-6" style={{ color: 'rgba(14,14,14,0.38)' }}>잠시 후 다시 시도해주세요</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-2.5 text-sm font-semibold text-white transition-colors"
+          style={{ background: '#0A0A0A' }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#E8001D')}
+          onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
+        >
+          다시 시도
+        </button>
       </div>
     );
   }
@@ -109,23 +130,32 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
     <div>
       {/* 정렬/뷰 컨트롤 */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-gray-500">
-          총 <span className="font-semibold text-gray-900">{totalElements.toLocaleString()}</span>개 상품
+        <p className="text-sm" style={{ color: 'rgba(14,14,14,0.4)' }}>
+          총 <span className="font-semibold" style={{ color: '#0E0E0E' }}>{totalElements.toLocaleString()}</span>개 상품
         </p>
         <div className="flex items-center gap-2">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer"
+            className="text-sm px-3 py-1.5 focus:outline-none cursor-pointer"
+            style={{
+              border: '1px solid rgba(14,14,14,0.14)',
+              background: '#FFFFFF',
+              color: 'rgba(14,14,14,0.7)',
+            }}
           >
             {SORT_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+          <div className="flex overflow-hidden" style={{ border: '1px solid rgba(14,14,14,0.14)' }}>
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 transition-colors ${viewMode === 'grid' ? 'bg-red-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+              className="p-1.5 transition-colors"
+              style={{
+                background: viewMode === 'grid' ? '#E8001D' : '#FFFFFF',
+                color: viewMode === 'grid' ? '#FFFFFF' : 'rgba(14,14,14,0.4)',
+              }}
               aria-label="그리드 뷰"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
@@ -134,7 +164,12 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 transition-colors ${viewMode === 'list' ? 'bg-red-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+              className="p-1.5 transition-colors"
+              style={{
+                background: viewMode === 'list' ? '#E8001D' : '#FFFFFF',
+                color: viewMode === 'list' ? '#FFFFFF' : 'rgba(14,14,14,0.4)',
+                borderLeft: '1px solid rgba(14,14,14,0.1)',
+              }}
               aria-label="리스트 뷰"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,10 +182,17 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
 
       {/* 상품 그리드 */}
       {products.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-xl border border-gray-100">
-          <div className="flex justify-center mb-4"><svg className="w-14 h-14 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
-          <p className="text-gray-600 font-medium text-lg mb-2">상품이 없습니다</p>
-          <p className="text-gray-400 text-sm">다른 카테고리를 선택하거나 검색어를 바꿔보세요</p>
+        <div
+          className="text-center py-20"
+          style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}
+        >
+          <div className="flex justify-center mb-4">
+            <svg className="w-14 h-14" style={{ color: 'rgba(14,14,14,0.15)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <p className="font-medium text-lg mb-2" style={{ color: 'rgba(14,14,14,0.65)' }}>상품이 없습니다</p>
+          <p className="text-sm" style={{ color: 'rgba(14,14,14,0.38)' }}>다른 카테고리를 선택하거나 검색어를 바꿔보세요</p>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -159,7 +201,7 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
           ))}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {products.map((product) => (
             <ListProductCard key={product.id} product={product} />
           ))}
@@ -172,7 +214,8 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
           <button
             onClick={() => setPage(Math.max(0, page - 1))}
             disabled={page === 0}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-9 h-9 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.45)' }}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -184,11 +227,12 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
               <button
                 key={pageNum}
                 onClick={() => setPage(pageNum)}
-                className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                  page === pageNum
-                    ? 'bg-red-600 text-white border border-red-600'
-                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}
+                className="w-9 h-9 text-sm font-medium transition-colors"
+                style={{
+                  background: page === pageNum ? '#E8001D' : '#FFFFFF',
+                  color: page === pageNum ? '#FFFFFF' : 'rgba(14,14,14,0.55)',
+                  border: page === pageNum ? '1px solid #E8001D' : '1px solid rgba(14,14,14,0.14)',
+                }}
               >
                 {pageNum + 1}
               </button>
@@ -197,7 +241,8 @@ export function ProductList({ categoryId, initialKeyword = '', pageSize = 12 }: 
           <button
             onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
             disabled={page >= totalPages - 1}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-9 h-9 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.45)' }}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -215,35 +260,63 @@ function ListProductCard({ product }: { product: Product }) {
 
   return (
     <div
-      className="bg-white rounded-xl border border-gray-100 hover:shadow-md transition-shadow p-4 flex gap-4 cursor-pointer group"
+      className="p-4 flex gap-4 cursor-pointer group transition-colors"
+      style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}
       onClick={() => router.push(`/products/${product.id}`)}
+      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,14,14,0.18)')}
+      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,14,14,0.07)')}
     >
-      <div className="w-28 h-28 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+      <div
+        className="w-24 h-24 overflow-hidden flex-shrink-0"
+        style={{ background: '#F5F4F0' }}
+      >
         {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            loading="lazy"
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center"><svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+          <div className="w-full h-full flex items-center justify-center">
+            <svg className="w-8 h-8" style={{ color: 'rgba(14,14,14,0.18)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
         )}
       </div>
       <div className="flex-1 min-w-0">
-        {product.category && <span className="text-xs text-gray-400">{product.category}</span>}
-        <h3 className="font-medium text-gray-900 line-clamp-2 mt-0.5">{product.name}</h3>
-        <p className="text-sm text-gray-500 line-clamp-1 mt-1">{product.description}</p>
+        {product.category && (
+          <span className="text-xs uppercase tracking-widest" style={{ color: 'rgba(14,14,14,0.35)' }}>
+            {product.category}
+          </span>
+        )}
+        <h3 className="font-medium line-clamp-2 mt-0.5" style={{ color: '#0E0E0E', fontSize: '13.5px' }}>
+          {product.name}
+        </h3>
+        <p className="text-sm line-clamp-1 mt-1" style={{ color: 'rgba(14,14,14,0.4)' }}>{product.description}</p>
         <div className="flex items-center justify-between mt-3">
-          <span className="text-lg font-bold text-gray-900">{product.price.toLocaleString()}원</span>
+          <div className="flex items-baseline gap-0.5">
+            <span className="font-bebas tabular-nums" style={{ fontSize: '1.3rem', color: '#0E0E0E', letterSpacing: '0.01em' }}>
+              {product.price.toLocaleString()}
+            </span>
+            <span className="text-xs" style={{ color: 'rgba(14,14,14,0.4)' }}>원</span>
+          </div>
           <button
             onClick={(e) => {
               e.stopPropagation();
               addToCart({ productId: product.id, name: product.name, price: product.price, quantity: 1, imageUrl: product.imageUrl });
               toast.success('장바구니에 추가됐습니다!', { duration: 1500 });
             }}
-            className="btn-primary btn-sm"
+            className="px-4 py-2 text-xs font-bold text-white uppercase tracking-wider transition-colors"
+            style={{ background: '#0A0A0A' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#E8001D')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
           >
-            장바구니 담기
+            담기
           </button>
         </div>
       </div>
     </div>
   );
 }
-
