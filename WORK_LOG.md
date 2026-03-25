@@ -1,7 +1,68 @@
-# LiveMart 프론트엔드 작업 로그
+# LiveMart 작업 로그
 
 ## 시작일: 2026-03-24
-## 완료일: 2026-03-25
+## 최종 업데이트: 2026-03-25
+
+---
+
+## PHASE X — 2026 백엔드 엔지니어 우대 기술 스택 전면 추가 (2026-03-25)
+
+### 커밋: 6c36c12 (fix/ci-branch-trigger-and-yaml-syntax)
+
+#### 완료 항목
+
+1. **Terraform IaC 보강**
+   - `terraform/modules/msk/`: Amazon MSK Kafka 3-브로커, IAM SASL, 로그 설정
+   - `terraform/modules/opensearch/`: OpenSearch 3-노드, Fine-grained Access Control, CloudWatch 로그
+   - `terraform/modules/s3/`: 상품이미지/로그아카이브/AI에셋 버킷, 수명주기 정책
+   - `terraform/modules/iam/`: IRSA (External Secrets, ALB Controller, Cluster Autoscaler, product/ai 서비스)
+   - `terraform/environments/production/main.tf`: 프로덕션 환경 전체 모듈 조합
+   - `terraform/.terraform-version`: 1.9.0
+
+2. **K6 부하 테스트 시나리오 (k6/scenarios/)**
+   - `product-load.js`: 상품 목록/상세 100→500 VU, p95<2s 임계값
+   - `order-flow.js`: 로그인→장바구니→주문 전체 플로우
+   - `flash-sale.js`: 0→1000 VU Spike, Rate Limit/품절 응답 검증
+   - `search-load.js`: 전문검색/자동완성/AI검색 복합
+
+3. **GitHub Actions Load Test CI** (`.github/workflows/load-test.yml`)
+   - PR to main 자동, workflow_dispatch 수동
+   - 임계값 초과 시 PR 차단
+   - 결과를 PR 코멘트로 자동 게시
+
+4. **Spring AI 패턴 구현** (`ai-service`)
+   - `ProductVectorStoreService`: add/similaritySearch + RAG 패턴
+   - `OpenAiClient`: createEmbedding(text-embedding-3-small), chatCompletion 메서드 추가
+
+5. **Jaeger OTLP 분산 추적**
+   - `docker-compose.yml`: Jaeger 컨테이너 추가 (4317/4318 OTLP)
+   - 6개 서비스: Zipkin → Jaeger OTLP HTTP 전환
+   - `k8s/infra/jaeger.yml`: K8s 배포
+
+6. **CQRS/DDD 명시적 구현** (`order-service/application/`, `domain/`)
+   - DomainEvent 인터페이스 + 3개 이벤트 구현체
+   - OrderId/Money/Address Value Object
+   - Command/Query 객체 6개
+   - CreateOrderCommandHandler, GetOrderQueryHandler
+
+7. **Rate Limiting 고도화** (`api-gateway`)
+   - `lua/sliding-window-rate-limit.lua`: Lua 원자적 처리
+   - `RateLimitFilter`: 사용자/IP/엔드포인트별 차등 제한, Retry-After 헤더
+
+8. **OpenTelemetry 커스텀 스팬** (`common/telemetry/LivemartSpanDecorator.java`)
+   - user.id/order.id/product.id 비즈니스 태그
+   - Kafka Producer/Consumer, Redis 캐시 추적
+
+9. **Grafana 대시보드**
+   - `livemart-slo.json`: 가용성 SLO/레이턴시 SLO/Error Budget/Rate Limit 패널
+   - `provisioning/dashboards/dashboards.yml`
+   - `datasources.yml`: Jaeger 데이터소스 추가
+
+10. **External Secrets Operator** (`k8s/base/eso-complete-config.yml`)
+    - ClusterSecretStore + 9개 ExternalSecret (1시간 자동 갱신)
+
+11. **SonarQube Quality Gate** (`.github/workflows/ci.yml`)
+    - 커버리지 80% 강제, main PR 시 차단
 
 ---
 
