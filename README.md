@@ -9,7 +9,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-70%25+-brightgreen)](docs/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **10개 마이크로서비스** · **Kafka Saga + Outbox** · **Elasticsearch** · **gRPC** · **Redis** · **Kubernetes HPA** · **Prometheus/Grafana** · **OpenTelemetry** · **Istio mTLS**
+> **10개 마이크로서비스** · **Kafka Saga + Outbox** · **Elasticsearch** · **gRPC** · **Redis Pub/Sub** · **Spring AI 1.0** · **Kubernetes HPA** · **Prometheus/Grafana** · **OpenTelemetry** · **Istio mTLS**
 
 ---
 
@@ -37,8 +37,11 @@
 | 상품 검색 | **Elasticsearch** + nori 형태소 | 한국어 검색·Fuzzy·패싯 집계 |
 | 읽기 성능 | **Redis Cache-Aside** | 반복 조회 DB 부하 분산, TTL 계층화로 일관성 유지 |
 | 동시성 제어 | **Redisson 분산 락** | 동시 주문 시 재고 초과 차감 방지 |
+| 분산 실시간 알림 | **Redis Pub/Sub** (WebSocket·SSE) | 수평 확장 환경에서 포드 간 이벤트 브로드캐스팅 |
+| Kafka 소비 처리량 | **병렬 소비** (Concurrency 3) | ConcurrentKafkaListenerContainerFactory 병렬 파티션 처리 |
+| AI 기능 자동화 | **Spring AI 1.0** (OpenRouter) | Hunter Alpha(MiMo-V2-Pro) 연동, 8종 AI 파이프라인 |
 
-> 설계 근거 전문 → [`docs/adr/`](docs/adr/) (ADR 5건)
+> 설계 근거 전문 → [`docs/adr/`](docs/adr/) (ADR 6건)
 
 ---
 
@@ -89,6 +92,7 @@ flowchart TB
     KF -->|"stock-events"| PS
     KF --> AN
     KF --> NO
+    KF --> AI
     Services --- Infra
     Services -->|metrics| PR
     PR --> GR
@@ -102,14 +106,16 @@ flowchart TB
 ### 백엔드
 | 분류 | 기술 |
 |------|------|
-| Language / Runtime | Java 21 · Virtual Threads (Project Loom) |
+| Language / Runtime | Java 21 · Virtual Threads (Project Loom) · Structured Concurrency |
 | Framework | Spring Boot 3.4.1 · Spring Cloud 2024.0.0 |
-| API 프로토콜 | REST · gRPC · GraphQL · WebSocket |
-| 메시징 | Apache Kafka + **DLQ** (DeadLetterPublishingRecoverer) |
+| API 프로토콜 | REST · gRPC · GraphQL · WebSocket · SSE |
+| 메시징 | Apache Kafka + **DLQ** (DeadLetterPublishingRecoverer) · 병렬 소비 (Concurrency 3) |
+| 실시간 통신 | Redis Pub/Sub (분산 WebSocket·SSE 브로드캐스팅) |
 | 캐싱 | Redis (Cache-Aside, Token Bucket Rate Limiting) |
 | 검색 | Elasticsearch 8 (nori 형태소 분석기) |
 | 인증 | JWT httpOnly Cookie · OAuth2 (Google/Kakao/Naver) · MFA (TOTP/WebAuthn) |
 | 결제 | Stripe (Idempotency Key 기반 중복 방지) |
+| AI | Spring AI 1.0 · OpenRouter · Hunter Alpha (MiMo-V2-Pro) · 8종 AI 파이프라인 |
 | 분산 락 | Redisson |
 | Circuit Breaker | Resilience4j |
 | 배치 | Spring Batch (일별 정산, 월별 리포트) |
@@ -146,8 +152,9 @@ flowchart TB
 ├── payment-service/      Stripe 결제 · 환불 · Kafka DLQ
 ├── user-service/         회원 · JWT · OAuth2 · MFA · 위시리스트 · Security Audit
 ├── analytics-service/    매출 분석 · A/B 테스트 · 실시간 대시보드
+├── ai-service/           Spring AI 1.0 · OpenRouter · Hunter Alpha(MiMo-V2-Pro) · 8종 AI 파이프라인
 ├── inventory-service/    재고 관리 · 자동 발주
-├── notification-service/ 이메일/알림 (Kafka 이벤트 기반)
+├── notification-service/ 이메일/알림 (Kafka 이벤트 기반) · Redis Pub/Sub SSE
 ├── eureka-server/        서비스 레지스트리
 ├── config-server/        중앙 설정 관리
 └── common/               Outbox · Event Sourcing · 분산 락 · 멱등성 · RFC 7807 에러
@@ -216,6 +223,56 @@ public Object measure(ProceedingJoinPoint pjp) throws Throwable {
 service ProductGrpcService {
   rpc GetProductsByIds(GetProductsByIdsRequest) returns (stream ProductResponse);
   rpc DeductStock(DeductStockRequest) returns (DeductStockResponse);
+}
+```
+
+### Redis Pub/Sub 분산 WebSocket·SSE
+
+수평 확장 환경에서 여러 포드 간 실시간 이벤트를 브로드캐스팅합니다.
+
+```java
+// ProductService.java — 재고 변경 이벤트 발행
+redisTemplate.convertAndSend("product:stock-updates",
+    objectMapper.writeValueAsString(stockUpdateEvent));
+
+// RedisSubscriber.java — 구독 후 SSE emitter에 전달
+public void onMessage(Message message, byte[] pattern) {
+    sseEmitters.forEach(emitter -> {
+        try { emitter.send(SseEmitter.event().data(message.toString())); }
+        catch (IOException e) { emitters.remove(emitter); }
+    });
+}
+```
+
+### Kafka 병렬 소비
+
+```java
+// KafkaConfig.java
+factory.setConcurrency(3);  // 토픽 파티션 수에 맞춰 병렬 처리
+factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+// Java 21 Virtual Threads 활용 — 블로킹 I/O 대기 중 스레드 점유 없음
+factory.getContainerProperties().setListenerTaskExecutor(
+    Executors.newVirtualThreadPerTaskExecutor());
+```
+
+### AI 자동화 파이프라인 (Spring AI 1.0)
+
+Hunter Alpha(MiMo-V2-Pro) 모델을 OpenRouter를 통해 연동, 8종 AI 파이프라인을 구현했습니다.
+
+```java
+// AiService.java
+@Service
+public class AiService {
+    private final ChatClient chatClient;
+
+    // 파이프라인 종류: 상품 설명 생성, 리뷰 요약, 가격 최적화 제안,
+    //   검색 키워드 추출, 카테고리 자동 분류, 사기 탐지, CS 자동 응답, 재고 발주 예측
+    public String generateProductDescription(ProductDescriptionRequest req) {
+        return chatClient.prompt()
+            .user(buildPrompt(req))
+            .call()
+            .content();
+    }
 }
 ```
 
@@ -373,6 +430,12 @@ Order save + Kafka event stored in same DB transaction. A scheduled poller publi
 
 **5. East-West mTLS via Istio**
 All inter-service traffic encrypted with TLS 1.3. AuthorizationPolicy restricts payment-service access to order-service + api-gateway only (ADR-006).
+
+**6. Redis Pub/Sub for Distributed Real-Time Events**
+WebSocket/SSE broadcasts cross pod boundaries via Redis Pub/Sub. Each pod subscribes to the same channel — no sticky sessions required, fully compatible with HPA scale-out.
+
+**7. Spring AI 1.0 Integration (Hunter Alpha / MiMo-V2-Pro)**
+8 AI automation pipelines (product description generation, review summarization, price optimization, keyword extraction, category classification, fraud detection, CS auto-reply, inventory prediction) via OpenRouter using Spring AI 1.0 ChatClient.
 
 ### Concurrency Control
 
