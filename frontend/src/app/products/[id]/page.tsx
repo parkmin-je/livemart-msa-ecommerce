@@ -152,6 +152,9 @@ export default function ProductDetailPage() {
   // 재입고 알림
   const [restockAlerted, setRestockAlerted] = useState(false);
 
+  // 실시간 재고 상태 (30초 polling)
+  const [currentStock, setCurrentStock] = useState<number | null>(null);
+
   // 비교하기
   const [compareList, setCompareList] = useState<number[]>([]);
 
@@ -187,6 +190,14 @@ export default function ProductDetailPage() {
       setCompareList(compareData);
     } catch {}
 
+    // 재고 초기 로드 및 30초 polling
+    const loadStock = async () => {
+      const stock = await productApi.getProductStock(productId);
+      setCurrentStock(stock.quantity);
+    };
+    loadStock();
+    const stockInterval = setInterval(loadStock, 30000);
+
     // Q&A 로드 (mock fallback)
     fetch(`/api/products/${productId}/qna`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
@@ -198,6 +209,8 @@ export default function ProductDetailPage() {
         }
       })
       .catch(() => setQnaItems(getMockQna(productId)));
+
+    return () => clearInterval(stockInterval);
   }, [productId]);
 
   const handleAddToCart = () => {
@@ -335,7 +348,10 @@ export default function ProductDetailPage() {
     </div>
   );
 
-  const inStock = product.stockQuantity > 0;
+  // 실시간 재고 우선, 없으면 product.stockQuantity 사용
+  const effectiveStock = currentStock !== null ? currentStock : product.stockQuantity;
+  const inStock = effectiveStock > 0;
+  const isLowStock = inStock && effectiveStock <= 5;
   const isFreeShipping = product.price >= 50000;
   const originalPrice = discountRate > 0 ? Math.round(product.price / (1 - discountRate/100) / 100) * 100 : product.price;
   const displayRating = summary?.averageRating || 4.5;
@@ -465,25 +481,35 @@ export default function ProductDetailPage() {
               <div className="flex items-center gap-2 text-gray-600"><span>안전결제 보장</span></div>
             </div>
 
-            {/* 재고/수량 */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className={`w-2 h-2 rounded-full ${inStock?'bg-green-500':'bg-red-500'}`}/>
-                <span className={`text-sm font-medium ${inStock?'text-green-700':'text-red-700'}`}>
-                  {inStock?`재고 ${product.stockQuantity}개`:'품절'}
-                </span>
-              </div>
-              {inStock && (
-                <div className="flex items-center rounded-xl border border-gray-200 overflow-hidden">
-                  <button onClick={()=>setQuantity(Math.max(1,quantity-1))} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-xl font-bold">−</button>
-                  <span className="w-12 text-center font-semibold text-gray-900">{quantity}</span>
-                  <button onClick={()=>setQuantity(Math.min(product.stockQuantity,quantity+1))} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-xl font-bold">+</button>
+            {/* 재고/수량 — 실시간 polling */}
+            <div className="flex flex-col gap-2">
+              {isLowStock && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-200 text-orange-700 text-xs font-semibold w-fit">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  품절 임박! 재고 {effectiveStock}개 남음
                 </div>
               )}
-              {inStock && quantity > 1 && (
-                <span className="text-sm text-gray-500">합계: <span className="font-bold text-gray-900">{(product.price*quantity).toLocaleString()}원</span></span>
-              )}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-2 h-2 rounded-full ${inStock?'bg-green-500':'bg-red-500'}`}/>
+                  <span className={`text-sm font-medium ${inStock?'text-green-700':'text-red-700'}`}>
+                    {inStock ? (isLowStock ? `재고 ${effectiveStock}개 (품절 임박)` : `재고 ${effectiveStock}개`) : '품절'}
+                  </span>
+                </div>
+                {inStock && (
+                  <div className="flex items-center rounded-xl border border-gray-200 overflow-hidden">
+                    <button onClick={()=>setQuantity(Math.max(1,quantity-1))} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-xl font-bold">−</button>
+                    <span className="w-12 text-center font-semibold text-gray-900">{quantity}</span>
+                    <button onClick={()=>setQuantity(Math.min(effectiveStock,quantity+1))} className="w-10 h-10 flex items-center justify-center text-gray-600 hover:bg-gray-50 text-xl font-bold">+</button>
+                  </div>
+                )}
+              </div>
             </div>
+            {inStock && quantity > 1 && (
+              <span className="text-sm text-gray-500">합계: <span className="font-bold text-gray-900">{(product.price*quantity).toLocaleString()}원</span></span>
+            )}
 
             {/* 버튼들 */}
             {inStock ? (

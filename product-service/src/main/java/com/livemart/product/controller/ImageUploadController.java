@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 
 @Tag(name = "Image API", description = "상품 이미지 업로드 API (AWS S3)")
@@ -18,6 +19,14 @@ import java.util.Map;
 public class ImageUploadController {
 
     private final S3ImageService s3ImageService;
+
+    // 허용된 이미지 포맷의 매직바이트 시그니처
+    private static final Map<String, byte[]> MAGIC_BYTES = Map.of(
+        "image/jpeg", new byte[]{(byte)0xFF, (byte)0xD8, (byte)0xFF},
+        "image/png",  new byte[]{(byte)0x89, 0x50, 0x4E, 0x47},
+        "image/gif",  new byte[]{0x47, 0x49, 0x46},
+        "image/webp", new byte[]{0x52, 0x49, 0x46, 0x46}
+    );
 
     @Operation(summary = "상품 이미지 업로드", description = "AWS S3에 상품 이미지를 업로드합니다")
     @PostMapping
@@ -38,6 +47,11 @@ public class ImageUploadController {
             return ResponseEntity.badRequest().body(Map.of("error", "파일 크기는 10MB 이하여야 합니다"));
         }
 
+        // 매직바이트 검증 — Content-Type 스푸핑 방어
+        if (!validateMagicBytes(file)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "유효하지 않은 이미지 파일입니다 (매직바이트 불일치)"));
+        }
+
         String imageUrl = s3ImageService.uploadImage(file, productId);
         return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
     }
@@ -49,5 +63,22 @@ public class ImageUploadController {
             @RequestParam String imageUrl) {
         s3ImageService.deleteImage(imageUrl);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 매직바이트 검증 — 파일 헤더의 실제 시그니처를 확인하여 Content-Type 위조 방어
+     */
+    private boolean validateMagicBytes(MultipartFile file) throws IOException {
+        byte[] header = new byte[4];
+        try (InputStream is = file.getInputStream()) {
+            int read = is.read(header);
+            if (read < 3) return false;
+        }
+        return MAGIC_BYTES.values().stream().anyMatch(magic -> {
+            for (int i = 0; i < magic.length; i++) {
+                if (header[i] != magic[i]) return false;
+            }
+            return true;
+        });
     }
 }

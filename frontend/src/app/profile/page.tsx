@@ -125,6 +125,12 @@ export default function ProfilePage() {
   const [addrLoading, setAddrLoading] = useState(false);
   const [mfa, setMfa] = useState<MfaStatus>({ enabled: false });
   const [mfaLoading, setMfaLoading] = useState(false);
+  const [showMfaModal, setShowMfaModal] = useState(false);
+  const [mfaQrCode, setMfaQrCode] = useState<string | null>(null);
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null);
+  const [mfaOtpInput, setMfaOtpInput] = useState('');
+  const [mfaBackupCodes, setMfaBackupCodes] = useState<string[]>([]);
+  const [mfaStep, setMfaStep] = useState<'qr' | 'verify' | 'backup'>('qr');
   const [showAddAddr, setShowAddAddr] = useState(false);
   const [newAddr, setNewAddr] = useState({
     alias: '', recipient: '', phone: '', zipCode: '', address: '', detailAddress: '', isDefault: false,
@@ -207,10 +213,10 @@ export default function ProfilePage() {
   };
 
   const toggleMfa = async () => {
-    setMfaLoading(true);
-    const userId = localStorage.getItem('userId');
-    try {
-      if (mfa.enabled) {
+    if (mfa.enabled) {
+      // 비활성화는 기존 방식 유지
+      setMfaLoading(true);
+      try {
         const currentPw = window.prompt('MFA 비활성화를 위해 현재 비밀번호를 입력하세요:');
         if (!currentPw) { setMfaLoading(false); return; }
         const res = await fetch(`/api/v1/mfa/disable`, {
@@ -220,17 +226,41 @@ export default function ProfilePage() {
         if (!res.ok) throw new Error('비밀번호가 올바르지 않습니다');
         setMfa({ enabled: false });
         toast.success('MFA가 비활성화되었습니다');
-      } else {
+      } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '설정 실패'); }
+      setMfaLoading(false);
+    } else {
+      // 활성화: 완전한 TOTP 설정 플로우
+      setMfaLoading(true);
+      try {
         const res = await fetch(`/api/v1/mfa/setup`, { method: 'POST', credentials: 'include' });
-        if (!res.ok) throw new Error('MFA 설정 실패');
+        if (!res.ok) throw new Error('MFA 설정 초기화 실패');
         const data = await res.json();
-        if (data.qrCodeUrl) {
-          window.open(data.qrCodeUrl, '_blank', 'width=400,height=400');
-        }
-        toast.success('인증 앱으로 QR 코드를 스캔하세요. 설정 후 다시 로그인이 필요합니다.');
-        setMfa({ enabled: true, type: 'TOTP' });
-      }
-    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '설정 실패'); }
+        setMfaQrCode(data.qrCodeImage || data.qrCodeUrl || null);
+        setMfaSecret(data.secret || null);
+        setMfaStep('qr');
+        setMfaOtpInput('');
+        setMfaBackupCodes([]);
+        setShowMfaModal(true);
+      } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '설정 실패'); }
+      setMfaLoading(false);
+    }
+  };
+
+  const verifyMfaOtp = async () => {
+    if (mfaOtpInput.length !== 6) { toast.error('6자리 코드를 입력하세요'); return; }
+    setMfaLoading(true);
+    try {
+      const res = await fetch(`/api/v1/mfa/verify`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: mfaOtpInput }),
+      });
+      if (!res.ok) throw new Error('인증 코드가 올바르지 않습니다');
+      const data = await res.json();
+      setMfaBackupCodes(data.backupCodes || []);
+      setMfa({ enabled: true, type: 'TOTP' });
+      setMfaStep('backup');
+      toast.success('2FA가 활성화되었습니다!');
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '인증 실패'); }
     setMfaLoading(false);
   };
 
@@ -642,7 +672,131 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
-      </div>
+      {/* 2FA TOTP 설정 모달 */}
+      {showMfaModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md shadow-2xl">
+            {/* 모달 헤더 */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="font-black text-gray-900">
+                {mfaStep === 'qr' && 'QR 코드 스캔'}
+                {mfaStep === 'verify' && 'OTP 코드 확인'}
+                {mfaStep === 'backup' && '백업 코드 저장'}
+              </h2>
+              {mfaStep !== 'backup' && (
+                <button
+                  onClick={() => setShowMfaModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+                >
+                  x
+                </button>
+              )}
+            </div>
+
+            <div className="px-6 py-5">
+              {/* Step 1: QR 코드 스캔 */}
+              {mfaStep === 'qr' && (
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Google Authenticator 또는 Authy 앱으로 QR 코드를 스캔하세요.
+                  </p>
+                  {mfaQrCode ? (
+                    <div className="flex justify-center mb-4">
+                      <img
+                        src={mfaQrCode.startsWith('data:') ? mfaQrCode : `data:image/png;base64,${mfaQrCode}`}
+                        alt="2FA QR 코드"
+                        className="w-48 h-48 border border-gray-200 p-2"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-48 h-48 bg-gray-100 mx-auto mb-4 flex items-center justify-center">
+                      <span className="text-xs text-gray-400">QR 코드 로딩중...</span>
+                    </div>
+                  )}
+                  {mfaSecret && (
+                    <div className="bg-gray-50 border border-gray-200 px-4 py-2 mb-4">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1">수동 입력 키</p>
+                      <p className="font-mono text-sm text-gray-700 break-all">{mfaSecret}</p>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setMfaStep('verify')}
+                    className="w-full py-3 bg-gray-950 text-white text-sm font-bold hover:bg-gray-800 transition-colors"
+                  >
+                    스캔 완료, 인증 코드 입력
+                  </button>
+                </div>
+              )}
+
+              {/* Step 2: OTP 코드 검증 */}
+              {mfaStep === 'verify' && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    인증 앱에 표시된 6자리 코드를 입력하세요.
+                  </p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    value={mfaOtpInput}
+                    onChange={e => setMfaOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    className="w-full px-4 py-3 border border-gray-200 text-center text-2xl font-mono tracking-widest focus:outline-none focus:border-gray-900 mb-4"
+                    autoFocus
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setMfaStep('qr')}
+                      className="flex-1 py-3 border border-gray-200 text-sm font-semibold text-gray-600 hover:border-gray-400 transition-colors"
+                    >
+                      이전
+                    </button>
+                    <button
+                      onClick={verifyMfaOtp}
+                      disabled={mfaLoading || mfaOtpInput.length !== 6}
+                      className="flex-1 py-3 bg-gray-950 text-white text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    >
+                      {mfaLoading ? '확인중...' : '확인'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: 백업 코드 표시 */}
+              {mfaStep === 'backup' && (
+                <div>
+                  <div className="flex items-start gap-3 mb-4 p-3 bg-yellow-50 border border-yellow-200">
+                    <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p className="text-xs text-yellow-700">
+                      아래 백업 코드를 안전한 곳에 저장하세요. 인증 앱을 분실한 경우 로그인에 사용할 수 있습니다. 각 코드는 1회만 사용 가능합니다.
+                    </p>
+                  </div>
+                  {mfaBackupCodes.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2 mb-5">
+                      {mfaBackupCodes.map((code, i) => (
+                        <div key={i} className="bg-gray-50 border border-gray-200 px-3 py-2">
+                          <span className="font-mono text-sm text-gray-800">{code}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center py-4">백업 코드가 없습니다.</p>
+                  )}
+                  <button
+                    onClick={() => setShowMfaModal(false)}
+                    className="w-full py-3 bg-gray-950 text-white text-sm font-bold hover:bg-gray-800 transition-colors"
+                  >
+                    완료 (저장했습니다)
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -14,7 +14,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
@@ -92,8 +92,10 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+    enabled: ${SWAGGER_ENABLED:false}
   api-docs:
     path: /api-docs
+    enabled: ${SWAGGER_ENABLED:false}
 
 grpc:
   server:

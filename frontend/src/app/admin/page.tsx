@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { GlobalNav } from '@/components/GlobalNav';
 import toast from 'react-hot-toast';
@@ -12,6 +12,16 @@ interface Stats {
   totalProducts?: number;
   pendingOrders?: number;
   cancelledOrders?: number;
+}
+
+interface PrometheusMetrics {
+  responseTime: { p50: number | null; p95: number | null; p99: number | null; unit: string };
+  throughput: { ordersPerSecond: number | null; paymentsPerSecond: number | null };
+  activeUsers: number | null;
+  redisHitRate: number | null;
+  kafkaConsumerLag: number | null;
+  todayRevenue: number | null;
+  collectedAt: string;
 }
 
 interface OrderItem {
@@ -69,13 +79,15 @@ function SkeletonCard() {
 
 export default function AdminPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<'dashboard' | 'orders' | 'coupons' | 'users'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'orders' | 'coupons' | 'users' | 'metrics'>('dashboard');
   const [stats, setStats] = useState<Stats>({});
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [statsLoading, setStatsLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [couponsLoading, setCouponsLoading] = useState(true);
+  const [prometheusMetrics, setPrometheusMetrics] = useState<PrometheusMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [newCoupon, setNewCoupon] = useState<Coupon>({
     code: '', discountType: 'PERCENTAGE', discountValue: 10, minOrderAmount: 0, maxUses: 100, expiresAt: '',
@@ -200,11 +212,31 @@ export default function AdminPage() {
     },
   ];
 
+  const loadPrometheusMetrics = useCallback(async () => {
+    setMetricsLoading(true);
+    try {
+      const res = await fetch('/api/admin/metrics', { credentials: 'include' });
+      if (res.ok) {
+        setPrometheusMetrics(await res.json());
+      }
+    } catch { /* Prometheus 미연결 시 무시 */ }
+    setMetricsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'metrics') {
+      loadPrometheusMetrics();
+      const interval = setInterval(loadPrometheusMetrics, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [tab, loadPrometheusMetrics]);
+
   const TABS = [
     { id: 'dashboard', label: '대시보드' },
     { id: 'orders', label: '주문 관리' },
     { id: 'coupons', label: '쿠폰 관리' },
     { id: 'users', label: '회원 관리' },
+    { id: 'metrics', label: '서비스 메트릭' },
   ];
 
   return (
@@ -228,7 +260,7 @@ export default function AdminPage() {
             {TABS.map(t => (
               <button
                 key={t.id}
-                onClick={() => setTab(t.id as 'dashboard' | 'orders' | 'coupons' | 'users')}
+                onClick={() => setTab(t.id as 'dashboard' | 'orders' | 'coupons' | 'users' | 'metrics')}
                 className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
                   tab === t.id
                     ? 'bg-red-50 text-red-600 border-r-2 border-red-600'
@@ -251,7 +283,7 @@ export default function AdminPage() {
             {TABS.map(t => (
               <button
                 key={t.id}
-                onClick={() => setTab(t.id as 'dashboard' | 'orders' | 'coupons' | 'users')}
+                onClick={() => setTab(t.id as 'dashboard' | 'orders' | 'coupons' | 'users' | 'metrics')}
                 className={`flex-shrink-0 px-4 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
                   tab === t.id ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500'
                 }`}
@@ -569,6 +601,120 @@ export default function AdminPage() {
                   </table>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* 서비스 메트릭 */}
+          {tab === 'metrics' && (
+            <div className="max-w-4xl">
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-xl font-bold text-gray-900">서비스 메트릭 (Prometheus)</h1>
+                <div className="flex items-center gap-3">
+                  {prometheusMetrics && (
+                    <span className="text-xs text-gray-400">
+                      {new Date(prometheusMetrics.collectedAt).toLocaleTimeString('ko-KR')} 기준
+                    </span>
+                  )}
+                  <button
+                    onClick={loadPrometheusMetrics}
+                    disabled={metricsLoading}
+                    className="px-3 py-1.5 text-xs font-semibold bg-gray-900 text-white hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  >
+                    {metricsLoading ? '수집중...' : '새로고침'}
+                  </button>
+                </div>
+              </div>
+
+              {metricsLoading && !prometheusMetrics ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+                </div>
+              ) : prometheusMetrics ? (
+                <div className="space-y-6">
+                  {/* 응답시간 */}
+                  <div>
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest mb-3">API 응답시간</h2>
+                    <div className="grid grid-cols-3 gap-4">
+                      {[
+                        { label: 'P50 (중간값)', value: prometheusMetrics.responseTime.p50 },
+                        { label: 'P95', value: prometheusMetrics.responseTime.p95 },
+                        { label: 'P99 (최대)', value: prometheusMetrics.responseTime.p99 },
+                      ].map(m => (
+                        <div key={m.label} className="bg-white border border-gray-200 p-5">
+                          <p className="text-xs text-gray-500 mb-1">{m.label}</p>
+                          <p className="text-2xl font-black text-gray-900">
+                            {m.value !== null ? `${m.value}ms` : 'N/A'}
+                          </p>
+                          {m.value !== null && m.value > 500 && (
+                            <p className="text-xs text-red-500 mt-1 font-semibold">응답 지연 경고</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 처리량 */}
+                  <div>
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest mb-3">초당 처리량</h2>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white border border-gray-200 p-5">
+                        <p className="text-xs text-gray-500 mb-1">주문 생성 (req/s)</p>
+                        <p className="text-2xl font-black text-gray-900">
+                          {prometheusMetrics.throughput.ordersPerSecond !== null
+                            ? prometheusMetrics.throughput.ordersPerSecond.toFixed(2)
+                            : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="bg-white border border-gray-200 p-5">
+                        <p className="text-xs text-gray-500 mb-1">결제 처리 (req/s)</p>
+                        <p className="text-2xl font-black text-gray-900">
+                          {prometheusMetrics.throughput.paymentsPerSecond !== null
+                            ? prometheusMetrics.throughput.paymentsPerSecond.toFixed(2)
+                            : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 인프라 상태 */}
+                  <div>
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-widest mb-3">인프라 상태</h2>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-white border border-gray-200 p-5">
+                        <p className="text-xs text-gray-500 mb-1">Redis 히트율</p>
+                        <p className="text-2xl font-black text-gray-900">
+                          {prometheusMetrics.redisHitRate !== null ? `${prometheusMetrics.redisHitRate}%` : 'N/A'}
+                        </p>
+                        {prometheusMetrics.redisHitRate !== null && prometheusMetrics.redisHitRate < 80 && (
+                          <p className="text-xs text-orange-500 mt-1 font-semibold">히트율 낮음</p>
+                        )}
+                      </div>
+                      <div className="bg-white border border-gray-200 p-5">
+                        <p className="text-xs text-gray-500 mb-1">Kafka 컨슈머 랙</p>
+                        <p className="text-2xl font-black text-gray-900">
+                          {prometheusMetrics.kafkaConsumerLag !== null ? prometheusMetrics.kafkaConsumerLag : 'N/A'}
+                        </p>
+                        {prometheusMetrics.kafkaConsumerLag !== null && prometheusMetrics.kafkaConsumerLag > 1000 && (
+                          <p className="text-xs text-red-500 mt-1 font-semibold">처리 지연 경고</p>
+                        )}
+                      </div>
+                      <div className="bg-white border border-gray-200 p-5">
+                        <p className="text-xs text-gray-500 mb-1">오늘 매출</p>
+                        <p className="text-2xl font-black text-gray-900">
+                          {prometheusMetrics.todayRevenue !== null
+                            ? `${prometheusMetrics.todayRevenue.toLocaleString()}원`
+                            : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-gray-200 p-8 text-center">
+                  <p className="text-gray-500 text-sm">Prometheus에 연결할 수 없습니다.</p>
+                  <p className="text-gray-400 text-xs mt-1">PROMETHEUS_URL 환경변수를 확인하세요.</p>
+                </div>
+              )}
             </div>
           )}
 

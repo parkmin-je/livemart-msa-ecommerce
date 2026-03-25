@@ -18,7 +18,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
@@ -121,10 +121,12 @@ jwt:
 oauth2:
   redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/auth/callback}
 
-# 쿠키 보안 설정 (개발: false, 프로덕션 HTTPS: true)
+# 쿠키 보안 설정 (프로덕션 기본값: true. 로컬 HTTP 개발환경에서만 COOKIE_SECURE=false 설정)
 app:
   cookie:
-    secure: ${COOKIE_SECURE:false}
+    secure: ${COOKIE_SECURE:true}
+    same-site: ${COOKIE_SAME_SITE:Strict}
+    http-only: true
 
 management:
   endpoints:
@@ -157,8 +159,10 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+    enabled: ${SWAGGER_ENABLED:false}  # 프로덕션 기본값 비활성화
   api-docs:
     path: /api-docs
+    enabled: ${SWAGGER_ENABLED:false}
 
 eureka:
   client:
