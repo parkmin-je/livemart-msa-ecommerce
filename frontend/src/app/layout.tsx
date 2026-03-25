@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 import { AiChatbot } from './_components/AiChatbot.client';
 import { WebVitals } from './_components/WebVitals.client';
+import { RecentlyViewedFloating } from '@/components/RecentlyViewedFloating';
 
 const notoSansKR = Noto_Sans_KR({
   subsets: ['latin'],
@@ -71,7 +72,10 @@ export default function RootLayout({
       </head>
       <body className={notoSansKR.className} style={{ background: 'var(--bg)', color: 'var(--text)' }}>
         <WebVitals />
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <RecentlyViewedFloating />
+        </Providers>
         <AiChatbot />
       </body>
     </html>
