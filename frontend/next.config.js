@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: process.env.VERCEL ? undefined : 'standalone',
   reactStrictMode: true,
 
   // ── 이미지 최적화 ─────────────────────────────────────────
