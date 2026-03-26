@@ -81,9 +81,12 @@ const CATEGORIES = [
 ];
 
 async function fetchProducts(): Promise<Product[]> {
-  const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
+  // Vercel 환경: VERCEL_URL 환경변수로 자기 자신의 API 호출 (서버 컴포넌트는 상대경로 불가)
+  const apiBase = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : (process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888');
   try {
-    const res = await fetch(`${apiUrl}/api/products?page=0&size=20`, {
+    const res = await fetch(`${apiBase}/api/products?page=0&size=20`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return [];

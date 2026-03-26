@@ -11,6 +11,8 @@ const nextConfig = {
     minimumCacheTTL: 86400, // 24h
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.livemart.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: '*.vercel.app' },
       { protocol: 'http',  hostname: 'localhost' },
     ],
   },
@@ -83,31 +85,6 @@ const nextConfig = {
     ];
   },
 
-  // ── Webpack 번들 분할 최적화 ──────────────────────────────
-  webpack(config, { isServer }) {
-    if (!isServer) {
-      config.optimization.splitChunks = {
-        ...config.optimization.splitChunks,
-        cacheGroups: {
-          ...config.optimization.splitChunks?.cacheGroups,
-          react: {
-            test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
-            name: 'react',
-            chunks: 'all',
-            priority: 30,
-          },
-          vendors: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            chunks: 'all',
-            priority: 10,
-            reuseExistingChunk: true,
-          },
-        },
-      };
-    }
-    return config;
-  },
 };
 
 module.exports = nextConfig;

@@ -10,18 +10,18 @@ import { NextRequest, NextResponse } from 'next/server';
 // ─────────────────────────────────────────────────────────────────
 
 const DEMO_PRODUCTS = [
-  { id: 1, name: '무선 블루투스 이어폰 ANC Pro', price: 89000, stockQuantity: 42, categoryName: '전자기기', category: '전자기기', description: '액티브 노이즈 캔슬링으로 완벽한 몰입감. 30시간 배터리, IPX5 방수, 멀티포인트 연결 지원.', imageUrl: null, sellerId: 1 },
-  { id: 2, name: '프리미엄 요가 매트 8mm', price: 35000, stockQuantity: 28, categoryName: '스포츠', category: '스포츠', description: '천연 TPE 소재, 미끄럼 방지 텍스처, 친환경 인증 제품.', imageUrl: null, sellerId: 1 },
-  { id: 3, name: '한방 갈비탕 밀키트 2인분', price: 18500, stockQuantity: 65, categoryName: '식품', category: '식품', description: '15시간 우린 진한 사골 육수, 손질된 갈비 400g 포함. 냉장 배송.', imageUrl: null, sellerId: 1 },
-  { id: 4, name: '스마트 체중계 블루투스', price: 45000, stockQuantity: 19, categoryName: '건강', category: '건강', description: 'BMI·체지방·근육량·수분 8가지 지표 측정, 앱 연동.', imageUrl: null, sellerId: 1 },
-  { id: 5, name: '럭셔리 코튼 침구 세트 퀸', price: 128000, stockQuantity: 11, categoryName: '홈/인테리어', category: '홈/인테리어', description: '이집트면 400수 장섬유, 호텔급 부드러움, 사계절 사용 가능.', imageUrl: null, sellerId: 1 },
-  { id: 6, name: '캐리어 28인치 하드케이스', price: 89000, stockQuantity: 34, categoryName: '여행', category: '여행', description: 'TSA 잠금장치, 360도 회전 캐스터, PC 하드쉘, 10kg.', imageUrl: null, sellerId: 1 },
-  { id: 7, name: '아이폰15 강화유리 케이스', price: 15000, stockQuantity: 87, categoryName: '전자기기', category: '전자기기', description: '군사규격 충격 흡수, 황변 방지 투명 소재, 맥세이프 호환.', imageUrl: null, sellerId: 1 },
-  { id: 8, name: '유기농 그린티 50봉', price: 22000, stockQuantity: 53, categoryName: '식품', category: '식품', description: '제주 유기농 녹차잎 100%, 카페인 낮은 어린 순 채취, 개별 포장.', imageUrl: null, sellerId: 1 },
-  { id: 9, name: '스탠딩 책상 전동 높이조절', price: 320000, stockQuantity: 7, categoryName: '홈/인테리어', category: '홈/인테리어', description: '70-120cm 무단계 조절, 메모리 기능 4단계, 최대 80kg 지지.', imageUrl: null, sellerId: 1 },
-  { id: 10, name: '프로틴 쉐이크 바닐라 1kg', price: 38000, stockQuantity: 44, categoryName: '건강', category: '건강', description: 'WPI 90% 농축유청단백질, 1회 25g 단백질, 저당·저지방.', imageUrl: null, sellerId: 1 },
-  { id: 11, name: '4K 웹캠 오토포커스', price: 67000, stockQuantity: 23, categoryName: '전자기기', category: '전자기기', description: '소니 센서, AI 배경 블러, 스테레오 노이즈 캔슬링 마이크.', imageUrl: null, sellerId: 1 },
-  { id: 12, name: '제주 감귤 3kg 선물세트', price: 29000, stockQuantity: 38, categoryName: '식품', category: '식품', description: '당도 13브릭스 이상 엄선, 친환경 재배, 산지 직송.', imageUrl: null, sellerId: 1 },
+  { id: 1, name: '무선 블루투스 이어폰 ANC Pro', price: 89000, stockQuantity: 42, categoryName: '전자기기', category: '전자기기', description: '액티브 노이즈 캔슬링으로 완벽한 몰입감. 30시간 배터리, IPX5 방수, 멀티포인트 연결 지원.', imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 2, name: '프리미엄 요가 매트 8mm', price: 35000, stockQuantity: 28, categoryName: '스포츠', category: '스포츠', description: '천연 TPE 소재, 미끄럼 방지 텍스처, 친환경 인증 제품.', imageUrl: 'https://images.unsplash.com/photo-1601925228506-7bd27b6e4e6c?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 3, name: '한방 갈비탕 밀키트 2인분', price: 18500, stockQuantity: 65, categoryName: '식품', category: '식품', description: '15시간 우린 진한 사골 육수, 손질된 갈비 400g 포함. 냉장 배송.', imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 4, name: '스마트 체중계 블루투스', price: 45000, stockQuantity: 19, categoryName: '건강', category: '건강', description: 'BMI·체지방·근육량·수분 8가지 지표 측정, 앱 연동.', imageUrl: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 5, name: '럭셔리 코튼 침구 세트 퀸', price: 128000, stockQuantity: 11, categoryName: '홈/인테리어', category: '홈/인테리어', description: '이집트면 400수 장섬유, 호텔급 부드러움, 사계절 사용 가능.', imageUrl: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 6, name: '캐리어 28인치 하드케이스', price: 89000, stockQuantity: 34, categoryName: '여행', category: '여행', description: 'TSA 잠금장치, 360도 회전 캐스터, PC 하드쉘, 10kg.', imageUrl: 'https://images.unsplash.com/photo-1565026057447-bc90a3dceb87?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 7, name: '아이폰15 강화유리 케이스', price: 15000, stockQuantity: 87, categoryName: '전자기기', category: '전자기기', description: '군사규격 충격 흡수, 황변 방지 투명 소재, 맥세이프 호환.', imageUrl: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 8, name: '유기농 그린티 50봉', price: 22000, stockQuantity: 53, categoryName: '식품', category: '식품', description: '제주 유기농 녹차잎 100%, 카페인 낮은 어린 순 채취, 개별 포장.', imageUrl: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 9, name: '스탠딩 책상 전동 높이조절', price: 320000, stockQuantity: 7, categoryName: '홈/인테리어', category: '홈/인테리어', description: '70-120cm 무단계 조절, 메모리 기능 4단계, 최대 80kg 지지.', imageUrl: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 10, name: '프로틴 쉐이크 바닐라 1kg', price: 38000, stockQuantity: 44, categoryName: '건강', category: '건강', description: 'WPI 90% 농축유청단백질, 1회 25g 단백질, 저당·저지방.', imageUrl: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 11, name: '4K 웹캠 오토포커스', price: 67000, stockQuantity: 23, categoryName: '전자기기', category: '전자기기', description: '소니 센서, AI 배경 블러, 스테레오 노이즈 캔슬링 마이크.', imageUrl: 'https://images.unsplash.com/photo-1587826080692-f439cd0b70da?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 12, name: '제주 감귤 3kg 선물세트', price: 29000, stockQuantity: 38, categoryName: '식품', category: '식품', description: '당도 13브릭스 이상 엄선, 친환경 재배, 산지 직송.', imageUrl: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=400&fit=crop', sellerId: 1 },
 ];
 
 const DEMO_USER = {
@@ -359,11 +359,10 @@ export async function GET(
 
   // ── analytics ─────────────────────────────────────────────────
   if (seg[0] === 'analytics') {
-    // SSE stream — 한 번 이벤트 보내고 종료
     if (seg.includes('stream')) {
       const body = new ReadableStream({
         start(controller) {
-          const data = JSON.stringify({ totalSales: 18750000, orderCount: 324, activeUsers: 47, conversionRate: 3.2, _demo: true });
+          const data = JSON.stringify({ activeUsers: 47, dailyOrders: 324, revenue: 18750000, topProducts: DEMO_PRODUCTS.slice(0, 3).map(p => ({ name: p.name, sales: 28 })), _demo: true });
           controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
           controller.close();
         },
@@ -372,24 +371,15 @@ export async function GET(
         headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
       });
     }
-    // metrics
-    return ok({
-      totalSales: 18750000,
-      orderCount: 324,
-      activeUsers: 47,
-      conversionRate: 3.2,
-      topProducts: DEMO_PRODUCTS.slice(0, 3).map(p => ({ id: p.id, name: p.name, sales: Math.floor(Math.random() * 50) + 10 })),
-      recentOrders: DEMO_ORDERS,
-      _demo: true,
-    });
+    return ok({ activeUsers: 47, dailyOrders: 324, revenue: 18750000, conversionRate: 3.2, topProducts: DEMO_PRODUCTS.slice(0, 3).map(p => ({ name: p.name, sales: 28 })), recentOrders: DEMO_ORDERS, _demo: true });
   }
 
-  // ── dashboard (admin) ─────────────────────────────────────────
+  // ── dashboard (LiveActivityBar 전용: activeUsers, dailyOrders, revenue) ──────
   if (seg[0] === 'dashboard') {
     if (seg.includes('stream')) {
       const body = new ReadableStream({
         start(controller) {
-          const data = JSON.stringify({ totalSales: 18750000, orderCount: 324, activeUsers: 47, _demo: true });
+          const data = JSON.stringify({ activeUsers: 47, dailyOrders: 324, revenue: 18750000, topProducts: DEMO_PRODUCTS.slice(0, 3).map(p => ({ name: p.name, sales: 28 })), _demo: true });
           controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
           controller.close();
         },
@@ -398,7 +388,7 @@ export async function GET(
         headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
       });
     }
-    return ok({ totalSales: 18750000, orderCount: 324, activeUsers: 47, conversionRate: 3.2, _demo: true });
+    return ok({ activeUsers: 47, dailyOrders: 324, revenue: 18750000, topProducts: DEMO_PRODUCTS.slice(0, 3).map(p => ({ name: p.name, sales: 28 })), _demo: true });
   }
 
   // ── notifications ─────────────────────────────────────────────
