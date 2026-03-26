@@ -61,3 +61,5 @@ package-lock.json
 # Windows bat scripts (local convenience only)
 *.bat
 !gradlew.bat
+
+.vercel
