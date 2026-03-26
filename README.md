@@ -16,7 +16,7 @@
 
 | | 링크 |
 |---|---|
-| **🌐 프론트엔드 데모** | [livemart.vercel.app](https://livemart.vercel.app) *(Vercel 배포 예정)* |
+| **🌐 프론트엔드 데모** | [frontend-drab-zeta-ourku2gbor.vercel.app](https://frontend-drab-zeta-ourku2gbor.vercel.app) |
 | **📖 블로그 — Saga+Outbox 구현기** | [docs/blog/01-saga-outbox-패턴-실전-구현기.md](docs/blog/01-saga-outbox-패턴-실전-구현기.md) |
 | **📖 블로그 — 결제 취약점 발견·수정** | [docs/blog/02-결제-취약점-발견-수정기.md](docs/blog/02-결제-취약점-발견-수정기.md) |
 | **📖 블로그 — 분산 SSE 구현기** | [docs/blog/03-redis-pubsub-분산-SSE-구현기.md](docs/blog/03-redis-pubsub-분산-SSE-구현기.md) |
