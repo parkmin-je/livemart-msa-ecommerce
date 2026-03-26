@@ -1,60 +1,103 @@
-# LiveMart — MSA 기반 이커머스 플랫폼
+# LiveMart — MSA 이커머스 플랫폼
 
-[![CI](https://github.com/parkmin-je/livemart-msa-ecommerce/actions/workflows/ci.yml/badge.svg)](https://github.com/parkmin-je/livemart-msa-ecommerce/actions/workflows/ci.yml)
+[![CI](https://github.com/parkmin-je/livemart-msa-ecommerce/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/parkmin-je/livemart-msa-ecommerce/actions/workflows/ci.yml)
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.1-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.28-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Java 21 + Spring Boot 3.4로 구현한 MSA 이커머스 플랫폼입니다.
-실무에서 자주 쓰이는 분산 시스템 패턴(Saga, Outbox, CQRS, Event Sourcing)을 직접 구현하며 학습한 포트폴리오 프로젝트입니다.
+> Java 21 + Spring Boot 3.4 + Next.js 15로 구현한 MSA 이커머스 포트폴리오 프로젝트.
+> Saga, Outbox, CQRS, Event Sourcing 등 분산 시스템 패턴을 직접 구현했습니다.
+
+---
+
+## 🔗 라이브 데모 & 기술 블로그
+
+| | 링크 |
+|---|---|
+| **🌐 프론트엔드 데모** | [livemart.vercel.app](https://livemart.vercel.app) *(Vercel 배포 예정)* |
+| **📖 블로그 — Saga+Outbox 구현기** | [docs/blog/01-saga-outbox-패턴-실전-구현기.md](docs/blog/01-saga-outbox-패턴-실전-구현기.md) |
+| **📖 블로그 — 결제 취약점 발견·수정** | [docs/blog/02-결제-취약점-발견-수정기.md](docs/blog/02-결제-취약점-발견-수정기.md) |
+| **📖 블로그 — 분산 SSE 구현기** | [docs/blog/03-redis-pubsub-분산-SSE-구현기.md](docs/blog/03-redis-pubsub-분산-SSE-구현기.md) |
+| **🚀 배포 가이드** | [DEPLOY.md](DEPLOY.md) |
 
 ---
 
 ## 시스템 아키텍처
 
-```
-Client (Next.js 15)
-    │
-    ▼
-API Gateway (Spring Cloud Gateway)
-├── JWT 인증 · Rate Limiting (Redis Token Bucket) · Circuit Breaker
-├── Eureka Service Discovery
-│
-├── user-service      :8085  — 회원가입/로그인, JWT, OAuth2, MFA
-├── product-service   :8082  — 상품 CRUD, Elasticsearch 검색, gRPC 서버
-├── order-service     :8083  — 주문, Saga, 쿠폰, 반품, Event Sourcing
-├── payment-service   :8084  — 결제, 환불, Kafka DLQ
-├── inventory-service :8088  — 재고 관리
-├── analytics-service :8087  — 매출 분석, A/B 테스트
-├── notification-svc  :8086  — 알림 (Kafka + Redis Pub/Sub SSE)
-├── ai-service        :8090  — Spring AI 1.0 (OpenRouter)
-└── eureka-server     :8761
+```mermaid
+graph TB
+    Client["🌐 Next.js 15<br/>(React 19 · Turbopack)"]
+
+    subgraph GW["API Layer"]
+        Gateway["⚡ API Gateway<br/>Spring Cloud Gateway<br/>JWT 검증 · Rate Limiting<br/>Circuit Breaker · Eureka"]
+    end
+
+    subgraph SVC["Service Layer (10개 마이크로서비스)"]
+        direction LR
+        US["👤 user-service<br/>JWT · OAuth2 · MFA(TOTP)"]
+        PS["📦 product-service<br/>Elasticsearch · gRPC서버 · Redis"]
+        OS["🛒 order-service<br/>Saga · Outbox · CQRS · Event Sourcing"]
+        PAY["💳 payment-service<br/>Toss · Idempotency Key"]
+        INV["📊 inventory-service<br/>Redisson 분산 락"]
+        NS["🔔 notification-service<br/>Redis Pub/Sub · SSE"]
+        AI["🤖 ai-service<br/>Spring AI 1.0 · OpenRouter"]
+        AN["📈 analytics-service<br/>A/B Test"]
+    end
+
+    subgraph INFRA["Infrastructure"]
+        direction LR
+        KF["☁️ Apache Kafka<br/>+ DLQ · 병렬 소비"]
+        RD["⚡ Redis<br/>Cache · Session · Pub/Sub"]
+        ES["🔍 Elasticsearch<br/>nori 형태소 분석기"]
+        PG[("🗄️ PostgreSQL × 6<br/>서비스별 DB 분리")]
+    end
+
+    Client -->|"HTTPS"| Gateway
+    Gateway --> US & PS & OS & PAY & INV & NS & AI & AN
+    OS -->|"gRPC (Protobuf)"| PS
+    OS & PAY & INV -->|"이벤트 발행"| KF
+    KF -->|"이벤트 구독"| NS & INV
+    PS & US -->|"Cache-Aside"| RD
+    NS -->|"SSE 브로드캐스트"| RD
+    PS --> ES
+    US & PS & OS & PAY & INV & AN --> PG
 ```
 
 ---
 
-## 핵심 구현
+## 핵심 구현 — "왜 이 기술을 선택했는가"
 
 ### 1. Kafka Saga + Transactional Outbox
 
-주문→결제→재고 분산 트랜잭션을 **Saga Choreography**로 구현했습니다.
-주문 저장과 이벤트 발행을 단일 DB 트랜잭션으로 처리해 메시지 유실을 방지합니다.
+주문→결제→재고 3단계 분산 트랜잭션을 **Saga Choreography**로 구현했습니다. 2PC를 먼저 검토했지만 서비스 간 강결합과 데드락 문제로 포기했습니다.
+
+핵심 문제: Kafka `send()`가 DB 커밋 후 실패하면 이벤트가 유실됩니다. 이를 **Transactional Outbox 패턴**으로 해결했습니다. 주문 저장과 Outbox 이벤트 삽입을 **같은 트랜잭션**에서 처리하고, 별도 스레드가 Kafka에 발행합니다.
 
 ```java
-// OutboxProcessor.java
-// 주문 저장 + Outbox 이벤트를 같은 트랜잭션에 저장 → 별도 스레드에서 Kafka 발행
+// OutboxProcessor.java — 주문 저장과 이벤트를 단일 트랜잭션으로
+@Transactional
+public Order createOrder(OrderRequest req) {
+    Order order = orderRepository.save(buildOrder(req));
+    outboxRepository.save(OutboxEvent.of("order.created", order)); // 같은 TX
+    return order;
+}
+
+// 별도 스케줄러에서 Outbox → Kafka 발행 (최소 1회 보장)
 kafkaTemplate.send(topic, key, payload).get(5, TimeUnit.SECONDS);
 outboxEvent.setStatus(OutboxStatus.PUBLISHED);
 ```
 
-실패 시 ExponentialBackOff(1s→2s→4s, 3회 재시도) → Dead Letter Topic(*.DLT)으로 이동합니다.
+실패 시 ExponentialBackOff(1s→2s→4s, 3회) → Dead Letter Topic(`*.DLT`) 격리. → [상세 구현기](docs/blog/01-saga-outbox-패턴-실전-구현기.md)
+
+---
 
 ### 2. gRPC 서비스 간 통신
 
-order-service → product-service 상품 조회를 gRPC(HTTP/2 + Protobuf)로 구현했습니다.
+주문 생성 시 상품 유효성 검증을 REST 대신 **gRPC(HTTP/2 + Protobuf)**로 구현했습니다. 멀티플렉싱 덕분에 여러 상품을 병렬로 검증할 수 있고, 직렬화 오버헤드도 줄었습니다.
 
-```proto
+```protobuf
 // product.proto
 service ProductGrpcService {
   rpc GetProductsByIds(GetProductsByIdsRequest) returns (stream ProductResponse);
@@ -62,55 +105,49 @@ service ProductGrpcService {
 }
 ```
 
-### 3. Redis Pub/Sub 분산 실시간 알림
+---
 
-수평 확장 환경에서 여러 포드 간 SSE 이벤트를 Redis Pub/Sub으로 브로드캐스팅합니다.
+### 3. Redis Pub/Sub 분산 SSE
+
+단일 서버에서 SSE는 간단하지만, **K8s HPA로 스케일아웃하면 포드가 여러 개**라 특정 포드에 연결된 클라이언트만 이벤트를 받는 문제가 생깁니다. **Redis Pub/Sub**으로 모든 포드에 브로드캐스팅해서 해결했습니다.
 
 ```java
-// 재고 변경 이벤트 발행
-redisTemplate.convertAndSend("product:stock-updates", payload);
+// 이벤트 발행 (어느 포드에서든)
+redisTemplate.convertAndSend("notifications:" + userId, payload);
 
-// 구독 후 SSE emitter에 전달
+// 모든 포드의 구독자가 받아서 SSE로 전달
 public void onMessage(Message message, byte[] pattern) {
-    sseEmitters.forEach(emitter -> emitter.send(SseEmitter.event().data(message.toString())));
+    emitters.getOrDefault(userId, List.of())
+            .forEach(emitter -> emitter.send(SseEmitter.event().data(data)));
 }
 ```
+→ [상세 구현기](docs/blog/03-redis-pubsub-분산-SSE-구현기.md)
 
-### 4. Kafka DLQ + 병렬 소비
+---
+
+### 4. 결제 금액 서버 검증 (CVSS 9.3 → 수정)
+
+초기에 클라이언트가 전달한 금액을 그대로 결제 처리했습니다. Burp Suite로 amount 필드를 1원으로 조작하면 임의 금액 결제가 가능했습니다. **order-service FeignClient로 실제 주문 금액을 서버에서 재조회**하여 수정했습니다.
 
 ```java
-// 장애 격리: 3회 재시도 후 DLT 이동
-DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
-    (record, ex) -> new TopicPartition(record.topic() + ".DLT", -1));
+// PaymentService.java — 클라이언트 금액 무시, 서버에서 재조회
+OrderResponse order = orderClient.getOrder(request.getOrderNumber());
+if (!order.getTotalAmount().equals(request.getAmount())) {
+    throw new PaymentAmountMismatchException(order.getTotalAmount(), request.getAmount());
+}
+```
+→ [취약점 발견·수정 과정](docs/blog/02-결제-취약점-발견-수정기.md)
 
-// 병렬 소비 + Java 21 Virtual Threads
-factory.setConcurrency(3);
+---
+
+### 5. Java 21 Virtual Threads + Kafka 병렬 소비
+
+```java
+// Project Loom Virtual Threads — I/O 블로킹 구간 비용 최소화
 factory.getContainerProperties().setListenerTaskExecutor(
-    Executors.newVirtualThreadPerTaskExecutor());
-```
-
-### 5. AOP 기반 Prometheus 비즈니스 메트릭
-
-```java
-// OrderMetricsAspect.java
-@Around("execution(* com.livemart.order.service.OrderService.createOrder(..))")
-public Object measure(ProceedingJoinPoint pjp) throws Throwable {
-    // orders.created.total, orders.processing.seconds 메트릭 수집
-}
-```
-
-### 6. Spring AI 1.0 연동
-
-OpenRouter를 통해 LLM을 연동하고 상품 설명 생성, 검색 개선 등에 활용합니다.
-
-```java
-// AiService.java
-public String generateProductDescription(ProductDescriptionRequest req) {
-    return chatClient.prompt()
-        .user(buildPrompt(req))
-        .call()
-        .content();
-}
+    Executors.newVirtualThreadPerTaskExecutor()
+);
+factory.setConcurrency(3); // 파티션 3개 병렬 소비
 ```
 
 ---
@@ -121,66 +158,85 @@ public String generateProductDescription(ProductDescriptionRequest req) {
 
 | 분류 | 기술 |
 |------|------|
-| Language | Java 21 · Virtual Threads (Project Loom) |
+| Language | Java 21 (Virtual Threads / Project Loom) |
 | Framework | Spring Boot 3.4.1 · Spring Cloud 2024.0.0 |
-| API | REST · gRPC · WebSocket · SSE |
-| 메시징 | Apache Kafka + DLQ · 병렬 소비 |
-| 실시간 | Redis Pub/Sub (분산 SSE 브로드캐스팅) |
-| 캐싱 | Redis (Cache-Aside · Rate Limiting) |
-| 검색 | Elasticsearch 8 (nori 형태소 분석기) |
-| 인증 | JWT httpOnly Cookie · OAuth2 (Google/Kakao/Naver) · MFA (TOTP) |
-| 결제 | Stripe (Idempotency Key 기반 중복 방지) |
-| AI | Spring AI 1.0 · OpenRouter |
-| 분산 락 | Redisson |
+| API | REST · gRPC · WebSocket · SSE · GraphQL |
+| 메시징 | Apache Kafka (DLQ · 병렬 소비 · Outbox) |
+| 캐싱/세션 | Redis (Cache-Aside · Token Bucket · Pub/Sub) |
+| 검색 | Elasticsearch 8 (nori 한글 형태소) |
+| 인증 | JWT httpOnly · OAuth2 PKCE (Google/Kakao/Naver) · MFA (TOTP · WebAuthn) |
+| 결제 | Toss Payments (서버 금액 검증 · Idempotency Key) |
+| 분산 락 | Redisson (재고 Race Condition 방지) |
 | Circuit Breaker | Resilience4j |
+| AI | Spring AI 1.0 · OpenRouter (MiMo-V2-Pro) |
+| 쿼리 | QueryDSL · MapStruct |
 
 ### 프론트엔드
 
 | 분류 | 기술 |
 |------|------|
-| Framework | Next.js 15 · React 19 |
-| 상태 관리 | Zustand · TanStack Query |
-| 스타일 | Tailwind CSS |
+| Framework | Next.js 15 (App Router · Turbopack) |
+| UI | React 19 · Tailwind CSS 4 · 웜크림 디자인 시스템 |
+| 상태 관리 | Zustand · TanStack Query v5 |
+| 결제 | Toss Payments SDK |
+| 보안 헤더 | CSP · HSTS · X-Frame-Options (미들웨어) |
+| 타입 | TypeScript 5.7 (strict mode) |
 
 ### 테스트
 
-| 분류 | 기술 |
+| 분류 | 도구 |
 |------|------|
 | 단위 테스트 | JUnit 5 · Mockito |
 | 통합 테스트 | Testcontainers (PostgreSQL · Kafka) |
-| 아키텍처 테스트 | ArchUnit (레이어 의존성 검증) |
-| 계약 테스트 | Spring Cloud Contract (order↔payment) |
-| 부하 테스트 | k6 (order-flow 시나리오) |
-| 커버리지 | JaCoCo |
+| 아키텍처 테스트 | ArchUnit (레이어 의존성 자동 검증) |
+| 계약 테스트 | Spring Cloud Contract (order ↔ payment) |
+| E2E 테스트 | Playwright (checkout · search · admin) |
+| 부하 테스트 | k6 (smoke · load · spike · stress) |
+| 커버리지 | JaCoCo (Service 70% · Controller 60%) |
 
 ### 인프라
 
 | 분류 | 기술 |
 |------|------|
-| 컨테이너 | Docker · Kubernetes (HPA) |
-| CI/CD | GitHub Actions → Docker → GHCR → K8s |
-| GitOps | ArgoCD |
-| IaC | Terraform (AWS VPC, EKS, RDS, ElastiCache) |
+| 컨테이너 | Docker · Kubernetes 1.28 · Istio mTLS STRICT |
+| CI/CD | GitHub Actions → GHCR → K8s (ArgoCD GitOps) |
+| IaC | Terraform 1.9 (AWS EKS · RDS · ElastiCache · MSK · OpenSearch) |
+| 오토스케일링 | HPA (CPU 70% · Memory 80%) |
+| 배포 전략 | Blue-Green (무중단 배포) |
 | 모니터링 | Prometheus + Grafana |
 | 분산 추적 | OpenTelemetry → Zipkin |
-| 패키지 | Helm Charts |
+| 보안 스캔 | Trivy · Gitleaks · CodeQL · OWASP ZAP |
+
+---
+
+## 보안 — OWASP Top 10 대응
+
+| 취약점 | 대응 |
+|--------|------|
+| A01 Broken Access Control | Spring Security RBAC · IDOR 소유자 검증 |
+| A02 Cryptographic Failures | JWT HS512 · TLS 1.3 · Istio mTLS |
+| A03 Injection | JPA 파라미터 바인딩 · ES 인젝션 방어 |
+| A07 Auth Failures | OAuth2 PKCE · Redis 토큰 블랙리스트 · MFA |
+| A08 Integrity Failures | 결제 금액 서버 검증 · Docker 이미지 서명 |
+| A09 Logging & Monitoring | ELK Stack · Grafana 알림 |
+| 자동 스캔 | Trivy + Gitleaks (모든 push) · CodeQL (PR) · ZAP (주간) |
 
 ---
 
 ## 서비스 구성
 
 ```
-├── api-gateway/          Spring Cloud Gateway · Rate Limiting · JWT 검증
-├── user-service/         회원 · JWT · OAuth2 · MFA(TOTP) · 위시리스트
-├── product-service/      상품 · Elasticsearch · gRPC 서버 · Redis 캐싱 · S3
-├── order-service/        주문 · Saga · Outbox · 쿠폰 · 반품 · Event Sourcing
-├── payment-service/      Stripe 결제 · 환불 · Kafka DLQ
-├── analytics-service/    매출 분석 · A/B 테스트
-├── ai-service/           Spring AI 1.0 · OpenRouter
-├── inventory-service/    재고 관리
-├── notification-service/ 이메일/알림 · Redis Pub/Sub SSE
-├── eureka-server/        서비스 레지스트리
-└── common/               Outbox · Event Sourcing · 분산 락 · 멱등성 · RFC 7807 에러
+├── api-gateway/           Spring Cloud Gateway · Rate Limiting · JWT 검증
+├── eureka-server/         서비스 레지스트리
+├── user-service/          회원 · JWT · OAuth2 · MFA(TOTP/WebAuthn) · 위시리스트
+├── product-service/       상품 · Elasticsearch · gRPC 서버 · Redis 캐싱 · S3
+├── order-service/         주문 · Saga · Outbox · CQRS · 쿠폰 · 반품 · Event Sourcing
+├── payment-service/       Toss 결제 · 환불 · Kafka DLQ · 금액 서버 검증
+├── inventory-service/     재고 · Redisson 분산 락
+├── analytics-service/     매출 분석 · A/B 테스트
+├── notification-service/  알림 · Redis Pub/Sub SSE
+├── ai-service/            Spring AI 1.0 · OpenRouter
+└── common/                Outbox · Event Sourcing · RFC 7807 에러 · 멱등성
 ```
 
 ---
@@ -189,33 +245,23 @@ public String generateProductDescription(ProductDescriptionRequest req) {
 
 ### 사전 요구사항
 
-- Java 21+
-- Docker Desktop
-- Node.js 20+
+```
+Java 21+  ·  Docker Desktop  ·  Node.js 20+
+```
 
-### 1. 환경 변수 설정
+### 빠른 시작
 
 ```bash
+# 1. 환경 변수 설정
 cp .env.example .env
-# .env 파일에서 JWT_SECRET, DB 비밀번호, OAuth2 키 등 입력
-```
+# .env 에서 JWT_SECRET, OAuth2 키 등 입력
 
-### 2. 인프라 기동
+# 2. 인프라 기동 (PostgreSQL · Redis · Kafka · Elasticsearch)
+docker-compose -f docker-compose.infra.yml up -d
 
-```bash
-docker-compose up -d
-```
-
-### 3. 서비스 기동 (순서 중요)
-
-```bash
-# 1. Eureka
+# 3. 백엔드 서비스 순차 기동
 ./gradlew :eureka-server:bootRun &
-
-# 2. API Gateway
 ./gradlew :api-gateway:bootRun &
-
-# 3. 비즈니스 서비스
 ./gradlew :user-service:bootRun -Dspring.profiles.active=local &
 ./gradlew :product-service:bootRun -Dspring.profiles.active=local &
 ./gradlew :order-service:bootRun -Dspring.profiles.active=local &
@@ -223,14 +269,22 @@ docker-compose up -d
 
 # 4. 프론트엔드
 cd frontend && npm install && npm run dev
+# → http://localhost:3000
 ```
+
+### 테스트 계정
+
+| 이메일 | 비밀번호 | 역할 |
+|--------|----------|------|
+| admin@livemart.com | Test1234 | 관리자 |
+| test@livemart.com | Test1234 | 일반 회원 |
 
 ### 포트 맵
 
 | 서비스 | 포트 |
 |--------|------|
-| Next.js Frontend | 3000 |
-| API Gateway | 8080 |
+| Next.js Frontend | **3000** |
+| API Gateway | 8888 |
 | Eureka Dashboard | 8761 |
 | user-service | 8085 |
 | product-service | 8082 |
@@ -238,14 +292,18 @@ cd frontend && npm install && npm run dev
 | payment-service | 8084 |
 | inventory-service | 8088 |
 | Grafana | 3001 |
-| Prometheus | 9090 |
 | Zipkin | 9411 |
 
 ### 테스트 실행
 
 ```bash
+# 단위 + 통합 테스트
 ./gradlew :order-service:test :order-service:jacocoTestReport
+
+# 계약 테스트
 ./gradlew :payment-service:contractTest
+
+# 부하 테스트
 k6 run tests/load/k6-order-flow.js
 ```
 
@@ -253,28 +311,31 @@ k6 run tests/load/k6-order-flow.js
 
 ## Architecture Decision Records
 
-| ADR | 주제 | 결정 |
-|-----|------|------|
-| [ADR-001](docs/adr/ADR-001-saga-pattern.md) | 분산 트랜잭션 | Saga Choreography |
-| [ADR-002](docs/adr/ADR-002-outbox-pattern.md) | 이벤트 신뢰성 | Transactional Outbox |
-| [ADR-003](docs/adr/ADR-003-grpc-product-query.md) | 서비스 간 통신 | gRPC |
-| [ADR-004](docs/adr/ADR-004-redis-caching-strategy.md) | 캐싱 전략 | Cache-Aside |
-| [ADR-005](docs/adr/ADR-005-elasticsearch-search.md) | 검색 엔진 | Elasticsearch (nori) |
+구체적인 기술 선택 이유를 ADR로 문서화했습니다.
+
+| ADR | 주제 | 결정 | 이유 요약 |
+|-----|------|------|-----------|
+| [ADR-001](docs/adr/ADR-001-saga-pattern.md) | 분산 트랜잭션 | Saga Choreography | 2PC 데드락·강결합 회피 |
+| [ADR-002](docs/adr/ADR-002-outbox-pattern.md) | 이벤트 신뢰성 | Transactional Outbox | Kafka 장애 시 이벤트 유실 방지 |
+| [ADR-003](docs/adr/ADR-003-grpc-product-query.md) | 서비스 간 통신 | gRPC (HTTP/2 + Protobuf) | REST 대비 멀티플렉싱·직렬화 효율 |
+| [ADR-004](docs/adr/ADR-004-redis-caching-strategy.md) | 캐싱 전략 | Cache-Aside | 캐시 히트 최대화, 쓰기 성능 유지 |
+| [ADR-005](docs/adr/ADR-005-elasticsearch-search.md) | 검색 엔진 | Elasticsearch + nori | 한글 형태소 분석·퍼지 검색 |
+| [ADR-006](docs/adr/ADR-006-istio-service-mesh.md) | 서비스 메시 | Istio mTLS STRICT | 서비스 간 자동 암호화·트래픽 제어 |
 
 ---
 
 ## 스크린샷
 
 <details>
-<summary>화면 보기 (16장)</summary>
+<summary>▶ 화면 보기</summary>
 
 | 홈페이지 | 상품 목록 |
 |--------|---------|
 | ![홈](01_homepage.png) | ![상품](02_products_page.png) |
 
-| 상품 상세 | 장바구니 |
+| 정렬/필터 | 리스트뷰 |
 |--------|---------|
-| ![상세](05_product_detail.png) | ![장바구니](10_cart_page.png) |
+| ![정렬](03_products_sorted.png) | ![리스트](04_products_listview.png) |
 
 | 관리자 대시보드 | 판매자 페이지 |
 |--------|---------|
@@ -286,7 +347,4 @@ k6 run tests/load/k6-order-flow.js
 
 ## 개발 환경
 
-- **OS**: Windows 11
-- **IDE**: IntelliJ IDEA
-- **JDK**: OpenJDK 21
-- **Build**: Gradle 8.5
+- **OS**: Windows 11 · **IDE**: IntelliJ IDEA · **JDK**: OpenJDK 21 · **Build**: Gradle 8.5
