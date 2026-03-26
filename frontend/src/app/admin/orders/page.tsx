@@ -22,6 +22,8 @@ const statusConfig: Record<string, { style: React.CSSProperties; label: string }
   PENDING:          { style: { background: 'rgba(234,179,8,0.08)',  color: 'rgb(161,98,7)',    border: '1px solid rgba(234,179,8,0.2)'  }, label: '대기' },
   CONFIRMED:        { style: { background: 'rgba(37,99,235,0.07)',  color: 'rgb(29,78,216)',   border: '1px solid rgba(37,99,235,0.2)'  }, label: '확인' },
   SHIPPED:          { style: { background: 'rgba(147,51,234,0.07)', color: 'rgb(109,40,217)',  border: '1px solid rgba(147,51,234,0.2)' }, label: '배송중' },
+  SHIPPING:         { style: { background: 'rgba(147,51,234,0.07)', color: 'rgb(109,40,217)',  border: '1px solid rgba(147,51,234,0.2)' }, label: '배송중' },
+  PAYMENT_COMPLETED:{ style: { background: 'rgba(16,185,129,0.08)', color: 'rgb(4,120,87)',    border: '1px solid rgba(16,185,129,0.2)' }, label: '결제완료' },
   DELIVERED:        { style: { background: 'rgba(16,185,129,0.08)', color: 'rgb(4,120,87)',    border: '1px solid rgba(16,185,129,0.2)' }, label: '완료' },
   CANCELLED:        { style: { background: 'rgba(14,14,14,0.06)',   color: 'rgba(14,14,14,0.45)', border: '1px solid rgba(14,14,14,0.12)' }, label: '취소' },
   RETURN_REQUESTED: { style: { background: 'rgba(234,88,12,0.07)',  color: 'rgb(194,65,12)',   border: '1px solid rgba(234,88,12,0.2)'  }, label: '반품요청' },

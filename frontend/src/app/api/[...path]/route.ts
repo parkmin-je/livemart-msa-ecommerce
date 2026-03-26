@@ -54,7 +54,7 @@ const DEMO_ORDERS = [
     id: 2,
     orderNumber: 'ORD-20240320-002',
     userId: 1,
-    status: 'SHIPPING',
+    status: 'SHIPPED',
     totalAmount: 53500,
     deliveryAddress: '서울시 강남구 테헤란로 123',
     phoneNumber: '010-1234-5678',
@@ -215,20 +215,40 @@ export async function GET(
     }
 
     // /api/users/{id}/cart
-    if (seg[2] === 'cart') {
+    if (seg[2] === 'cart' && !seg[3]) {
       return ok({
         userId: parseInt(seg[1]),
         items: [
-          { productId: 1, productName: '무선 블루투스 이어폰 ANC Pro', price: 89000, quantity: 1, imageUrl: null },
-          { productId: 7, productName: '아이폰15 강화유리 케이스', price: 15000, quantity: 2, imageUrl: null },
+          { productId: 1, productName: '무선 블루투스 이어폰 ANC Pro', price: 89000, quantity: 1, imageUrl: DEMO_PRODUCTS[0].imageUrl },
+          { productId: 7, productName: '아이폰15 강화유리 케이스', price: 15000, quantity: 2, imageUrl: DEMO_PRODUCTS[6].imageUrl },
         ],
         totalAmount: 119000,
         _demo: true,
       });
     }
 
+    // /api/users/{id}/wishlist
+    if (seg[2] === 'wishlist' && !seg[3]) {
+      return ok({
+        content: [
+          { id: 1, productId: 1, productName: '무선 블루투스 이어폰 ANC Pro', productPrice: 89000, productImageUrl: DEMO_PRODUCTS[0].imageUrl },
+          { id: 2, productId: 5, productName: '럭셔리 코튼 침구 세트 퀸', productPrice: 128000, productImageUrl: DEMO_PRODUCTS[4].imageUrl },
+          { id: 3, productId: 9, productName: '스탠딩 책상 전동 높이조절', productPrice: 320000, productImageUrl: DEMO_PRODUCTS[8].imageUrl },
+        ],
+        totalElements: 3,
+        _demo: true,
+      });
+    }
+
+    // /api/users/{id}/addresses
+    if (seg[2] === 'addresses') {
+      return ok([
+        { id: 1, alias: '집', address: '서울시 강남구 테헤란로 123', detail: 'LiveMart빌딩 456호', isDefault: true },
+      ]);
+    }
+
     // /api/users/{id}
-    if (seg[1] && !isNaN(parseInt(seg[1]))) {
+    if (seg[1] && !isNaN(parseInt(seg[1])) && !seg[2]) {
       return ok({ ...DEMO_USER, id: parseInt(seg[1]), _demo: true });
     }
 
@@ -391,20 +411,63 @@ export async function GET(
     return ok({ activeUsers: 47, dailyOrders: 324, revenue: 18750000, topProducts: DEMO_PRODUCTS.slice(0, 3).map(p => ({ name: p.name, sales: 28 })), _demo: true });
   }
 
+  // ── sellers ───────────────────────────────────────────────────
+  if (seg[0] === 'sellers') {
+    // /api/sellers/{id}/dashboard
+    if (seg[2] === 'dashboard') {
+      return ok({
+        totalRevenue: 12850000,
+        totalOrders: 87,
+        totalProducts: 12,
+        pendingOrders: 5,
+        recentOrders: DEMO_ORDERS,
+        lowStockProducts: DEMO_PRODUCTS.filter(p => p.stockQuantity <= 10).map(p => ({ id: p.id, name: p.name, stockQuantity: p.stockQuantity })),
+        _demo: true,
+      });
+    }
+    // /api/sellers/{id}/products
+    if (seg[2] === 'products') {
+      return ok(paginate(DEMO_PRODUCTS, 0, 50));
+    }
+    return ok({ message: '판매자 신청이 접수되었습니다. (데모)', _demo: true });
+  }
+
   // ── notifications ─────────────────────────────────────────────
   if (seg[0] === 'notifications') {
+    // /api/notifications/stream/{uid} — SSE
     if (seg.includes('stream')) {
+      const enc = new TextEncoder();
       const body = new ReadableStream({
         start(controller) {
-          controller.enqueue(new TextEncoder().encode(': connected\n\n'));
-          controller.close();
+          // retry 60s to reduce reconnect frequency in demo
+          controller.enqueue(enc.encode('retry: 60000\n'));
+          const notif = JSON.stringify({ id: 1, type: 'ORDER_STATUS', title: '주문 배송 시작', message: '주문 #ORD-20240320-002 이(가) 배송을 시작했습니다.', read: false, createdAt: new Date().toISOString() });
+          controller.enqueue(enc.encode(`data: ${notif}\n\n`));
+          // close after 20s to avoid serverless timeout
+          setTimeout(() => { try { controller.close(); } catch {} }, 20000);
         },
       });
       return new Response(body, {
-        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
+      });
+    }
+    // /api/notifications/user/{uid}
+    if (seg[1] === 'user') {
+      return ok({
+        content: [
+          { id: 1, type: 'ORDER_STATUS', title: '주문 배송 시작', message: '주문 #ORD-20240320-002 이(가) 배송을 시작했습니다.', read: false, createdAt: new Date(Date.now() - 3600000).toISOString() },
+          { id: 2, type: 'PROMOTION', title: '봄 시즌 세일 시작!', message: '전 카테고리 최대 30% 할인. 오늘만 특가!', read: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
+        ],
+        totalElements: 2,
+        _demo: true,
       });
     }
     return ok({ content: [], totalElements: 0, _demo: true });
+  }
+
+  // ── v1 (MFA 등) ───────────────────────────────────────────────
+  if (seg[0] === 'v1') {
+    return ok({ enabled: false, _demo: true });
   }
 
   // ── ai ────────────────────────────────────────────────────────
@@ -485,6 +548,16 @@ export async function POST(
     return ok({ message: '장바구니에 추가되었습니다. (데모)', _demo: true }, 201);
   }
 
+  // ── users/{id}/wishlist ───────────────────────────────────────
+  if (seg[0] === 'users' && seg[2] === 'wishlist') {
+    return ok({ message: '위시리스트에 추가되었습니다. (데모)', _demo: true }, 201);
+  }
+
+  // ── notifications read ────────────────────────────────────────
+  if (seg[0] === 'notifications' || (seg[0] === 'api' && seg[1] === 'notifications')) {
+    return ok({ message: '읽음 처리되었습니다.', _demo: true });
+  }
+
   // ── orders ────────────────────────────────────────────────────
   if (seg[0] === 'orders' && !seg[1]) {
     const body = await request.json().catch(() => ({}));
@@ -553,6 +626,11 @@ export async function POST(
     return ok({ message: '판매자 신청이 완료되었습니다. (데모)', _demo: true }, 201);
   }
 
+  // ── coupons (admin create) ────────────────────────────────────
+  if (seg[0] === 'coupons' && !seg[1]) {
+    return ok({ id: Math.floor(Math.random() * 900) + 100, message: '쿠폰이 생성되었습니다. (데모)', _demo: true }, 201);
+  }
+
   // ── products/{id}/reviews ─────────────────────────────────────
   if (seg[0] === 'products' && seg[2] === 'reviews' && !seg[3]) {
     return ok({ id: 99, message: '리뷰가 등록되었습니다. (데모)', _demo: true }, 201);
@@ -600,6 +678,16 @@ export async function PUT(
     return ok({ message: '수량이 수정되었습니다. (데모)', _demo: true });
   }
 
+  // /api/coupons/{id}/toggle
+  if (seg[0] === 'coupons' && seg[2] === 'toggle') {
+    return ok({ message: '쿠폰 상태가 변경되었습니다. (데모)', _demo: true });
+  }
+
+  // /api/notifications/user/{id}/read-all
+  if (seg[0] === 'notifications' && seg[1] === 'user') {
+    return ok({ message: '읽음 처리되었습니다.', _demo: true });
+  }
+
   return ok({ _demo: true });
 }
 
@@ -622,6 +710,11 @@ export async function DELETE(
   // /api/users/{id}/cart/{productId}
   if (seg[0] === 'users' && seg[2] === 'cart' && seg[3]) {
     return ok({ message: '상품이 삭제되었습니다. (데모)', _demo: true });
+  }
+
+  // /api/users/{id}/wishlist/{productId}
+  if (seg[0] === 'users' && seg[2] === 'wishlist' && seg[3]) {
+    return ok({ message: '위시리스트에서 제거되었습니다. (데모)', _demo: true });
   }
 
   // /api/products/{id}/reviews/{reviewId}

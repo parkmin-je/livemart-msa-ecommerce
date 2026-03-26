@@ -129,11 +129,12 @@ export function middleware(request: NextRequest) {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",  // Next.js hydration 필요
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.tosspayments.com https://t1.daumcdn.net",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https: blob:",
-      "font-src 'self'",
-      "connect-src 'self' https:",
+      "font-src 'self' https://fonts.gstatic.com",
+      "connect-src 'self' https: wss:",
+      "frame-src https://js.tosspayments.com https://pay.toss.im https://postcode.map.daum.net",
       "frame-ancestors 'none'",
     ].join('; ')
   );
