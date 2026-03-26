@@ -115,7 +115,7 @@ function paginate<T>(items: T[], page: number, size: number) {
   return {
     content,
     totalElements: items.length,
-    totalPages: Math.ceil(items.length / size),
+    totalPages: size > 0 ? Math.ceil(items.length / size) : 0,
     number: page,
     size,
     _demo: true,
