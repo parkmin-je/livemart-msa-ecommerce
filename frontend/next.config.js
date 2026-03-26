@@ -68,6 +68,9 @@ const nextConfig = {
 
   // ── API 프록시 리라이트 ───────────────────────────────────
   async rewrites() {
+    // Vercel 배포 환경에서는 리라이트 비활성화 — 모든 /api/* 요청은 내부 라우트 핸들러가 처리
+    if (process.env.VERCEL) return [];
+
     const apiBase = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
     // SSE 스트리밍은 kubectl port-forward가 연결을 끊으므로 notification-service 직접 연결
     const notifBase = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:8086';
