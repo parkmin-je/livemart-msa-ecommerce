@@ -1,7 +1,7 @@
 toss:
   payments:
-    client-key: ${TOSS_CLIENT_KEY:test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq}
-    secret-key: ${TOSS_SECRET_KEY:test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R}
+    client-key: ${TOSS_CLIENT_KEY}
+    secret-key: ${TOSS_SECRET_KEY}
 
 server:
   port: 8084
@@ -18,7 +18,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5437}/paymentdb
     username: ${DB_USERNAME:paymentapp}
-    password: ${DB_PASSWORD:payment123}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -63,7 +63,13 @@ management:
       enabled: false
   tracing:
     sampling:
-      probability: 0.1
-  zipkin:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+  otlp:
     tracing:
-      endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
+      transport: http
+
+# 로컬 개발: 호스트명 해결 타임아웃 단축 (Cannot determine local hostname WARN 방지)
+spring.cloud.inetutils.timeout-seconds: 1
+logging.level.com.netflix.discovery: ERROR
+logging.level.com.netflix.eureka: ERROR

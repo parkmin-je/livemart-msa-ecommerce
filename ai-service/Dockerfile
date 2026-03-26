@@ -1,11 +1,21 @@
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# 보안: non-root 유저
-RUN addgroup -S livemart && adduser -S livemart -G livemart
-USER livemart
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 COPY build/libs/ai-service-*.jar app.jar
+RUN chown appuser:appgroup app.jar
+
+USER appuser
 
 EXPOSE 8090
-ENTRYPOINT ["java", "--enable-preview", "-jar", "app.jar"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget -qO- http://localhost:8090/actuator/health || exit 1
+
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-XX:+UseG1GC", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-jar", "app.jar"]

@@ -13,7 +13,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5438}/inventorydb
     username: ${DB_USERNAME:inventoryapp}
-    password: ${DB_PASSWORD:inventory123}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -51,13 +51,19 @@ management:
         include: health,info,prometheus,metrics
   tracing:
     sampling:
-      probability: 0.1
-  zipkin:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}
+  otlp:
     tracing:
-      endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
+      transport: http
 
 logging:
   level:
     com.livemart: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 로컬 개발: 호스트명 해결 타임아웃 단축 (Cannot determine local hostname WARN 방지)
+spring.cloud.inetutils.timeout-seconds: 1
+logging.level.com.netflix.discovery: ERROR
+logging.level.com.netflix.eureka: ERROR

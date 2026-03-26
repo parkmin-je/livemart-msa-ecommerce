@@ -23,13 +23,13 @@ const SERVICES: Omit<ServiceHealth, 'status'>[] = [
 
 function StatusBadge({ status }: { status: ServiceHealth['status'] }) {
   const cfg = {
-    UP:       { dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', label: 'UP' },
-    DOWN:     { dot: 'bg-red-500',                   text: 'text-red-700',     bg: 'bg-red-50 border-red-200',         label: 'DOWN' },
-    CHECKING: { dot: 'bg-gray-300 animate-pulse',    text: 'text-gray-500',    bg: 'bg-gray-50 border-gray-200',       label: '확인 중' },
+    UP:       { dotStyle: { background: '#10B981' }, style: { background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: 'rgb(4,120,87)' }, dotClass: 'animate-pulse', label: 'UP' },
+    DOWN:     { dotStyle: { background: '#E8001D' }, style: { background: 'rgba(232,0,29,0.06)', border: '1px solid rgba(232,0,29,0.2)', color: '#C8001A' }, dotClass: '', label: 'DOWN' },
+    CHECKING: { dotStyle: { background: 'rgba(14,14,14,0.25)' }, style: { background: 'rgba(14,14,14,0.04)', border: '1px solid rgba(14,14,14,0.1)', color: 'rgba(14,14,14,0.5)' }, dotClass: 'animate-pulse', label: '확인 중' },
   }[status];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold" style={cfg.style}>
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dotClass}`} style={cfg.dotStyle} />
       {cfg.label}
     </span>
   );
@@ -72,21 +72,26 @@ export default function HealthPage() {
   const allUp = upCount === SERVICES.length;
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
+    <main className="min-h-screen" style={{ background: '#F7F6F1' }}>
+      <div className="px-4 sm:px-6 py-4" style={{ background: '#FFFFFF', borderBottom: '1px solid rgba(14,14,14,0.07)' }}>
         <div className="max-w-4xl mx-auto flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">시스템 상태 대시보드</h1>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight" style={{ color: '#0E0E0E' }}>시스템 상태 대시보드</h1>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(14,14,14,0.4)' }}>
               {lastChecked ? `마지막 확인: ${lastChecked.toLocaleTimeString('ko-KR')}` : '확인 중...'}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <a href="/" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">← 홈</a>
+            <a href="/" className="text-sm transition-colors" style={{ color: 'rgba(14,14,14,0.5)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#0E0E0E')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(14,14,14,0.5)')}>← 홈</a>
             <button
               onClick={checkHealth}
               disabled={checking}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-white text-sm font-medium transition-colors disabled:opacity-50"
+              style={{ background: '#0A0A0A' }}
+              onMouseEnter={e => !checking && (e.currentTarget.style.background = '#E8001D')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
             >
               <svg className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -101,39 +106,47 @@ export default function HealthPage() {
         {/* Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
-            { label: '정상', value: upCount, color: upCount > 0 ? 'text-emerald-600' : 'text-gray-900' },
-            { label: '장애', value: downCount, color: downCount > 0 ? 'text-red-600' : 'text-gray-900' },
-            { label: '전체', value: SERVICES.length, color: 'text-gray-900' },
-            { label: '가용률', value: `${Math.round((upCount / SERVICES.length) * 100)}%`, color: allUp ? 'text-emerald-600' : 'text-red-600' },
+            { label: '정상', value: upCount, color: upCount > 0 ? 'rgb(4,120,87)' : '#0E0E0E' },
+            { label: '장애', value: downCount, color: downCount > 0 ? '#E8001D' : '#0E0E0E' },
+            { label: '전체', value: SERVICES.length, color: '#0E0E0E' },
+            { label: '가용률', value: `${Math.round((upCount / SERVICES.length) * 100)}%`, color: allUp ? 'rgb(4,120,87)' : '#E8001D' },
           ].map(card => (
-            <div key={card.label} className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className={`text-2xl font-bold ${card.color}`}>{card.value}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{card.label}</div>
+            <div key={card.label} className="p-4" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+              <div className="text-2xl font-bold" style={{ color: card.color }}>{card.value}</div>
+              <div className="text-xs mt-0.5" style={{ color: 'rgba(14,14,14,0.5)' }}>{card.label}</div>
             </div>
           ))}
         </div>
 
         {/* Status Banner */}
-        <div className={`flex items-center gap-3 px-4 py-3 border rounded-lg mb-6 ${
-          allUp ? 'bg-emerald-50 border-emerald-200' : downCount > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'
-        }`}>
-          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${allUp ? 'bg-emerald-500 animate-pulse' : downCount > 0 ? 'bg-red-500' : 'bg-gray-400'}`} />
-          <p className={`text-sm font-semibold ${allUp ? 'text-emerald-800' : downCount > 0 ? 'text-red-800' : 'text-gray-700'}`}>
+        <div className="flex items-center gap-3 px-4 py-3 mb-6" style={
+          allUp
+            ? { background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.18)' }
+            : downCount > 0
+              ? { background: 'rgba(232,0,29,0.06)', border: '1px solid rgba(232,0,29,0.18)' }
+              : { background: 'rgba(14,14,14,0.04)', border: '1px solid rgba(14,14,14,0.1)' }
+        }>
+          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${allUp ? 'animate-pulse' : ''}`}
+            style={{ background: allUp ? '#10B981' : downCount > 0 ? '#E8001D' : 'rgba(14,14,14,0.35)' }} />
+          <p className="text-sm font-semibold" style={{ color: allUp ? 'rgb(4,120,87)' : downCount > 0 ? '#C8001A' : 'rgba(14,14,14,0.7)' }}>
             {allUp ? '모든 시스템이 정상 운영 중입니다' : downCount > 0 ? `${downCount}개 서비스에 문제가 있습니다` : '서비스 상태를 확인 중입니다'}
           </p>
         </div>
 
         {/* Services */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">마이크로서비스</h2>
+        <div className="overflow-hidden mb-6" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+          <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(14,14,14,0.07)', background: '#F7F6F1' }}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(14,14,14,0.5)' }}>마이크로서비스</h2>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div>
             {services.map(svc => (
-              <div key={svc.name} className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors">
+              <div key={svc.name} className="flex items-center justify-between px-4 py-3.5 transition-colors"
+                style={{ borderBottom: '1px solid rgba(14,14,14,0.05)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F7F6F1')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <div className="min-w-0 mr-4">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{svc.displayName}</p>
-                  <p className="text-xs text-gray-400 font-mono truncate">{svc.name}</p>
+                  <p className="text-sm font-semibold truncate" style={{ color: '#0E0E0E' }}>{svc.displayName}</p>
+                  <p className="text-xs font-mono truncate" style={{ color: 'rgba(14,14,14,0.4)' }}>{svc.name}</p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   {svc.latency !== undefined && svc.status === 'UP' && (
@@ -157,17 +170,17 @@ export default function HealthPage() {
             { name: 'Redis',        desc: '캐시 · 세션 · Rate Limiting' },
             { name: 'Elasticsearch', desc: '상품 검색 · 자동완성' },
           ].map(infra => (
-            <div key={infra.name} className="bg-white border border-gray-200 rounded-lg px-4 py-3.5 flex items-center justify-between">
+            <div key={infra.name} className="px-4 py-3.5 flex items-center justify-between" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
               <div>
-                <p className="text-sm font-semibold text-gray-900">{infra.name}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{infra.desc}</p>
+                <p className="text-sm font-semibold" style={{ color: '#0E0E0E' }}>{infra.name}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(14,14,14,0.4)' }}>{infra.desc}</p>
               </div>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0 ml-3" />
             </div>
           ))}
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-8">LiveMart MSA · Kubernetes · Spring Boot 3.x · {new Date().getFullYear()}</p>
+        <p className="text-center text-xs mt-8" style={{ color: 'rgba(14,14,14,0.4)' }}>LiveMart MSA · Kubernetes · Spring Boot 3.x · {new Date().getFullYear()}</p>
       </div>
     </main>
   );

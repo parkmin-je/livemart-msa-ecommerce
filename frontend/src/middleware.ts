@@ -29,8 +29,8 @@ const AUTH_REQUIRED_PATHS = [
 /** ADMIN 전용 경로 */
 const ADMIN_PATHS = ['/admin'];
 
-/** SELLER 이상 경로 */
-const SELLER_PATHS = ['/seller'];
+/** SELLER 이상 경로 — /seller는 클라이언트에서 판매자 등록 랜딩 표시를 위해 제외 */
+const SELLER_PATHS: string[] = [];
 
 /** JWT payload 디코딩 (서명 검증 없이 claims만 읽음 — Edge Runtime에서 crypto 제약) */
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -114,7 +114,31 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  // ── 보안 헤더 추가 ──────────────────────────────────────────────
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=()'
+  );
+  response.headers.set(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",  // Next.js hydration 필요
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https: blob:",
+      "font-src 'self'",
+      "connect-src 'self' https:",
+      "frame-ancestors 'none'",
+    ].join('; ')
+  );
+
+  return response;
 }
 
 export const config = {

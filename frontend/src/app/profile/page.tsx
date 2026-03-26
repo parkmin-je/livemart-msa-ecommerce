@@ -125,6 +125,12 @@ export default function ProfilePage() {
   const [addrLoading, setAddrLoading] = useState(false);
   const [mfa, setMfa] = useState<MfaStatus>({ enabled: false });
   const [mfaLoading, setMfaLoading] = useState(false);
+  const [showMfaModal, setShowMfaModal] = useState(false);
+  const [mfaQrCode, setMfaQrCode] = useState<string | null>(null);
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null);
+  const [mfaOtpInput, setMfaOtpInput] = useState('');
+  const [mfaBackupCodes, setMfaBackupCodes] = useState<string[]>([]);
+  const [mfaStep, setMfaStep] = useState<'qr' | 'verify' | 'backup'>('qr');
   const [showAddAddr, setShowAddAddr] = useState(false);
   const [newAddr, setNewAddr] = useState({
     alias: '', recipient: '', phone: '', zipCode: '', address: '', detailAddress: '', isDefault: false,
@@ -139,7 +145,7 @@ export default function ProfilePage() {
     Promise.all([
       fetch(`/api/users/${userId}`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`/api/orders/user/${userId}?page=0&size=100`, { credentials: 'include' }).then(r => r.ok ? r.json() : { content: [] }).catch(() => ({ content: [] })),
-      fetch(`/api/users/${userId}/mfa/status`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`/api/v1/mfa/status`, { credentials: 'include' }).then(r => r.ok ? r.json() : null).catch(() => null),
     ]).then(([userData, ordersData, mfaData]) => {
       if (userData) setProfile({ name: userData.name || name, email: userData.email || '', phoneNumber: userData.phoneNumber || '' });
       if (ordersData?.content) {
@@ -156,9 +162,12 @@ export default function ProfilePage() {
 
     fetch(`/api/coupons?active=true`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
-      .then((data: unknown[]) => setStats(s => ({ ...s, couponCount: Array.isArray(data) ? data.length : 0 })))
+      .then((data: unknown) => {
+        const arr = Array.isArray(data) ? data : (data as { content?: unknown[] })?.content ?? [];
+        setStats(s => ({ ...s, couponCount: arr.length }));
+      })
       .catch(() => {});
-  }, []);
+  }, [router]);
 
   const loadAddresses = () => {
     const userId = localStorage.getItem('userId');
@@ -204,30 +213,54 @@ export default function ProfilePage() {
   };
 
   const toggleMfa = async () => {
-    setMfaLoading(true);
-    const userId = localStorage.getItem('userId');
-    try {
-      if (mfa.enabled) {
+    if (mfa.enabled) {
+      // 비활성화는 기존 방식 유지
+      setMfaLoading(true);
+      try {
         const currentPw = window.prompt('MFA 비활성화를 위해 현재 비밀번호를 입력하세요:');
         if (!currentPw) { setMfaLoading(false); return; }
-        const res = await fetch(`/api/users/${userId}/mfa/disable`, {
+        const res = await fetch(`/api/v1/mfa/disable`, {
           method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ currentPassword: currentPw }),
         });
         if (!res.ok) throw new Error('비밀번호가 올바르지 않습니다');
         setMfa({ enabled: false });
         toast.success('MFA가 비활성화되었습니다');
-      } else {
-        const res = await fetch(`/api/users/${userId}/mfa/setup`, { method: 'POST', credentials: 'include' });
-        if (!res.ok) throw new Error('MFA 설정 실패');
+      } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '설정 실패'); }
+      setMfaLoading(false);
+    } else {
+      // 활성화: 완전한 TOTP 설정 플로우
+      setMfaLoading(true);
+      try {
+        const res = await fetch(`/api/v1/mfa/setup`, { method: 'POST', credentials: 'include' });
+        if (!res.ok) throw new Error('MFA 설정 초기화 실패');
         const data = await res.json();
-        if (data.qrCodeUrl) {
-          window.open(data.qrCodeUrl, '_blank', 'width=400,height=400');
-        }
-        toast.success('인증 앱으로 QR 코드를 스캔하세요. 설정 후 다시 로그인이 필요합니다.');
-        setMfa({ enabled: true, type: 'TOTP' });
-      }
-    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '설정 실패'); }
+        setMfaQrCode(data.qrCodeImage || data.qrCodeUrl || null);
+        setMfaSecret(data.secret || null);
+        setMfaStep('qr');
+        setMfaOtpInput('');
+        setMfaBackupCodes([]);
+        setShowMfaModal(true);
+      } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '설정 실패'); }
+      setMfaLoading(false);
+    }
+  };
+
+  const verifyMfaOtp = async () => {
+    if (mfaOtpInput.length !== 6) { toast.error('6자리 코드를 입력하세요'); return; }
+    setMfaLoading(true);
+    try {
+      const res = await fetch(`/api/v1/mfa/verify`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: mfaOtpInput }),
+      });
+      if (!res.ok) throw new Error('인증 코드가 올바르지 않습니다');
+      const data = await res.json();
+      setMfaBackupCodes(data.backupCodes || []);
+      setMfa({ enabled: true, type: 'TOTP' });
+      setMfaStep('backup');
+      toast.success('2FA가 활성화되었습니다!');
+    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : '인증 실패'); }
     setMfaLoading(false);
   };
 
@@ -256,15 +289,17 @@ export default function ProfilePage() {
     } catch { toast.error('삭제 실패'); }
   };
 
-  const inputClass = 'w-full px-4 py-3 border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
-  const labelClass = 'block text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5';
+  const inputClass = 'w-full px-4 py-3 text-sm focus:outline-none transition-colors';
+  const inputStyle = { border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E', background: '#FFFFFF' };
+  const labelClass = 'block text-[10px] font-semibold uppercase tracking-widest mb-1.5';
+  const labelStyle = { color: 'rgba(14,14,14,0.45)' };
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
+    <main className="min-h-screen pb-14 md:pb-0" style={{ background: '#F7F6F1' }}>
       <GlobalNav />
 
       {/* Profile header */}
-      <div className="bg-gray-950 text-white">
+      <div className="text-white" style={{ background: '#0A0A0A' }}>
         <div className="max-w-[900px] mx-auto px-4 py-8">
           <div className="flex items-center gap-5 mb-6">
             <div className="w-14 h-14 bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0">
@@ -274,7 +309,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <p className="font-black text-lg tracking-tight">{profile.name || '사용자'}님</p>
-              <p className="text-gray-500 text-sm">{profile.email || '이메일 미설정'}</p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{profile.email || '이메일 미설정'}</p>
             </div>
           </div>
 
@@ -296,9 +331,9 @@ export default function ProfilePage() {
                 </div>
                 <div className="font-black text-lg tabular-nums leading-none">
                   {item.value}
-                  <span className="text-xs font-medium text-gray-500 ml-0.5">{item.unit}</span>
+                  <span className="text-xs font-medium ml-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{item.unit}</span>
                 </div>
-                <div className="text-gray-600 text-[10px] mt-1 uppercase tracking-wide">{item.label}</div>
+                <div className="text-[10px] mt-1 uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.35)' }}>{item.label}</div>
               </a>
             ))}
           </div>
@@ -312,10 +347,13 @@ export default function ProfilePage() {
             <a
               key={item.href}
               href={item.href}
-              className="bg-white border border-gray-100 p-3.5 flex flex-col items-center gap-2 hover:border-gray-300 transition-colors group"
+              className="p-3.5 flex flex-col items-center gap-2 transition-colors group"
+              style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(14,14,14,0.2)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(14,14,14,0.07)')}
             >
-              <span className="text-gray-400 group-hover:text-gray-700 transition-colors">{item.icon}</span>
-              <span className="text-[10px] font-medium text-gray-500 group-hover:text-gray-800 transition-colors">{item.label}</span>
+              <span style={{ color: 'rgba(14,14,14,0.4)' }}>{item.icon}</span>
+              <span className="text-[10px] font-medium" style={{ color: 'rgba(14,14,14,0.55)' }}>{item.label}</span>
             </a>
           ))}
         </div>
@@ -323,16 +361,16 @@ export default function ProfilePage() {
         <div className="flex gap-6 items-start">
           {/* Sidebar tabs */}
           <aside className="w-44 flex-shrink-0">
-            <div className="bg-white border border-gray-100 overflow-hidden">
+            <div className="overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
               {/* Avatar */}
-              <div className="p-5 border-b border-gray-50 text-center">
-                <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-2">
-                  <span className="text-xl font-black text-gray-400">
+              <div className="p-5 text-center" style={{ borderBottom: '1px solid rgba(14,14,14,0.06)' }}>
+                <div className="w-14 h-14 flex items-center justify-center mx-auto mb-2" style={{ background: '#EDEBE4' }}>
+                  <span className="text-xl font-black" style={{ color: 'rgba(14,14,14,0.4)' }}>
                     {profile.name ? profile.name[0].toUpperCase() : '?'}
                   </span>
                 </div>
-                <p className="font-semibold text-gray-900 text-sm tracking-tight">{profile.name || '사용자'}</p>
-                <p className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[130px] mx-auto">{profile.email || ''}</p>
+                <p className="font-semibold text-sm tracking-tight" style={{ color: '#0E0E0E' }}>{profile.name || '사용자'}</p>
+                <p className="text-[10px] mt-0.5 truncate max-w-[130px] mx-auto" style={{ color: 'rgba(14,14,14,0.4)' }}>{profile.email || ''}</p>
               </div>
 
               {/* Tab nav */}
@@ -340,24 +378,34 @@ export default function ProfilePage() {
                 <button
                   key={t.id}
                   onClick={() => { setTab(t.id); if (t.id === 'address') loadAddresses(); }}
-                  className={`w-full text-left px-4 py-3.5 text-sm font-medium transition-colors border-l-2 ${
-                    tab === t.id
-                      ? 'bg-gray-50 text-gray-900 border-gray-900 font-semibold'
-                      : 'text-gray-500 border-transparent hover:bg-gray-50 hover:text-gray-700'
-                  }`}
+                  className="w-full text-left px-4 py-3.5 text-sm font-medium transition-colors border-l-2"
+                  style={{
+                    borderLeftColor: tab === t.id ? '#0E0E0E' : 'transparent',
+                    background: tab === t.id ? '#F7F6F1' : 'transparent',
+                    color: tab === t.id ? '#0E0E0E' : 'rgba(14,14,14,0.5)',
+                    fontWeight: tab === t.id ? 600 : 400,
+                  }}
                 >
                   {t.label}
                 </button>
               ))}
 
               {/* Extra links */}
-              <div className="p-3 border-t border-gray-50">
+              <div className="p-3" style={{ borderTop: '1px solid rgba(14,14,14,0.06)' }}>
                 <a href="/my-orders"
-                  className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors">
+                  className="flex items-center gap-2.5 px-3 py-2.5 text-xs transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.5)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F7F6F1'; e.currentTarget.style.color = '#0E0E0E'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(14,14,14,0.5)'; }}
+                >
                   <IconOrder />주문 내역
                 </a>
                 <a href="/wishlist"
-                  className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors">
+                  className="flex items-center gap-2.5 px-3 py-2.5 text-xs transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.5)' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#F7F6F1'; e.currentTarget.style.color = '#0E0E0E'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(14,14,14,0.5)'; }}
+                >
                   <IconWishlist />위시리스트
                 </a>
               </div>
@@ -369,35 +417,40 @@ export default function ProfilePage() {
 
             {/* Basic info tab */}
             {tab === 'info' && (
-              <form onSubmit={saveProfile} className="bg-white border border-gray-100 p-6 space-y-5">
-                <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">기본 정보</h2>
+              <form onSubmit={saveProfile} className="p-6 space-y-5" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+                <h2 className={labelClass} style={labelStyle}>기본 정보</h2>
                 <div>
-                  <label className={labelClass}>아이디 (이메일)</label>
-                  <input type="text" value={profile.email} readOnly className={`${inputClass} bg-gray-50 text-gray-400 cursor-not-allowed`} />
+                  <label className={labelClass} style={labelStyle}>아이디 (이메일)</label>
+                  <input type="text" value={profile.email} readOnly className={inputClass} style={{ ...inputStyle, background: '#F7F6F1', color: 'rgba(14,14,14,0.4)', cursor: 'not-allowed' }} />
                 </div>
                 <div>
-                  <label className={labelClass}>이름</label>
+                  <label className={labelClass} style={labelStyle}>이름</label>
                   <input
                     type="text"
                     value={profile.name}
                     onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
                     className={inputClass}
+                    style={inputStyle}
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>전화번호</label>
+                  <label className={labelClass} style={labelStyle}>전화번호</label>
                   <input
                     type="tel"
                     value={profile.phoneNumber}
                     onChange={e => setProfile(p => ({ ...p, phoneNumber: e.target.value }))}
                     placeholder="010-0000-0000"
                     className={inputClass}
+                    style={inputStyle}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-gray-950 text-white text-sm font-bold px-8 py-2.5 hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  className="text-white text-sm font-bold px-8 py-2.5 transition-colors disabled:opacity-50"
+                  style={{ background: '#0A0A0A' }}
+                  onMouseEnter={e => !loading && (e.currentTarget.style.background = '#E8001D')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
                 >
                   {loading ? '저장중...' : '저장하기'}
                 </button>
@@ -407,60 +460,66 @@ export default function ProfilePage() {
             {/* Security tab */}
             {tab === 'security' && (
               <div className="space-y-4">
-                <form onSubmit={changePassword} className="bg-white border border-gray-100 p-6 space-y-5">
-                  <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">비밀번호 변경</h2>
+                <form onSubmit={changePassword} className="p-6 space-y-5" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+                  <h2 className={labelClass} style={labelStyle}>비밀번호 변경</h2>
                   <div>
-                    <label className={labelClass}>현재 비밀번호</label>
+                    <label className={labelClass} style={labelStyle}>현재 비밀번호</label>
                     <input
                       type="password"
                       value={pw.current}
                       onChange={e => setPw(p => ({ ...p, current: e.target.value }))}
                       className={inputClass}
+                      style={inputStyle}
                       required
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>새 비밀번호 <span className="text-[9px] font-normal normal-case">(8자 이상)</span></label>
+                    <label className={labelClass} style={labelStyle}>새 비밀번호 <span className="text-[9px] font-normal normal-case">(8자 이상)</span></label>
                     <input
                       type="password"
                       value={pw.next}
                       onChange={e => setPw(p => ({ ...p, next: e.target.value }))}
                       className={inputClass}
+                      style={inputStyle}
                       required
                       minLength={8}
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>새 비밀번호 확인</label>
+                    <label className={labelClass} style={labelStyle}>새 비밀번호 확인</label>
                     <input
                       type="password"
                       value={pw.confirm}
                       onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))}
-                      className={`${inputClass} ${pw.confirm && pw.next !== pw.confirm ? 'border-red-400' : ''}`}
+                      className={inputClass}
+                      style={{ ...inputStyle, borderColor: pw.confirm && pw.next !== pw.confirm ? '#E8001D' : 'rgba(14,14,14,0.14)' }}
                       required
                     />
                     {pw.confirm && pw.next !== pw.confirm && (
-                      <p className="text-xs text-red-500 mt-1.5">비밀번호가 일치하지 않습니다</p>
+                      <p className="text-xs mt-1.5" style={{ color: '#E8001D' }}>비밀번호가 일치하지 않습니다</p>
                     )}
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="bg-gray-950 text-white text-sm font-bold px-8 py-2.5 hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    className="text-white text-sm font-bold px-8 py-2.5 transition-colors disabled:opacity-50"
+                    style={{ background: '#0A0A0A' }}
+                    onMouseEnter={e => !loading && (e.currentTarget.style.background = '#E8001D')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
                   >
                     {loading ? '변경중...' : '비밀번호 변경'}
                   </button>
                 </form>
 
                 {/* MFA */}
-                <div className="bg-white border border-gray-100 p-6">
+                <div className="p-6" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">2단계 인증</h2>
-                      <p className="text-sm text-gray-700 font-semibold mb-1">
+                      <h2 className={`${labelClass} mb-2`} style={labelStyle}>2단계 인증</h2>
+                      <p className="text-sm font-semibold mb-1" style={{ color: '#0E0E0E' }}>
                         {mfa.enabled ? `TOTP 인증 앱 보호 중 (${mfa.type || 'TOTP'})` : '2단계 인증 비활성화됨'}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs" style={{ color: 'rgba(14,14,14,0.45)' }}>
                         {mfa.enabled
                           ? '로그인 시 인증 앱 코드가 필요합니다.'
                           : '계정을 더 안전하게 보호하려면 2단계 인증을 활성화하세요.'}
@@ -469,11 +528,11 @@ export default function ProfilePage() {
                     <button
                       onClick={toggleMfa}
                       disabled={mfaLoading}
-                      className={`flex-shrink-0 px-4 py-2 text-xs font-bold border transition-colors disabled:opacity-50 ${
-                        mfa.enabled
-                          ? 'border-gray-200 text-gray-600 hover:border-gray-400 hover:text-gray-900'
-                          : 'border-gray-900 bg-gray-950 text-white hover:bg-gray-800'
-                      }`}
+                      className="flex-shrink-0 px-4 py-2 text-xs font-bold border transition-colors disabled:opacity-50"
+                      style={mfa.enabled
+                        ? { border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.65)' }
+                        : { border: '1px solid #0A0A0A', background: '#0A0A0A', color: '#FFFFFF' }
+                      }
                     >
                       {mfaLoading ? '처리중...' : mfa.enabled ? '비활성화' : '활성화'}
                     </button>
@@ -495,93 +554,62 @@ export default function ProfilePage() {
             {tab === 'address' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">배송지 관리</h2>
+                  <h2 className={labelClass} style={labelStyle}>배송지 관리</h2>
                   <button
                     onClick={() => setShowAddAddr(!showAddAddr)}
-                    className="text-xs font-semibold border border-gray-900 px-4 py-2 hover:bg-gray-950 hover:text-white transition-colors"
+                    className="text-xs font-semibold px-4 py-2 transition-colors"
+                    style={{ border: '1px solid #0E0E0E', color: '#0E0E0E' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#0A0A0A'; e.currentTarget.style.color = '#FFFFFF'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#0E0E0E'; }}
                   >
                     {showAddAddr ? '취소' : '+ 새 배송지'}
                   </button>
                 </div>
 
                 {showAddAddr && (
-                  <form onSubmit={saveAddress} className="bg-white border border-gray-100 p-6 space-y-4">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">새 배송지 추가</h3>
+                  <form onSubmit={saveAddress} className="p-6 space-y-4" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+                    <h3 className={labelClass} style={labelStyle}>새 배송지 추가</h3>
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
-                        <label className={labelClass}>별칭</label>
-                        <input
-                          type="text"
-                          value={newAddr.alias}
-                          onChange={e => setNewAddr(a => ({ ...a, alias: e.target.value }))}
-                          className={inputClass}
-                          placeholder="집, 회사 등"
-                          required
-                        />
+                        <label className={labelClass} style={labelStyle}>별칭</label>
+                        <input type="text" value={newAddr.alias} onChange={e => setNewAddr(a => ({ ...a, alias: e.target.value }))} className={inputClass} style={inputStyle} placeholder="집, 회사 등" required />
                       </div>
                       <div>
-                        <label className={labelClass}>수령인</label>
-                        <input
-                          type="text"
-                          value={newAddr.recipient}
-                          onChange={e => setNewAddr(a => ({ ...a, recipient: e.target.value }))}
-                          className={inputClass}
-                          required
-                        />
+                        <label className={labelClass} style={labelStyle}>수령인</label>
+                        <input type="text" value={newAddr.recipient} onChange={e => setNewAddr(a => ({ ...a, recipient: e.target.value }))} className={inputClass} style={inputStyle} required />
                       </div>
                       <div>
-                        <label className={labelClass}>전화번호</label>
-                        <input
-                          type="tel"
-                          value={newAddr.phone}
-                          onChange={e => setNewAddr(a => ({ ...a, phone: e.target.value }))}
-                          className={inputClass}
-                          placeholder="010-0000-0000"
-                          required
-                        />
+                        <label className={labelClass} style={labelStyle}>전화번호</label>
+                        <input type="tel" value={newAddr.phone} onChange={e => setNewAddr(a => ({ ...a, phone: e.target.value }))} className={inputClass} style={inputStyle} placeholder="010-0000-0000" required />
                       </div>
                       <div>
-                        <label className={labelClass}>우편번호</label>
-                        <input
-                          type="text"
-                          value={newAddr.zipCode}
-                          onChange={e => setNewAddr(a => ({ ...a, zipCode: e.target.value }))}
-                          className={inputClass}
-                          required
-                        />
+                        <label className={labelClass} style={labelStyle}>우편번호</label>
+                        <input type="text" value={newAddr.zipCode} onChange={e => setNewAddr(a => ({ ...a, zipCode: e.target.value }))} className={inputClass} style={inputStyle} required />
                       </div>
                       <div className="sm:col-span-2">
-                        <label className={labelClass}>주소</label>
-                        <input
-                          type="text"
-                          value={newAddr.address}
-                          onChange={e => setNewAddr(a => ({ ...a, address: e.target.value }))}
-                          className={inputClass}
-                          required
-                        />
+                        <label className={labelClass} style={labelStyle}>주소</label>
+                        <input type="text" value={newAddr.address} onChange={e => setNewAddr(a => ({ ...a, address: e.target.value }))} className={inputClass} style={inputStyle} required />
                       </div>
                       <div className="sm:col-span-2">
-                        <label className={labelClass}>상세 주소</label>
-                        <input
-                          type="text"
-                          value={newAddr.detailAddress}
-                          onChange={e => setNewAddr(a => ({ ...a, detailAddress: e.target.value }))}
-                          className={inputClass}
-                        />
+                        <label className={labelClass} style={labelStyle}>상세 주소</label>
+                        <input type="text" value={newAddr.detailAddress} onChange={e => setNewAddr(a => ({ ...a, detailAddress: e.target.value }))} className={inputClass} style={inputStyle} />
                       </div>
                     </div>
-                    <label className="flex items-center gap-2.5 text-sm text-gray-700 cursor-pointer">
+                    <label className="flex items-center gap-2.5 text-sm cursor-pointer" style={{ color: '#0E0E0E' }}>
                       <input
                         type="checkbox"
                         checked={newAddr.isDefault}
                         onChange={e => setNewAddr(a => ({ ...a, isDefault: e.target.checked }))}
-                        className="w-4 h-4 accent-gray-900"
+                        className="w-4 h-4 accent-stone-800"
                       />
                       기본 배송지로 설정
                     </label>
                     <button
                       type="submit"
-                      className="bg-gray-950 text-white text-sm font-bold px-8 py-2.5 hover:bg-gray-800 transition-colors"
+                      className="text-white text-sm font-bold px-8 py-2.5 transition-colors"
+                      style={{ background: '#0A0A0A' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#E8001D')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
                     >
                       저장
                     </button>
@@ -591,42 +619,46 @@ export default function ProfilePage() {
                 {addrLoading ? (
                   <div className="space-y-3">
                     {[1, 2].map(i => (
-                      <div key={i} className="h-24 bg-gray-100 animate-pulse" />
+                      <div key={i} className="h-24 animate-pulse" style={{ background: '#EDEBE4' }} />
                     ))}
                   </div>
                 ) : addresses.length === 0 ? (
-                  <div className="bg-white border border-gray-100 py-14 text-center">
-                    <div className="w-12 h-12 bg-gray-100 flex items-center justify-center mx-auto mb-4 text-gray-400">
+                  <div className="py-14 text-center" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+                    <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4" style={{ background: '#EDEBE4', color: 'rgba(14,14,14,0.4)' }}>
                       <IconPin />
                     </div>
-                    <p className="text-sm font-medium text-gray-700">저장된 배송지가 없습니다</p>
-                    <p className="text-xs text-gray-400 mt-1">새 배송지 버튼으로 추가하세요</p>
+                    <p className="text-sm font-medium" style={{ color: '#0E0E0E' }}>저장된 배송지가 없습니다</p>
+                    <p className="text-xs mt-1" style={{ color: 'rgba(14,14,14,0.45)' }}>새 배송지 버튼으로 추가하세요</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {addresses.map(addr => (
                       <div
                         key={addr.id}
-                        className={`bg-white border p-5 ${addr.isDefault ? 'border-gray-900' : 'border-gray-100'}`}
+                        className="p-5"
+                        style={{ background: '#FFFFFF', border: addr.isDefault ? '1px solid #0E0E0E' : '1px solid rgba(14,14,14,0.07)' }}
                       >
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-2 mb-1.5">
-                              <span className="font-bold text-gray-900 text-sm">{addr.alias}</span>
+                              <span className="font-bold text-sm" style={{ color: '#0E0E0E' }}>{addr.alias}</span>
                               {addr.isDefault && (
-                                <span className="text-[10px] font-bold text-white bg-gray-900 px-1.5 py-0.5 uppercase tracking-wider">
+                                <span className="text-[10px] font-bold text-white px-1.5 py-0.5 uppercase tracking-wider" style={{ background: '#0E0E0E' }}>
                                   기본
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-700">{addr.recipient} · {addr.phone}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-sm" style={{ color: 'rgba(14,14,14,0.7)' }}>{addr.recipient} · {addr.phone}</p>
+                            <p className="text-xs mt-0.5" style={{ color: 'rgba(14,14,14,0.45)' }}>
                               [{addr.zipCode}] {addr.address} {addr.detailAddress}
                             </p>
                           </div>
                           <button
                             onClick={() => deleteAddress(addr.id)}
-                            className="text-xs px-2.5 py-1.5 text-gray-400 border border-gray-200 hover:border-red-300 hover:text-red-500 transition-colors"
+                            className="text-xs px-2.5 py-1.5 transition-colors"
+                            style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.45)' }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(232,0,29,0.4)'; e.currentTarget.style.color = '#E8001D'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(14,14,14,0.14)'; e.currentTarget.style.color = 'rgba(14,14,14,0.45)'; }}
                           >
                             삭제
                           </button>
@@ -639,6 +671,144 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+      {/* 2FA TOTP 설정 모달 */}
+      {showMfaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
+          <div className="bg-white w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(14,14,14,0.07)' }}>
+              <h2 className="font-black" style={{ color: '#0E0E0E' }}>
+                {mfaStep === 'qr' && 'QR 코드 스캔'}
+                {mfaStep === 'verify' && 'OTP 코드 확인'}
+                {mfaStep === 'backup' && '백업 코드 저장'}
+              </h2>
+              {mfaStep !== 'backup' && (
+                <button
+                  onClick={() => setShowMfaModal(false)}
+                  className="text-xl font-bold transition-colors"
+                  style={{ color: 'rgba(14,14,14,0.4)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#0E0E0E')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(14,14,14,0.4)')}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            <div className="px-6 py-5">
+              {mfaStep === 'qr' && (
+                <div className="text-center">
+                  <p className="text-sm mb-4" style={{ color: 'rgba(14,14,14,0.6)' }}>
+                    Google Authenticator 또는 Authy 앱으로 QR 코드를 스캔하세요.
+                  </p>
+                  {mfaQrCode ? (
+                    <div className="flex justify-center mb-4">
+                      <img
+                        src={mfaQrCode.startsWith('data:') ? mfaQrCode : `data:image/png;base64,${mfaQrCode}`}
+                        alt="2FA QR 코드"
+                        className="w-48 h-48 p-2"
+                        style={{ border: '1px solid rgba(14,14,14,0.12)' }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-48 h-48 mx-auto mb-4 flex items-center justify-center" style={{ background: '#EDEBE4' }}>
+                      <span className="text-xs" style={{ color: 'rgba(14,14,14,0.4)' }}>QR 코드 로딩중...</span>
+                    </div>
+                  )}
+                  {mfaSecret && (
+                    <div className="px-4 py-2 mb-4" style={{ background: '#F7F6F1', border: '1px solid rgba(14,14,14,0.1)' }}>
+                      <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: 'rgba(14,14,14,0.4)' }}>수동 입력 키</p>
+                      <p className="font-mono text-sm break-all" style={{ color: '#0E0E0E' }}>{mfaSecret}</p>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setMfaStep('verify')}
+                    className="w-full py-3 text-white text-sm font-bold transition-colors"
+                    style={{ background: '#0A0A0A' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#E8001D')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
+                  >
+                    스캔 완료, 인증 코드 입력
+                  </button>
+                </div>
+              )}
+
+              {mfaStep === 'verify' && (
+                <div>
+                  <p className="text-sm mb-4" style={{ color: 'rgba(14,14,14,0.6)' }}>
+                    인증 앱에 표시된 6자리 코드를 입력하세요.
+                  </p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    value={mfaOtpInput}
+                    onChange={e => setMfaOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest focus:outline-none mb-4"
+                    style={{ border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E' }}
+                    autoFocus
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setMfaStep('qr')}
+                      className="flex-1 py-3 text-sm font-semibold transition-colors"
+                      style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.65)' }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(14,14,14,0.3)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(14,14,14,0.14)')}
+                    >
+                      이전
+                    </button>
+                    <button
+                      onClick={verifyMfaOtp}
+                      disabled={mfaLoading || mfaOtpInput.length !== 6}
+                      className="flex-1 py-3 text-white text-sm font-bold transition-colors disabled:opacity-50"
+                      style={{ background: '#0A0A0A' }}
+                      onMouseEnter={e => !mfaLoading && (e.currentTarget.style.background = '#E8001D')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
+                    >
+                      {mfaLoading ? '확인중...' : '확인'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {mfaStep === 'backup' && (
+                <div>
+                  <div className="flex items-start gap-3 mb-4 p-3" style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)' }}>
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'rgb(161,98,7)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p className="text-xs" style={{ color: 'rgb(133,77,14)' }}>
+                      아래 백업 코드를 안전한 곳에 저장하세요. 인증 앱을 분실한 경우 로그인에 사용할 수 있습니다. 각 코드는 1회만 사용 가능합니다.
+                    </p>
+                  </div>
+                  {mfaBackupCodes.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2 mb-5">
+                      {mfaBackupCodes.map((code, i) => (
+                        <div key={i} className="px-3 py-2" style={{ background: '#F7F6F1', border: '1px solid rgba(14,14,14,0.1)' }}>
+                          <span className="font-mono text-sm" style={{ color: '#0E0E0E' }}>{code}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-center py-4" style={{ color: 'rgba(14,14,14,0.5)' }}>백업 코드가 없습니다.</p>
+                  )}
+                  <button
+                    onClick={() => setShowMfaModal(false)}
+                    className="w-full py-3 text-white text-sm font-bold transition-colors"
+                    style={{ background: '#0A0A0A' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#E8001D')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
+                  >
+                    완료 (저장했습니다)
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </main>
   );

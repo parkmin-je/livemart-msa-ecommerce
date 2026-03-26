@@ -1,0 +1,86 @@
+[versions]
+# ── Core Framework ────────────────────────────────────────────
+spring-boot            = "3.4.1"
+spring-dependency-mgmt = "1.1.7"
+spring-cloud           = "2024.0.0"
+graalvm-native         = "0.10.4"
+java                   = "21"
+
+# ── Spring Cloud ─────────────────────────────────────────────
+spring-cloud-contract  = "4.1.4"
+
+# ── Observability ─────────────────────────────────────────────
+opentelemetry          = "1.44.1"
+
+# ── Resilience ────────────────────────────────────────────────
+resilience4j           = "2.2.0"
+
+# ── Testing ───────────────────────────────────────────────────
+testcontainers         = "1.20.4"
+archunit               = "1.3.0"
+
+# ── API Documentation ─────────────────────────────────────────
+springdoc              = "3.0.2"
+
+# ── Data / Cache ──────────────────────────────────────────────
+redisson               = "3.40.2"
+
+# ── Security ──────────────────────────────────────────────────
+jjwt                   = "0.12.6"
+
+# ── Messaging ─────────────────────────────────────────────────
+# Managed by spring-boot BOM
+
+# ── Payment ───────────────────────────────────────────────────
+stripe                 = "28.2.0"
+
+# ── Cloud / Storage ───────────────────────────────────────────
+aws-sdk                = "2.42.14"
+
+# ── Mapping ───────────────────────────────────────────────────
+mapstruct              = "1.6.3"
+
+# ── gRPC ──────────────────────────────────────────────────────
+grpc                   = "1.79.0"
+protobuf-plugin        = "0.9.4"
+
+# ── Firebase ──────────────────────────────────────────────────
+firebase               = "9.4.2"
+
+[libraries]
+# SpringDoc (핵심: springdoc 3.x ≠ Spring Boot 3.x)
+springdoc-webmvc  = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui",  version.ref = "springdoc" }
+springdoc-webflux = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version.ref = "springdoc" }
+
+# Resilience4j
+resilience4j-spring-boot = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
+
+# Security
+jjwt-api    = { module = "io.jsonwebtoken:jjwt-api",    version.ref = "jjwt" }
+jjwt-impl   = { module = "io.jsonwebtoken:jjwt-impl",   version.ref = "jjwt" }
+jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+
+# Stripe
+stripe-java = { module = "com.stripe:stripe-java", version.ref = "stripe" }
+
+# AWS
+aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "aws-sdk" }
+
+# MapStruct
+mapstruct         = { module = "org.mapstruct:mapstruct",              version.ref = "mapstruct" }
+mapstruct-processor = { module = "org.mapstruct:mapstruct-processor",  version.ref = "mapstruct" }
+
+# Firebase
+firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebase" }
+
+# Redisson
+redisson = { module = "org.redisson:redisson-spring-boot-starter", version.ref = "redisson" }
+
+# Testing
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+
+[plugins]
+spring-boot            = { id = "org.springframework.boot",         version.ref = "spring-boot" }
+spring-dependency-mgmt = { id = "io.spring.dependency-management",  version.ref = "spring-dependency-mgmt" }
+graalvm-native         = { id = "org.graalvm.buildtools.native",    version.ref = "graalvm-native" }
+protobuf               = { id = "com.google.protobuf",              version.ref = "protobuf-plugin" }

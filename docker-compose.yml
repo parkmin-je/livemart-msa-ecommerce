@@ -1,13 +1,19 @@
 version: '3.8'
 
+# 로컬 개발용 인프라 컨테이너
+# 사용법: cp .env.example .env && docker-compose up -d
+# 비밀번호는 .env 파일에서 관리 — 절대 .env를 git에 커밋하지 마세요
+
 services:
   # ===================== MySQL (User Service) =====================
   mysql-user:
     image: mysql:8.0
     container_name: livemart-mysql-user
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-livemart-local-root}
       MYSQL_DATABASE: userdb
+      MYSQL_USER: userapp
+      MYSQL_PASSWORD: ${USER_DB_PASSWORD:-user123}
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     ports:
@@ -26,10 +32,10 @@ services:
     image: mysql:8.0
     container_name: livemart-mysql-product
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-livemart-local-root}
       MYSQL_DATABASE: productdb
-      MYSQL_USER: product
-      MYSQL_PASSWORD: product123
+      MYSQL_USER: productapp
+      MYSQL_PASSWORD: ${PRODUCT_DB_PASSWORD:-product123}
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     ports:
@@ -48,10 +54,10 @@ services:
     image: mysql:8.0
     container_name: livemart-mysql-order
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-livemart-local-root}
       MYSQL_DATABASE: orderdb
-      MYSQL_USER: order
-      MYSQL_PASSWORD: order123
+      MYSQL_USER: orderapp
+      MYSQL_PASSWORD: ${ORDER_DB_PASSWORD:-order123}
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     ports:
@@ -71,14 +77,14 @@ services:
     container_name: livemart-postgres-payment
     environment:
       POSTGRES_DB: paymentdb
-      POSTGRES_USER: payment
-      POSTGRES_PASSWORD: payment123
+      POSTGRES_USER: paymentapp
+      POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD:-payment123}
     ports:
       - "5432:5432"
     volumes:
       - postgres-payment-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U payment -d paymentdb"]
+      test: ["CMD-SHELL", "pg_isready -U paymentapp -d paymentdb"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -134,7 +140,7 @@ services:
     container_name: livemart-elasticsearch
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      - xpack.security.enabled=false   # 로컬 개발용. 운영에서는 반드시 true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
@@ -153,6 +159,34 @@ services:
     ports:
       - "9411:9411"
 
+  # ===================== Jaeger (OTLP 분산 추적) =====================
+  # Zipkin 대비 장점: OTLP 표준 지원, Elasticsearch 백엔드, UI 개선
+  # UI: http://localhost:16686
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: livemart-jaeger
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "14268:14268"   # HTTP collector (Jaeger 직접 전송)
+      - "4317:4317"     # OTLP gRPC (OpenTelemetry Collector 표준)
+      - "4318:4318"     # OTLP HTTP (OpenTelemetry Collector 표준)
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: elasticsearch
+      ES_SERVER_URLS: http://elasticsearch:9200
+      ES_TAGS_AS_FIELDS_ALL: "true"
+      LOG_LEVEL: info
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:16686/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   # ===================== Prometheus (메트릭 수집) =====================
   prometheus:
     image: prom/prometheus:latest
@@ -169,10 +203,11 @@ services:
     image: grafana/grafana:latest
     container_name: livemart-grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"   # 3000은 Next.js가 사용하므로 3001로 분리
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-CHANGE_ME}
+      GF_SECURITY_SECRET_KEY: ${GRAFANA_SECRET_KEY:-CHANGE_ME}
     volumes:
       - grafana-data:/var/lib/grafana
 

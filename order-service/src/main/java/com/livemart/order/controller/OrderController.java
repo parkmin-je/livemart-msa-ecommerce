@@ -15,7 +15,9 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @Tag(name = "Order API", description = "주문 관리 API")
 @RestController
@@ -28,8 +30,14 @@ public class OrderController {
     @Operation(summary = "전체 주문 목록 조회 (관리자용)")
     @GetMapping
     public ResponseEntity<Page<OrderResponse>> getAllOrders(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(orderService.getAllOrders(pageable));
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication auth) {
+        // 관리자는 전체 목록, 일반 사용자는 본인 주문만 반환
+        if (hasAdminRole(auth)) {
+            return ResponseEntity.ok(orderService.getAllOrders(pageable));
+        }
+        Long userId = extractUserId(auth);
+        return ResponseEntity.ok(orderService.getOrdersByUserId(userId, pageable));
     }
 
     @Operation(summary = "주문 생성", description = "새로운 주문을 생성합니다 (Saga Pattern)")
@@ -71,15 +79,23 @@ public class OrderController {
 
     @Operation(summary = "주문 조회", description = "주문 ID로 주문을 조회합니다")
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponse> getOrder(@PathVariable Long orderId) {
+    public ResponseEntity<OrderResponse> getOrder(@PathVariable Long orderId, Authentication auth) {
         OrderResponse response = orderService.getOrder(orderId);
+        Long currentUserId = extractUserId(auth);
+        if (!response.getUserId().equals(currentUserId) && !hasAdminRole(auth)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "접근 권한이 없습니다");
+        }
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "주문 번호로 조회", description = "주문 번호로 주문을 조회합니다")
     @GetMapping("/number/{orderNumber}")
-    public ResponseEntity<OrderResponse> getOrderByNumber(@PathVariable String orderNumber) {
+    public ResponseEntity<OrderResponse> getOrderByNumber(@PathVariable String orderNumber, Authentication auth) {
         OrderResponse response = orderService.getOrderByOrderNumber(orderNumber);
+        Long currentUserId = extractUserId(auth);
+        if (!response.getUserId().equals(currentUserId) && !hasAdminRole(auth)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "접근 권한이 없습니다");
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -87,7 +103,12 @@ public class OrderController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<Page<OrderResponse>> getOrdersByUserId(
             @PathVariable Long userId,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication auth) {
+        Long currentUserId = extractUserId(auth);
+        if (!userId.equals(currentUserId) && !hasAdminRole(auth)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "접근 권한이 없습니다");
+        }
         Page<OrderResponse> response = orderService.getOrdersByUserId(userId, pageable);
         return ResponseEntity.ok(response);
     }
@@ -105,5 +126,23 @@ public class OrderController {
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Order Service is running");
+    }
+
+    // ── 보안 헬퍼 메서드 ─────────────────────────────────────────────
+
+    private Long extractUserId(Authentication auth) {
+        if (auth == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다");
+        }
+        Object principal = auth.getPrincipal();
+        if (principal instanceof Long) return (Long) principal;
+        if (principal instanceof String) return Long.parseLong((String) principal);
+        return Long.parseLong(auth.getName());
+    }
+
+    private boolean hasAdminRole(Authentication auth) {
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }

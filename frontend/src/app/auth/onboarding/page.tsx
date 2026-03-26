@@ -77,7 +77,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-gray-50 flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10" style={{ background: '#F7F6F1' }}>
       <div className="w-full max-w-md">
 
         {/* 로고 */}
@@ -85,16 +85,16 @@ export default function OnboardingPage() {
           <a href="/" className="inline-block mb-4">
             <span className="text-3xl font-black tracking-tight">
               <span className="text-red-600">Live</span>
-              <span className="text-gray-900">Mart</span>
+              <span style={{ color: '#0E0E0E' }}>Mart</span>
             </span>
           </a>
           {/* 진행 단계 표시 */}
           <div className="flex items-center justify-center gap-2 mb-5">
-            <div className="w-8 h-1.5 rounded-full bg-gray-200" />
-            <div className="w-8 h-1.5 rounded-full bg-red-500" />
+            <div className="w-8 h-1.5" style={{ background: 'rgba(14,14,14,0.12)' }} />
+            <div className="w-8 h-1.5" style={{ background: '#E8001D' }} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">추가 정보 입력</h1>
-          <p className="text-sm text-gray-500 mt-1.5">
+          <h1 className="text-2xl font-bold" style={{ color: '#0E0E0E' }}>추가 정보 입력</h1>
+          <p className="text-sm mt-1.5" style={{ color: 'rgba(14,14,14,0.5)' }}>
             원활한 쇼핑을 위해 아래 정보를 입력해주세요
           </p>
         </div>
@@ -102,27 +102,25 @@ export default function OnboardingPage() {
         {/* 폼 카드 */}
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-5"
+          className="shadow-sm p-8 space-y-5"
+          style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}
         >
-          {/* 이름 */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              이름
-            </label>
+            <label className="block text-sm font-semibold mb-1.5" style={{ color: 'rgba(14,14,14,0.65)' }}>이름</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="홍길동"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 text-sm focus:outline-none transition"
+              style={{ border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E' }}
               required
             />
           </div>
 
-          {/* 휴대폰 번호 */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              휴대폰 번호 <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold mb-1.5" style={{ color: 'rgba(14,14,14,0.65)' }}>
+              휴대폰 번호 <span style={{ color: '#E8001D' }}>*</span>
             </label>
             <input
               type="tel"
@@ -131,75 +129,57 @@ export default function OnboardingPage() {
               placeholder="010-0000-0000"
               maxLength={13}
               inputMode="numeric"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 text-sm focus:outline-none transition"
+              style={{ border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E' }}
               required
             />
-            <p className="text-xs text-gray-400 mt-1">배송지 확인 및 본인 인증에 사용됩니다</p>
+            <p className="text-xs mt-1" style={{ color: 'rgba(14,14,14,0.4)' }}>배송지 확인 및 본인 인증에 사용됩니다</p>
           </div>
 
-          {/* 약관 동의 */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-700">약관 동의</p>
+          <div className="p-4 space-y-3" style={{ background: '#F7F6F1' }}>
+            <p className="text-sm font-semibold" style={{ color: '#0E0E0E' }}>약관 동의</p>
 
-            {/* 전체 동의 */}
             <label className="flex items-center gap-3 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={agreeTerms && agreeMarketing}
-                onChange={(e) => {
-                  setAgreeTerms(e.target.checked);
-                  setAgreeMarketing(e.target.checked);
-                }}
-                className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                onChange={(e) => { setAgreeTerms(e.target.checked); setAgreeMarketing(e.target.checked); }}
+                className="w-4 h-4 accent-stone-800 cursor-pointer"
               />
-              <span className="text-sm font-medium text-gray-800 group-hover:text-red-600 transition-colors">
-                전체 동의
-              </span>
+              <span className="text-sm font-medium transition-colors" style={{ color: '#0E0E0E' }}>전체 동의</span>
             </label>
 
-            <div className="border-t border-gray-200 pt-3 space-y-2.5">
-              {/* 필수 약관 */}
+            <div className="pt-3 space-y-2.5" style={{ borderTop: '1px solid rgba(14,14,14,0.1)' }}>
               <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
-                />
-                <span className="text-sm text-gray-600">
-                  <span className="text-red-500 font-medium">[필수] </span>
+                <input type="checkbox" checked={agreeTerms} onChange={(e) => setAgreeTerms(e.target.checked)} className="mt-0.5 w-4 h-4 accent-stone-800 cursor-pointer" />
+                <span className="text-sm" style={{ color: 'rgba(14,14,14,0.6)' }}>
+                  <span className="font-medium" style={{ color: '#E8001D' }}>[필수] </span>
                   서비스 이용약관 및 개인정보처리방침 동의
                 </span>
               </label>
-
-              {/* 선택 약관 */}
               <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agreeMarketing}
-                  onChange={(e) => setAgreeMarketing(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer"
-                />
-                <span className="text-sm text-gray-600">
-                  <span className="text-gray-400">[선택] </span>
+                <input type="checkbox" checked={agreeMarketing} onChange={(e) => setAgreeMarketing(e.target.checked)} className="mt-0.5 w-4 h-4 accent-stone-800 cursor-pointer" />
+                <span className="text-sm" style={{ color: 'rgba(14,14,14,0.6)' }}>
+                  <span style={{ color: 'rgba(14,14,14,0.35)' }}>[선택] </span>
                   마케팅 정보 수신 동의 (이벤트·할인·혜택 안내)
                 </span>
               </label>
             </div>
           </div>
 
-          {/* 에러 메시지 */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="px-4 py-3" style={{ background: 'rgba(232,0,29,0.06)', border: '1px solid rgba(232,0,29,0.2)' }}>
+              <p className="text-sm" style={{ color: '#E8001D' }}>{error}</p>
             </div>
           )}
 
-          {/* 완료 버튼 */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm"
+            className="w-full py-3.5 text-white font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed text-sm"
+            style={{ background: '#E8001D' }}
+            onMouseEnter={e => !loading && (e.currentTarget.style.background = '#C8001A')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#E8001D')}
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -214,17 +194,19 @@ export default function OnboardingPage() {
             )}
           </button>
 
-          {/* 나중에 하기 */}
           <button
             type="button"
             onClick={handleSkip}
-            className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            className="w-full py-2 text-xs transition-colors"
+            style={{ color: 'rgba(14,14,14,0.4)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#0E0E0E')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(14,14,14,0.4)')}
           >
             나중에 입력할게요
           </button>
         </form>
 
-        <p className="text-center text-xs text-gray-400 mt-5">
+        <p className="text-center text-xs mt-5" style={{ color: 'rgba(14,14,14,0.4)' }}>
           입력하신 정보는 안전하게 보호됩니다
         </p>
       </div>

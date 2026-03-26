@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '3.4.1' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
     id 'org.graalvm.buildtools.native' version '0.10.4' apply false
+    id 'org.sonarqube' version '5.1.0.4882'
 }
 
 allprojects {
@@ -76,7 +77,18 @@ subprojects {
         implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
         // Structured Logging (JSON)
-        implementation 'net.logstash.logback:logstash-logback-encoder:8.0'
+        implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
+    }
+
+    // Java 21 Preview APIs (StructuredTaskScope JEP 453, etc.) — compile + runtime
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += ['--enable-preview']
+        options.release = 21
+    }
+
+    // bootRun JVM 옵션 (BootRun은 기본적으로 별도 프로세스 실행)
+    tasks.withType(org.springframework.boot.gradle.tasks.run.BootRun).configureEach {
+        jvmArgs '--enable-preview', '-Xmx512m'
     }
 
     tasks.named('test') {
@@ -112,9 +124,19 @@ subprojects {
         dependsOn jacocoTestReport
         violationRules {
             rule {
-                // 서비스 레이어: 최소 60% 라인 커버리지
+                // 서비스 레이어: 최소 70% 라인 커버리지
                 element = 'PACKAGE'
                 includes = ['com.livemart.*.service']
+                limit {
+                    counter = 'LINE'
+                    value = 'COVEREDRATIO'
+                    minimum = 0.70
+                }
+            }
+            rule {
+                // 컨트롤러 레이어: 최소 60% 라인 커버리지
+                element = 'PACKAGE'
+                includes = ['com.livemart.*.controller']
                 limit {
                     counter = 'LINE'
                     value = 'COVEREDRATIO'
@@ -125,4 +147,15 @@ subprojects {
     }
 
     // Virtual Threads (Java 21 Project Loom) - enabled via application.yml
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "livemart-msa-ecommerce"
+        property "sonar.projectName", "LiveMart MSA E-Commerce"
+        property "sonar.sourceEncoding", "UTF-8"
+        property "sonar.java.source", "21"
+        property "sonar.exclusions", "**/generated/**,**/dto/**,**/*MapperImpl*,**/*Application*"
+        property "sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
+    }
 }

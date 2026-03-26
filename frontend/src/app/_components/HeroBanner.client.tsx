@@ -1,312 +1,397 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 const BANNERS = [
   {
     id: 1,
-    tag: '한정 특가',
-    title: '최대\n30% 할인',
-    sub: '베스트셀러 오늘만 특가',
-    desc: '인기 상품 한정 수량 특별 할인',
+    eyebrow: 'FLASH SALE',
+    titleKo: '최대',
+    titleNum: '30',
+    titleUnit: '%',
+    titleSuffix: '할인',
+    sub: '다양한 카테고리 할인 상품을 한 곳에서 — 오늘의 특가를 놓치지 마세요',
     cta: '지금 쇼핑하기',
+    ctaSub: '전체 상품 보기',
     href: '/products',
-    bg: '#0D0D10',
-    accent: '#EF4444',
-    bigText: '30',
-    bigUnit: '%',
-    bigLabel: 'SALE',
-    stat1: { label: '참여 중', value: '12,847명' },
-    stat2: { label: '남은 수량', value: '한정' },
+    bg: '#080808',
+    bgGrad: 'radial-gradient(ellipse 80% 60% at 20% 50%, #2A0000 0%, #080808 65%)',
+    accent: '#E8001D',
+    accentDim: 'rgba(232,0,29,0.12)',
+    pill: { text: 'SALE', dot: true },
   },
   {
     id: 2,
-    tag: '빠른 배송',
-    title: '오늘 주문\n내일 도착',
-    sub: '5만원 이상 무료배송',
-    desc: '전 품목 로켓배송 적용',
-    cta: '전체상품 보기',
+    eyebrow: 'FREE SHIPPING',
+    titleKo: '오늘도',
+    titleNum: 'FREE',
+    titleUnit: '',
+    titleSuffix: '배송',
+    sub: '5만원 이상 주문 시 무료배송 · 실시간 배송 조회 지원',
+    cta: '상품 둘러보기',
+    ctaSub: '배송 안내',
     href: '/products',
-    bg: '#080D1A',
-    accent: '#3B82F6',
-    bigText: '무료',
-    bigUnit: '',
-    bigLabel: '배송',
-    stat1: { label: '평균 배송', value: '14시간' },
-    stat2: { label: '만족도', value: '99.1%' },
+    bg: '#010A14',
+    bgGrad: 'radial-gradient(ellipse 80% 60% at 20% 50%, #00142A 0%, #010A14 65%)',
+    accent: '#0EA5E9',
+    accentDim: 'rgba(14,165,233,0.10)',
+    pill: { text: '5만원 이상 무료', dot: false },
   },
   {
     id: 3,
-    tag: '신상품 입고',
-    title: '2026 S/S\n봄 컬렉션',
-    sub: '트렌디한 신상품 총출동',
-    desc: '이번 시즌 가장 주목받는 아이템',
+    eyebrow: '2026 S/S COLLECTION',
+    titleKo: '봄 시즌',
+    titleNum: 'NEW',
+    titleUnit: '',
+    titleSuffix: '컬렉션',
+    sub: '매일 업데이트되는 신상품 — 트렌디한 봄 아이템을 먼저 만나보세요',
     cta: '신상품 보기',
+    ctaSub: '카테고리 전체보기',
     href: '/products',
-    bg: '#080F08',
+    bg: '#020B05',
+    bgGrad: 'radial-gradient(ellipse 80% 60% at 20% 50%, #002010 0%, #020B05 65%)',
     accent: '#22C55E',
-    bigText: 'NEW',
-    bigUnit: '',
-    bigLabel: '입고',
-    stat1: { label: '신상품', value: '247종' },
-    stat2: { label: '오늘 입고', value: '32종' },
+    accentDim: 'rgba(34,197,94,0.10)',
+    pill: { text: 'NEW IN', dot: false },
   },
 ];
 
-const AUTO_INTERVAL = 5200;
+const TICKER = [
+  'FLASH SALE — 할인 상품 모아보기',
+  '5만원 이상 구매 시 무료배송',
+  '신규가입 즉시 쿠폰 지급',
+  '안전결제 — Stripe 연동',
+  '신상품 매일 업데이트',
+  'FLASH SALE — 할인 상품 모아보기',
+  '5만원 이상 구매 시 무료배송',
+  '신규가입 즉시 쿠폰 지급',
+  '안전결제 — Stripe 연동',
+  '신상품 매일 업데이트',
+];
+
+const INTERVAL = 5600;
 
 export function HeroBanner() {
-  const [current, setCurrent] = useState(0);
-  const [animating, setAnimating] = useState(false);
-  const [exitDir, setExitDir] = useState<'left' | 'right'>('left');
+  const [idx, setIdx] = useState(0);
+  const [leaving, setLeaving] = useState(false);
   const [progress, setProgress] = useState(0);
-  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
 
-  const clearTimers = () => {
+  const clear = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (progressRef.current) clearInterval(progressRef.current);
-  };
+  }, []);
 
-  const startCycle = (idx: number) => {
-    clearTimers();
+  const goTo = useCallback((i: number) => {
+    clear();
+    setLeaving(true);
+    setTimeout(() => { setIdx(i); setLeaving(false); }, 480);
+  }, [clear]);
+
+  useEffect(() => {
+    clear();
     setProgress(0);
     const start = Date.now();
     progressRef.current = setInterval(() => {
-      const p = Math.min(((Date.now() - start) / AUTO_INTERVAL) * 100, 100);
-      setProgress(p);
+      setProgress(Math.min(((Date.now() - start) / INTERVAL) * 100, 100));
     }, 16);
     timerRef.current = setInterval(() => {
-      goNext(idx);
-    }, AUTO_INTERVAL);
-  };
+      setIdx(prev => {
+        const next = (prev + 1) % BANNERS.length;
+        setLeaving(true);
+        setTimeout(() => { setIdx(next); setLeaving(false); }, 480);
+        return prev;
+      });
+    }, INTERVAL);
+    return clear;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx]);
 
-  const goNext = (from: number) => {
-    const next = (from + 1) % BANNERS.length;
-    goTo(next, 'left');
-  };
-
-  const goTo = (i: number, dir: 'left' | 'right' = 'left') => {
-    if (animating) return;
-    clearTimers();
-    setExitDir(dir);
-    setAnimating(true);
-    setTimeout(() => {
-      setCurrent(i);
-      setAnimating(false);
-    }, 380);
-  };
-
-  useEffect(() => {
-    startCycle(current);
-    return clearTimers;
-  }, [current]);
-
-  const banner = BANNERS[current];
+  const b = BANNERS[idx];
 
   return (
-    <div
-      className="relative overflow-hidden w-full select-none"
-      style={{
-        height: 'clamp(260px, 38vw, 520px)',
-        background: banner.bg,
-        transition: 'background 1s ease',
-      }}
-    >
-      {/* Accent glow */}
+    <div>
+      {/* ══════════════════════════════════════
+          HERO — cinematic, editorial
+          ══════════════════════════════════════ */}
       <div
-        className="absolute -left-32 top-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full blur-[140px] pointer-events-none transition-all duration-1000"
-        style={{ background: banner.accent, opacity: 0.18 }}
-      />
-      <div
-        className="absolute right-0 bottom-0 w-[300px] h-[300px] rounded-full blur-[100px] pointer-events-none transition-all duration-1000"
-        style={{ background: banner.accent, opacity: 0.06 }}
-      />
-
-      {/* Slide content */}
-      <div
-        className="absolute inset-0 flex"
-        style={{
-          opacity: animating ? 0 : 1,
-          transform: animating
-            ? `translateX(${exitDir === 'left' ? '-4%' : '4%'})`
-            : 'translateX(0)',
-          transition: 'opacity 0.38s ease, transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94)',
-        }}
+        className="relative overflow-hidden w-full select-none"
+        style={{ height: 'clamp(320px, 55vw, 660px)', background: b.bg }}
       >
-        {/* Left: text */}
-        <div className="flex-1 flex flex-col justify-center px-8 md:px-14 lg:px-20 xl:px-28 z-10 pb-8">
-          {/* Tag */}
-          <div className="flex items-center gap-2.5 mb-5 md:mb-7">
-            <span
-              className="w-1 h-4 flex-shrink-0 rounded-full"
-              style={{ background: banner.accent }}
-            />
-            <span
-              className="text-[11px] font-extrabold uppercase tracking-[0.28em]"
-              style={{ color: banner.accent }}
+        {/* Gradient background */}
+        <div
+          className="absolute inset-0 z-0"
+          style={{
+            background: b.bgGrad,
+            transition: 'background 1.4s cubic-bezier(0.22,1,0.36,1)',
+          }}
+        />
+
+        {/* Noise texture */}
+        <div
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E\")",
+            backgroundSize: '256px 256px',
+          }}
+        />
+
+        {/* Fine grid */}
+        <div
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+          }}
+        />
+
+        {/* Glow orb left */}
+        <div
+          className="absolute z-0 pointer-events-none"
+          style={{
+            left: '-10%', top: '50%', transform: 'translateY(-50%)',
+            width: 'clamp(300px, 45vw, 600px)',
+            height: 'clamp(300px, 45vw, 600px)',
+            background: `radial-gradient(circle, ${b.accent} 0%, transparent 70%)`,
+            opacity: 0.14,
+            filter: 'blur(80px)',
+            transition: 'background 1.4s ease',
+          }}
+        />
+
+        {/* Diagonal separator line */}
+        <div
+          className="absolute inset-0 z-0 pointer-events-none hidden lg:block"
+          style={{
+            background: `linear-gradient(105deg, transparent 55%, ${b.accentDim} 55%, ${b.accentDim} 56%, transparent 56%)`,
+          }}
+        />
+
+        {/* ── SLIDE CONTENT ── */}
+        <div
+          className="absolute inset-0 z-10 flex"
+          style={{
+            opacity: leaving ? 0 : 1,
+            transform: leaving ? 'translateX(-2%) scale(0.99)' : 'translateX(0) scale(1)',
+            transition: 'opacity 0.48s cubic-bezier(0.22,1,0.36,1), transform 0.48s cubic-bezier(0.22,1,0.36,1)',
+          }}
+        >
+          {/* LEFT: Primary content */}
+          <div className="flex-1 flex flex-col justify-center pl-8 md:pl-14 lg:pl-20 xl:pl-28 pr-4 pb-14 relative z-10 max-w-[700px]">
+
+            {/* Live pill indicator */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                {b.pill.dot && (
+                  <span className="relative flex items-center justify-center w-2 h-2">
+                    <span className="relative z-10 w-2 h-2 rounded-full" style={{ background: b.accent }} />
+                    <span className="absolute inset-0 w-2 h-2 rounded-full" style={{ background: b.accent, animation: 'liveRing 1.6s ease-out infinite' }} />
+                  </span>
+                )}
+                <span className="text-[10px] font-bold text-white/50 tracking-wider uppercase">{b.pill.text}</span>
+              </div>
+            </div>
+
+            {/* Eyebrow */}
+            <div className="flex items-center gap-3 mb-3">
+              <div style={{ width: '28px', height: '2px', background: b.accent, flexShrink: 0 }} />
+              <span
+                className="text-[10px] font-black tracking-[0.35em] uppercase"
+                style={{ color: b.accent }}
+              >
+                {b.eyebrow}
+              </span>
+            </div>
+
+            {/* Main headline — EDITORIAL LAYOUT */}
+            <div className="mb-5">
+              {/* Korean title line */}
+              <div
+                className="text-white font-black leading-none mb-1"
+                style={{ fontSize: 'clamp(1.4rem, 3.2vw, 2.8rem)', letterSpacing: '-0.04em' }}
+              >
+                {b.titleKo}
+              </div>
+
+              {/* Big number with Bebas Neue */}
+              <div className="flex items-baseline gap-2 leading-none">
+                <span
+                  className="font-bebas text-white"
+                  style={{
+                    fontSize: 'clamp(5rem, 13vw, 11rem)',
+                    letterSpacing: '-0.02em',
+                    lineHeight: '0.88',
+                    color: b.accent,
+                    textShadow: `0 0 80px ${b.accent}40, 0 0 160px ${b.accent}20`,
+                  }}
+                >
+                  {b.titleNum}
+                </span>
+                {b.titleUnit && (
+                  <span
+                    className="font-bebas text-white"
+                    style={{
+                      fontSize: 'clamp(2.5rem, 5.5vw, 5rem)',
+                      lineHeight: '0.88',
+                      color: `${b.accent}CC`,
+                    }}
+                  >
+                    {b.titleUnit}
+                  </span>
+                )}
+                <span
+                  className="text-white font-black self-end pb-1 hidden sm:block"
+                  style={{ fontSize: 'clamp(1.2rem, 2.8vw, 2.4rem)', letterSpacing: '-0.04em', opacity: 0.7 }}
+                >
+                  {b.titleSuffix}
+                </span>
+              </div>
+            </div>
+
+            <p
+              className="text-white/45 mb-7"
+              style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.9rem)', letterSpacing: '-0.01em', lineHeight: 1.6 }}
             >
-              {banner.tag}
+              {b.sub}
+            </p>
+
+            {/* CTA row */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <button
+                onClick={() => router.push(b.href)}
+                className="group flex items-center gap-3 font-black text-white transition-all duration-200"
+                style={{
+                  background: b.accent,
+                  padding: 'clamp(10px,1.1vw,15px) clamp(20px,2.2vw,28px)',
+                  fontSize: 'clamp(0.75rem, 1.1vw, 0.9rem)',
+                  letterSpacing: '0.02em',
+                  boxShadow: `0 4px 24px ${b.accent}40`,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+              >
+                {b.cta}
+                <svg className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <a
+                href={b.href}
+                className="text-white/30 hover:text-white/70 transition-colors text-xs font-medium flex items-center gap-1.5"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: '2px' }}
+              >
+                {b.ctaSub}
+              </a>
+            </div>
+          </div>
+
+          {/* RIGHT: Editorial mark (desktop) */}
+          <div className="hidden lg:flex items-center justify-center pr-16 xl:pr-24 flex-shrink-0 w-[280px] xl:w-[320px] relative z-10 pointer-events-none select-none">
+            <span
+              className="font-bebas leading-none"
+              style={{
+                fontSize: 'clamp(7rem, 16vw, 13rem)',
+                letterSpacing: '0.04em',
+                color: 'transparent',
+                WebkitTextStroke: `1px ${b.accent}`,
+                opacity: 0.1,
+              }}
+            >
+              LM
+            </span>
+          </div>
+        </div>
+
+        {/* ── BOTTOM CONTROLS ── */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-center px-8 md:px-14 lg:px-20 xl:px-28 pb-4 gap-5 z-20">
+          {/* Dot indicators */}
+          <div className="flex items-center gap-2.5 flex-1">
+            {BANNERS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                aria-label={`슬라이드 ${i + 1}`}
+                style={{
+                  width: i === idx ? '32px' : '6px',
+                  height: '3px',
+                  background: i === idx ? b.accent : 'rgba(255,255,255,0.18)',
+                  borderRadius: '2px',
+                  transition: 'all 0.35s cubic-bezier(0.22,1,0.36,1)',
+                  flexShrink: 0,
+                }}
+              />
+            ))}
+            <span className="text-white/20 text-[10px] font-mono ml-1 tabular-nums tracking-wider">
+              {String(idx + 1).padStart(2, '0')}/{String(BANNERS.length).padStart(2, '0')}
             </span>
           </div>
 
-          {/* Title */}
-          <h2
-            className="font-black text-white leading-[0.98] tracking-tighter mb-4 md:mb-5"
-            style={{
-              fontSize: 'clamp(2.2rem, 4.8vw, 4.8rem)',
-              whiteSpace: 'pre-line',
-              textShadow: '0 4px 60px rgba(0,0,0,0.6)',
-            }}
-          >
-            {banner.title}
-          </h2>
-
-          {/* Sub */}
-          <p
-            className="text-white/55 font-medium mb-1"
-            style={{ fontSize: 'clamp(0.82rem, 1.4vw, 1rem)' }}
-          >
-            {banner.sub}
-          </p>
-          <p
-            className="text-white/30 mb-7 md:mb-9"
-            style={{ fontSize: 'clamp(0.72rem, 1.1vw, 0.85rem)' }}
-          >
-            {banner.desc}
-          </p>
-
-          {/* CTA */}
-          <button
-            onClick={() => router.push(banner.href)}
-            className="inline-flex items-center gap-3 font-bold text-white text-sm transition-all duration-200 hover:gap-4 w-fit"
-            style={{
-              background: banner.accent,
-              padding: 'clamp(10px,1.2vw,14px) clamp(20px,2.5vw,28px)',
-              letterSpacing: '0.01em',
-            }}
-          >
-            {banner.cta}
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Right: big visual (lg+) */}
-        <div className="hidden lg:flex flex-col items-center justify-center w-[40%] flex-shrink-0 relative z-10 pb-8">
-          {/* Decorative rings */}
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border pointer-events-none"
-            style={{
-              width: 'clamp(200px,18vw,300px)',
-              height: 'clamp(200px,18vw,300px)',
-              borderColor: banner.accent,
-              borderWidth: 1,
-              opacity: 0.12,
-            }}
-          />
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border pointer-events-none"
-            style={{
-              width: 'clamp(270px,24vw,400px)',
-              height: 'clamp(270px,24vw,400px)',
-              borderColor: banner.accent,
-              borderWidth: 1,
-              opacity: 0.05,
-            }}
-          />
-
-          {/* Big number */}
-          <div className="text-center mb-6">
-            <div
-              className="font-black leading-none tabular-nums"
-              style={{
-                fontSize: 'clamp(4.5rem, 9.5vw, 9rem)',
-                color: banner.accent,
-                textShadow: `0 0 80px ${banner.accent}55`,
-                letterSpacing: '-0.04em',
-              }}
-            >
-              {banner.bigText}
-              {banner.bigUnit && (
-                <span style={{ fontSize: '0.42em', verticalAlign: 'super', letterSpacing: '-0.02em' }}>
-                  {banner.bigUnit}
-                </span>
-              )}
-            </div>
-            <div className="text-white/25 text-[10px] font-bold uppercase tracking-[0.35em] mt-2">
-              {banner.bigLabel}
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="flex gap-10">
-            {[banner.stat1, banner.stat2].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-white font-black text-xl tabular-nums">{stat.value}</div>
-                <div className="text-white/30 text-[11px] mt-0.5">{stat.label}</div>
-              </div>
+          {/* Prev / Next */}
+          <div className="flex items-center gap-1">
+            {[
+              { label: '이전', next: (idx - 1 + BANNERS.length) % BANNERS.length, d: 'M15 19l-7-7 7-7' },
+              { label: '다음', next: (idx + 1) % BANNERS.length, d: 'M9 5l7 7-7 7' },
+            ].map(({ label, next, d }) => (
+              <button
+                key={label}
+                onClick={() => goTo(next)}
+                aria-label={label}
+                className="w-8 h-8 flex items-center justify-center transition-all duration-200"
+                style={{
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.3)',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.color = '#fff';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.3)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+                }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={d} />
+                </svg>
+              </button>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Bottom bar: indicators + arrows */}
-      <div className="absolute bottom-0 left-0 right-0 flex items-center px-8 md:px-14 lg:px-20 xl:px-28 pb-4 gap-4">
-        {/* Dot indicators */}
-        <div className="flex items-center gap-1.5 flex-1">
-          {BANNERS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goTo(i, i > current ? 'left' : 'right')}
-              className="transition-all duration-300 rounded-full flex-shrink-0"
-              style={{
-                width: i === current ? '24px' : '5px',
-                height: '5px',
-                background: i === current ? banner.accent : 'rgba(255,255,255,0.2)',
-              }}
-              aria-label={`슬라이드 ${i + 1}`}
-            />
-          ))}
-          <span className="text-white/20 text-[10px] font-mono ml-1">
-            {String(current + 1).padStart(2, '0')}/{String(BANNERS.length).padStart(2, '0')}
-          </span>
-        </div>
-
-        {/* Arrow buttons */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => goTo((current - 1 + BANNERS.length) % BANNERS.length, 'right')}
-            className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white transition-colors"
-            style={{ border: '1px solid rgba(255,255,255,0.12)' }}
-            aria-label="이전"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            onClick={() => goTo((current + 1) % BANNERS.length, 'left')}
-            className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white transition-colors"
-            style={{ border: '1px solid rgba(255,255,255,0.12)' }}
-            aria-label="다음"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+        {/* Progress line */}
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] z-20" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          <div
+            className="h-full transition-none"
+            style={{ width: `${progress}%`, background: b.accent }}
+          />
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/[0.06]">
+      {/* ══════════════════════════════════════
+          TICKER BAR
+          ══════════════════════════════════════ */}
+      <div
+        style={{
+          background: '#0A0A0A',
+          height: '36px',
+          overflow: 'hidden',
+          borderBottom: '1px solid rgba(255,255,255,0.04)',
+        }}
+      >
         <div
-          className="h-full"
-          style={{ width: `${progress}%`, background: banner.accent, transition: 'none' }}
-        />
+          className="flex items-center h-full whitespace-nowrap"
+          style={{ animation: 'marquee 32s linear infinite' }}
+        >
+          {TICKER.map((item, i) => (
+            <span key={i} className="flex items-center shrink-0">
+              <span className="text-[11px] font-medium text-white/30 px-5">{item}</span>
+              <span className="text-white/10 text-xs" aria-hidden>│</span>
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

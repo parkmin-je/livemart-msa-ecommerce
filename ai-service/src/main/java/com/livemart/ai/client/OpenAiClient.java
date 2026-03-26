@@ -6,6 +6,7 @@ import com.livemart.ai.dto.OpenAiResponse;
 import com.livemart.ai.exception.AiServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -14,6 +15,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 /**
  * OpenAI Chat Completions API 클라이언트 (WebFlux 전용)
@@ -29,10 +32,15 @@ import java.time.Duration;
 public class OpenAiClient {
 
     private static final String CHAT_PATH = "/chat/completions";
+    private static final String EMBEDDING_PATH = "/embeddings";
+    private static final String EMBEDDING_MODEL = "text-embedding-3-small";
     private static final Duration SYNC_TIMEOUT = Duration.ofSeconds(30);
 
     private final WebClient openAiWebClient;
     private final ObjectMapper objectMapper;
+
+    @Value("${openai.api.key:}")
+    private String apiKey;
 
     /**
      * 동기 Chat Completions 호출 (추천, 설명 생성)
@@ -66,6 +74,90 @@ public class OpenAiClient {
         } catch (Exception e) {
             log.error("OpenAI call failed: {}", e.getMessage());
             throw new AiServiceException("AI 서비스 일시적 오류", e);
+        }
+    }
+
+    /**
+     * 편의 메서드: system/user 메시지로 간단한 chatCompletion 호출
+     * ProductVectorStoreService의 RAG 패턴에서 사용
+     */
+    public String chatCompletion(String systemPrompt, String userPrompt) {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("OPENAI_API_KEY 미설정 — 데모 응답 반환");
+            return "{\"recommendations\": []}";
+        }
+
+        OpenAiRequest request = new OpenAiRequest(
+            "gpt-4o-mini",
+            List.of(
+                new OpenAiRequest.Message("system", systemPrompt),
+                new OpenAiRequest.Message("user", userPrompt)
+            ),
+            null, false
+        );
+
+        try {
+            OpenAiResponse response = chat(request);
+            if (response != null && response.choices() != null && !response.choices().isEmpty()) {
+                var message = response.choices().get(0).message();
+                return message != null ? message.content() : "{}";
+            }
+        } catch (Exception e) {
+            log.error("chatCompletion 실패: {}", e.getMessage());
+        }
+        return "{}";
+    }
+
+    /**
+     * OpenAI Embedding API 호출 — 텍스트를 벡터로 변환
+     * Spring AI VectorStore.add()의 내부 동작과 동일한 패턴
+     *
+     * @param text 임베딩할 텍스트
+     * @return float 배열 (dimension=1536 for text-embedding-3-small)
+     */
+    @SuppressWarnings("unchecked")
+    public double[] createEmbedding(String text) {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.debug("OPENAI_API_KEY 미설정 — null 반환 (ProductVectorStoreService가 데모 벡터 사용)");
+            return null;
+        }
+
+        try {
+            Map<String, Object> requestBody = Map.of(
+                "model", EMBEDDING_MODEL,
+                "input", text,
+                "encoding_format", "float"
+            );
+
+            Map<?, ?> response = openAiWebClient.post()
+                .uri(EMBEDDING_PATH)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .timeout(SYNC_TIMEOUT)
+                .block();
+
+            if (response == null) return null;
+
+            List<?> data = (List<?>) response.get("data");
+            if (data == null || data.isEmpty()) return null;
+
+            Map<?, ?> firstItem = (Map<?, ?>) data.get(0);
+            List<?> embeddingList = (List<?>) firstItem.get("embedding");
+            if (embeddingList == null) return null;
+
+            double[] result = new double[embeddingList.size()];
+            for (int i = 0; i < embeddingList.size(); i++) {
+                result[i] = ((Number) embeddingList.get(i)).doubleValue();
+            }
+
+            log.debug("임베딩 생성 완료: dimension={}, model={}", result.length, EMBEDDING_MODEL);
+            return result;
+
+        } catch (Exception e) {
+            log.error("임베딩 생성 실패: {}", e.getMessage());
+            return null;
         }
     }
 

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const apiClient = axios.create({
   baseURL: '',  // Next.js rewrite proxy 경유 (상대 경로)
@@ -12,11 +13,30 @@ const apiClient = axios.create({
 // Response Interceptor (에러 처리)
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
       // 인증 실패 시 로그인 페이지로 리다이렉트
       window.location.href = '/auth';
+      return Promise.reject(error);
     }
+
+    // 429 Too Many Requests 처리 — Retry-After 헤더 기반 안내 및 자동 재시도
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers['retry-after'];
+      const waitSeconds = retryAfter ? parseInt(retryAfter, 10) : 60;
+
+      toast.error(
+        `요청이 너무 많습니다. ${waitSeconds}초 후 다시 시도해주세요.`,
+        { duration: Math.min(waitSeconds * 1000, 30000) }
+      );
+
+      // Retry-After가 30초 이하이면 자동 재시도
+      if (retryAfter && waitSeconds <= 30) {
+        await new Promise<void>(resolve => setTimeout(resolve, waitSeconds * 1000));
+        return apiClient(error.config);
+      }
+    }
+
     return Promise.reject(error);
   }
 );
@@ -51,6 +71,19 @@ export const productApi = {
   getRecommendations: async (userId: number) => {
     const response = await apiClient.get(`/api/recommendations/user/${userId}`);
     return response.data;
+  },
+
+  // 상품 재고 조회 (inventory-service)
+  getProductStock: async (productId: number): Promise<{ quantity: number; status: string }> => {
+    try {
+      const response = await apiClient.get(`/api/inventory/product/${productId}`);
+      return {
+        quantity: response.data.availableQuantity ?? 0,
+        status: response.data.status ?? 'UNKNOWN',
+      };
+    } catch {
+      return { quantity: 0, status: 'UNKNOWN' };
+    }
   },
 };
 
@@ -176,19 +209,19 @@ export const paymentApi = {
       paymentMethod: data.method,  // method -> paymentMethod
       cardToken: data.cardNumber,  // cardNumber -> cardToken
     };
-    const response = await apiClient.post('/api/v1/payments', requestData);
+    const response = await apiClient.post('/api/payments', requestData);
     return response.data;
   },
 
-  // 결제 취소
+  // 결제 환불 (transactionId 기반)
   cancelPayment: async (transactionId: string) => {
-    const response = await apiClient.post(`/api/v1/payments/${transactionId}/cancel`);
+    const response = await apiClient.post('/api/payments/refund', { transactionId });
     return response.data;
   },
 
   // 주문번호로 결제 조회
   getPaymentByOrderNumber: async (orderNumber: string) => {
-    const response = await apiClient.get(`/api/v1/payments/order/${orderNumber}`);
+    const response = await apiClient.get(`/api/payments/order/${orderNumber}`);
     return response.data;
   },
 };
@@ -326,7 +359,7 @@ export const couponApi = {
 export const searchApi = {
   autocomplete: async (keyword: string) => {
     const response = await apiClient.get('/api/products/search/autocomplete', {
-      params: { keyword },
+      params: { prefix: keyword },
     });
     return response.data;
   },
@@ -335,7 +368,7 @@ export const searchApi = {
 export const dashboardApi = {
   // 실시간 메트릭 조회 (REST)
   getMetrics: async () => {
-    const response = await apiClient.get('/api/v1/dashboard/metrics');
+    const response = await apiClient.get('/api/analytics/v1/dashboard/metrics');
     return response.data;
   },
 

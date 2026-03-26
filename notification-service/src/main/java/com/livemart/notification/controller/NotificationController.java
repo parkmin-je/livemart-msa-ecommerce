@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 /**
  * 알림 컨트롤러 (WebFlux 리액티브 엔드포인트)
  */
@@ -37,12 +39,41 @@ public class NotificationController {
     @Operation(summary = "실시간 알림 스트림 (SSE)", description = "Server-Sent Events로 실시간 알림을 수신합니다")
     @GetMapping(value = "/stream/{userId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<NotificationResponse>> streamNotifications(@PathVariable Long userId) {
-        return notificationService.streamNotifications(userId)
+        // 즉시 연결 확인 이벤트 전송 → Tomcat에서도 HTTP 헤더가 즉시 flush됨
+        ServerSentEvent<NotificationResponse> connected = ServerSentEvent
+                .<NotificationResponse>builder().comment("connected").build();
+
+        // 30초마다 heartbeat → 프록시/게이트웨이 연결 유지
+        Flux<ServerSentEvent<NotificationResponse>> heartbeats = Flux
+                .interval(Duration.ofSeconds(30))
+                .map(i -> ServerSentEvent.<NotificationResponse>builder().comment("heartbeat").build());
+
+        Flux<ServerSentEvent<NotificationResponse>> notifications = notificationService
+                .streamNotifications(userId)
                 .map(notification -> ServerSentEvent.<NotificationResponse>builder()
                         .id(notification.getId())
                         .event("notification")
                         .data(notification)
                         .build());
+
+        return Flux.concat(
+                Flux.just(connected),
+                Flux.merge(notifications, heartbeats)
+        );
+    }
+
+    @Operation(summary = "알림 읽음 처리", description = "특정 알림을 읽음 처리합니다")
+    @PutMapping("/user/{userId}/{notificationId}/read")
+    public Mono<Void> markAsRead(
+            @PathVariable Long userId,
+            @PathVariable String notificationId) {
+        return notificationService.markAsRead(userId, notificationId);
+    }
+
+    @Operation(summary = "전체 알림 읽음 처리", description = "사용자의 모든 알림을 읽음 처리합니다")
+    @PutMapping("/user/{userId}/read-all")
+    public Mono<Void> markAllAsRead(@PathVariable Long userId) {
+        return notificationService.markAllAsRead(userId);
     }
 
     @Operation(summary = "헬스체크")

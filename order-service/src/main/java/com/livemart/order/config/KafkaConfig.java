@@ -2,6 +2,7 @@ package com.livemart.order.config;
 
 import com.livemart.order.event.OrderEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
@@ -129,6 +131,41 @@ public class KafkaConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(paymentConsumerFactory());
         factory.setCommonErrorHandler(kafkaErrorHandler);
+        // 파티션 3개에 맞춰 동시 소비 스레드 3개 → 처리량 3배 향상
+        factory.setConcurrency(3);
         return factory;
+    }
+
+    // ── Kafka 토픽 자동 생성 (파티션 3개 × 복제 1개) ───────────────────────────
+
+    /**
+     * order-events: 3 파티션 — orderId 기반 파티셔닝으로 순서 보장 + 병렬 처리
+     * payment-events: 3 파티션 — 동시 소비 스레드 3개와 매핑
+     * stock-alert-events: 3 파티션 — 재고 알림 병렬 처리
+     * *.DLT: Dead Letter Topic (파티션 1개로 충분)
+     */
+    @Bean
+    public NewTopic orderEventsTopic() {
+        return TopicBuilder.name("order-events").partitions(3).replicas(1).build();
+    }
+
+    @Bean
+    public NewTopic paymentEventsTopic() {
+        return TopicBuilder.name("payment-events").partitions(3).replicas(1).build();
+    }
+
+    @Bean
+    public NewTopic stockAlertEventsTopic() {
+        return TopicBuilder.name("stock-alert-events").partitions(3).replicas(1).build();
+    }
+
+    @Bean
+    public NewTopic orderEventsDlt() {
+        return TopicBuilder.name("order-events.DLT").partitions(1).replicas(1).build();
+    }
+
+    @Bean
+    public NewTopic paymentEventsDlt() {
+        return TopicBuilder.name("payment-events.DLT").partitions(1).replicas(1).build();
     }
 }

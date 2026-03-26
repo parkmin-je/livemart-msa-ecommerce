@@ -21,6 +21,14 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+  # ── Spring Boot 3.4 Structured Logging (ECS 포맷 — ELK 스택 연동) ──────────
+  logging:
+    structured:
+      format:
+        console: ecs                       # Elastic Common Schema JSON 로그
 
 eureka:
   client:
@@ -41,6 +49,17 @@ openai:
     description: gpt-4o-mini       # 설명 생성: 창의성 필요
     chat: gpt-4o-mini              # 챗봇: 빠른 응답 우선
 
+# Hunter Alpha (Xiaomi MiMo-V2-Pro) via OpenRouter — 아젠틱 태스크용
+# OPENROUTER_API_KEY 환경변수로 주입 (절대 코드에 하드코딩 금지)
+hunter-alpha:
+  api:
+    key: ${OPENROUTER_API_KEY:}
+    base-url: https://openrouter.ai/api/v1
+  model:
+    agent: xiaomi/mimo-v2-pro      # 셀러 에이전트: 멀티스텝 추론 (구 Hunter Alpha)
+    forecast: xiaomi/mimo-v2-pro   # 수요 예측: 시계열 패턴 분석
+    churn: xiaomi/mimo-v2-pro      # 이탈 예측: 복잡한 행동 패턴
+
 # AI 기능 활성화 플래그 (API Key 없을 때 graceful degradation)
 ai:
   enabled: ${AI_ENABLED:true}
@@ -55,9 +74,10 @@ management:
   tracing:
     sampling:
       probability: 0.1
-  zipkin:
+  otlp:
     tracing:
-      endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318/v1/traces}
+      transport: http                      # gRPC: grpc (포트 4317), HTTP: http (포트 4318)
 
 springdoc:
   api-docs:
@@ -69,3 +89,8 @@ logging:
   level:
     com.livemart.ai: DEBUG
     org.springframework.web.client: DEBUG
+
+# 로컬 개발: 호스트명 해결 타임아웃 단축 (Cannot determine local hostname WARN 방지)
+spring.cloud.inetutils.timeout-seconds: 1
+logging.level.com.netflix.discovery: ERROR
+logging.level.com.netflix.eureka: ERROR

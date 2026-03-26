@@ -1,43 +1,148 @@
 {
   "dashboard": {
     "title": "LiveMart MSA 통합 대시보드",
+    "uid": "livemart-overview-v2",
     "tags": ["livemart", "msa", "overview"],
     "timezone": "Asia/Seoul",
-    "schemaVersion": 30,
-    "version": 1,
-    "refresh": "5s",
+    "schemaVersion": 39,
+    "version": 2,
+    "refresh": "10s",
+    "time": { "from": "now-1h", "to": "now" },
+    "templating": {
+      "list": [
+        {
+          "name": "service",
+          "type": "query",
+          "label": "Service",
+          "query": "label_values(http_server_requests_seconds_count, application)",
+          "current": { "text": "All", "value": "$__all" },
+          "includeAll": true,
+          "multi": false,
+          "refresh": 2
+        },
+        {
+          "name": "namespace",
+          "type": "constant",
+          "value": "livemart",
+          "label": "Namespace"
+        }
+      ]
+    },
     "panels": [
+
       {
         "id": 1,
-        "title": "전체 요청 수 (RPS)",
-        "type": "graph",
-        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "title": "🌐 전체 요청 처리량 (RPS)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
         "targets": [
           {
-            "expr": "sum(rate(http_server_requests_seconds_count[1m]))",
-            "legendFormat": "Total RPS"
+            "expr": "sum(rate(http_server_requests_seconds_count{application=~\"$service\"}[1m])) by (application)",
+            "legendFormat": "{{application}}"
           }
         ],
         "fieldConfig": {
           "defaults": {
             "unit": "reqps",
-            "color": {"mode": "palette-classic"}
+            "color": {"mode": "palette-classic"},
+            "custom": {"lineWidth": 2, "fillOpacity": 10}
           }
         }
       },
+
       {
         "id": 2,
-        "title": "평균 응답 시간",
-        "type": "graph",
-        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "title": "⏱️ p99 응답 레이턴시",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))",
-            "legendFormat": "P95 Latency"
+            "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{application=~\"$service\"}[1m])) by (le, application))",
+            "legendFormat": "p99 {{application}}"
           },
           {
-            "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[1m])) by (le))",
-            "legendFormat": "P99 Latency"
+            "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{application=~\"$service\"}[1m])) by (le, application))",
+            "legendFormat": "p95 {{application}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1.0}
+              ]
+            }
+          }
+        }
+      },
+
+      {
+        "id": 3,
+        "title": "❌ 에러율 (%)",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\", application=~\"$service\"}[1m])) by (application) / sum(rate(http_server_requests_seconds_count{application=~\"$service\"}[1m])) by (application) * 100",
+            "legendFormat": "{{application}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        }
+      },
+
+      {
+        "id": 10,
+        "title": "📦 JVM Heap 사용량",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "jvm_memory_used_bytes{area=\"heap\", application=~\"$service\"} / jvm_memory_max_bytes{area=\"heap\", application=~\"$service\"} * 100",
+            "legendFormat": "Heap % {{application}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 85}
+              ]
+            }
+          }
+        }
+      },
+
+      {
+        "id": 11,
+        "title": "🔄 JVM GC 일시정지 시간",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(jvm_gc_pause_seconds_sum{application=~\"$service\"}[1m])",
+            "legendFormat": "GC Pause {{application}} {{action}}"
           }
         ],
         "fieldConfig": {
@@ -47,63 +152,20 @@
           }
         }
       },
+
       {
-        "id": 3,
-        "title": "서비스별 에러율",
-        "type": "graph",
-        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "id": 12,
+        "title": "🧵 JVM 스레드 수",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
         "targets": [
           {
-            "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])) by (application) / sum(rate(http_server_requests_seconds_count[1m])) by (application) * 100",
-            "legendFormat": "{{application}}"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "color": {"mode": "palette-classic"},
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {"value": 0, "color": "green"},
-                {"value": 1, "color": "yellow"},
-                {"value": 5, "color": "red"}
-              ]
-            }
-          }
-        }
-      },
-      {
-        "id": 4,
-        "title": "JVM 메모리 사용량",
-        "type": "graph",
-        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "sum(jvm_memory_used_bytes{area=\"heap\"}) by (application) / 1024 / 1024",
-            "legendFormat": "{{application}} Heap"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "mbytes",
-            "color": {"mode": "palette-classic"}
-          }
-        }
-      },
-      {
-        "id": 5,
-        "title": "데이터베이스 커넥션 풀",
-        "type": "graph",
-        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "hikaricp_connections_active",
-            "legendFormat": "Active Connections"
+            "expr": "jvm_threads_live_threads{application=~\"$service\"}",
+            "legendFormat": "Live {{application}}"
           },
           {
-            "expr": "hikaricp_connections_idle",
-            "legendFormat": "Idle Connections"
+            "expr": "jvm_threads_daemon_threads{application=~\"$service\"}",
+            "legendFormat": "Daemon {{application}}"
           }
         ],
         "fieldConfig": {
@@ -113,108 +175,171 @@
           }
         }
       },
+
       {
-        "id": 6,
-        "title": "Redis 캐시 Hit Rate",
-        "type": "stat",
-        "gridPos": {"x": 12, "y": 16, "w": 6, "h": 8},
+        "id": 20,
+        "title": "🗄️ HikariCP DB 커넥션 풀",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "sum(redis_cache_hits_total) / (sum(redis_cache_hits_total) + sum(redis_cache_misses_total)) * 100"
+            "expr": "hikaricp_connections_active{application=~\"$service\"}",
+            "legendFormat": "Active {{application}}"
+          },
+          {
+            "expr": "hikaricp_connections_idle{application=~\"$service\"}",
+            "legendFormat": "Idle {{application}}"
+          },
+          {
+            "expr": "hikaricp_connections_pending{application=~\"$service\"}",
+            "legendFormat": "Pending {{application}}"
+          },
+          {
+            "expr": "hikaricp_connections_max{application=~\"$service\"}",
+            "legendFormat": "Max {{application}}"
           }
         ],
         "fieldConfig": {
           "defaults": {
-            "unit": "percent",
-            "color": {"mode": "thresholds"},
+            "unit": "short",
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 70, "color": "yellow"},
-                {"value": 90, "color": "green"}
+                {"color": "green", "value": null},
+                {"color": "red", "value": 1}
               ]
             }
           }
         }
       },
+
       {
-        "id": 7,
-        "title": "Kafka Consumer Lag",
-        "type": "graph",
-        "gridPos": {"x": 18, "y": 16, "w": 6, "h": 8},
+        "id": 21,
+        "title": "🔑 Redis 캐시 Hit/Miss율",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
         "targets": [
           {
-            "expr": "sum(kafka_consumer_lag) by (topic)",
+            "expr": "rate(spring_cache_gets_total{result=\"hit\"}[1m])",
+            "legendFormat": "Cache Hit"
+          },
+          {
+            "expr": "rate(spring_cache_gets_total{result=\"miss\"}[1m])",
+            "legendFormat": "Cache Miss"
+          },
+          {
+            "expr": "rate(spring_cache_gets_total{result=\"hit\"}[1m]) / (rate(spring_cache_gets_total{result=\"hit\"}[1m]) + rate(spring_cache_gets_total{result=\"miss\"}[1m])) * 100",
+            "legendFormat": "Hit Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      },
+
+      {
+        "id": 30,
+        "title": "📨 Kafka Consumer Lag",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "kafka_consumer_fetch_manager_records_lag{application=~\"$service\"}",
+            "legendFormat": "Lag {{application}} {{topic}} {{partition}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 1000}
+              ]
+            }
+          }
+        }
+      },
+
+      {
+        "id": 31,
+        "title": "💀 Kafka DLT (Dead Letter Topic) 메시지 수",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(kafka_log_log_end_offset{topic=~\".*\\.DLT\"}) by (topic)",
             "legendFormat": "{{topic}}"
           }
         ],
         "fieldConfig": {
           "defaults": {
             "unit": "short",
-            "color": {"mode": "palette-classic"}
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 10}
+              ]
+            }
           }
+        },
+        "options": {
+          "reduceOptions": {"calcs": ["lastNotNull"]},
+          "orientation": "horizontal",
+          "textMode": "auto",
+          "colorMode": "background"
         }
       },
+
       {
-        "id": 8,
-        "title": "매출 현황 (실시간)",
+        "id": 40,
+        "title": "🛒 비즈니스 메트릭 — 주문 생성 수 (분당)",
         "type": "stat",
-        "gridPos": {"x": 0, "y": 24, "w": 6, "h": 4},
+        "gridPos": {"x": 0, "y": 32, "w": 6, "h": 6},
         "targets": [
           {
-            "expr": "sum(order_total_amount)"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "currencyKRW",
-            "color": {"mode": "thresholds"}
-          }
-        }
-      },
-      {
-        "id": 9,
-        "title": "주문 건수 (1시간)",
-        "type": "stat",
-        "gridPos": {"x": 6, "y": 24, "w": 6, "h": 4},
-        "targets": [
-          {
-            "expr": "sum(increase(order_created_total[1h]))"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "short",
-            "color": {"mode": "thresholds"}
-          }
-        }
-      },
-      {
-        "id": 10,
-        "title": "활성 사용자",
-        "type": "stat",
-        "gridPos": {"x": 12, "y": 24, "w": 6, "h": 4},
-        "targets": [
-          {
-            "expr": "sum(active_users_gauge)"
+            "expr": "sum(rate(orders_created_total[1m])) * 60",
+            "legendFormat": "Orders/min"
           }
         ],
         "fieldConfig": {
           "defaults": {
             "unit": "short",
-            "color": {"mode": "thresholds"}
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "blue", "value": null}
+              ]
+            }
           }
+        },
+        "options": {
+          "reduceOptions": {"calcs": ["lastNotNull"]},
+          "orientation": "auto",
+          "textMode": "value_and_name",
+          "colorMode": "background",
+          "graphMode": "area"
         }
       },
+
       {
-        "id": 11,
-        "title": "전환율",
+        "id": 41,
+        "title": "💳 결제 성공률 (%)",
         "type": "stat",
-        "gridPos": {"x": 18, "y": 24, "w": 6, "h": 4},
+        "gridPos": {"x": 6, "y": 32, "w": 6, "h": 6},
         "targets": [
           {
-            "expr": "sum(order_created_total) / sum(visit_total) * 100"
+            "expr": "sum(rate(payment_success_total[5m])) / sum(rate(payment_attempts_total[5m])) * 100",
+            "legendFormat": "Success Rate"
           }
         ],
         "fieldConfig": {
@@ -224,25 +349,167 @@
             "thresholds": {
               "mode": "absolute",
               "steps": [
-                {"value": 0, "color": "red"},
-                {"value": 2, "color": "yellow"},
-                {"value": 5, "color": "green"}
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {"calcs": ["lastNotNull"]},
+          "colorMode": "background",
+          "graphMode": "none"
+        }
+      },
+
+      {
+        "id": 42,
+        "title": "🔄 Circuit Breaker 상태",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 32, "w": 6, "h": 6},
+        "targets": [
+          {
+            "expr": "resilience4j_circuitbreaker_state{application=~\"$service\"}",
+            "legendFormat": "{{application}} {{name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "mappings": [
+              {"type": "value", "options": {"0": {"text": "CLOSED", "color": "green"}}},
+              {"type": "value", "options": {"1": {"text": "OPEN", "color": "red"}}},
+              {"type": "value", "options": {"2": {"text": "HALF_OPEN", "color": "yellow"}}}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 1}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {"calcs": ["lastNotNull"]},
+          "colorMode": "background"
+        }
+      },
+
+      {
+        "id": 43,
+        "title": "🚦 Rate Limiting — 429 응답 수 (분당)",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 32, "w": 6, "h": 6},
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_requests_seconds_count{status=\"429\"}[1m])) * 60",
+            "legendFormat": "429/min"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 50},
+                {"color": "red", "value": 200}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {"calcs": ["lastNotNull"]},
+          "colorMode": "background",
+          "graphMode": "area"
+        }
+      },
+
+      {
+        "id": 50,
+        "title": "☸️ K8s Pod CPU 사용률",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 40, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"livemart\", container!=\"\"}[1m])) by (pod) * 100",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 85}
               ]
             }
           }
         }
-      }
-    ],
-    "templating": {
-      "list": [
-        {
-          "name": "application",
-          "type": "query",
-          "query": "label_values(http_server_requests_seconds_count, application)",
-          "multi": true,
-          "includeAll": true
+      },
+
+      {
+        "id": 51,
+        "title": "☸️ K8s Pod 메모리 사용률",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 40, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(container_memory_working_set_bytes{namespace=\"livemart\", container!=\"\"}) by (pod) / sum(container_spec_memory_limit_bytes{namespace=\"livemart\", container!=\"\"}) by (pod) * 100",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 75},
+                {"color": "red", "value": 90}
+              ]
+            }
+          }
         }
-      ]
-    }
-  }
+      },
+
+      {
+        "id": 60,
+        "title": "📈 HPA Replica 현황",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 48, "w": 24, "h": 8},
+        "targets": [
+          {
+            "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"livemart\"}",
+            "legendFormat": "Current {{horizontalpodautoscaler}}"
+          },
+          {
+            "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"livemart\"}",
+            "legendFormat": "Max {{horizontalpodautoscaler}}"
+          },
+          {
+            "expr": "kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"livemart\"}",
+            "legendFormat": "Min {{horizontalpodautoscaler}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"}
+          }
+        }
+      }
+
+    ]
+  },
+  "overwrite": true,
+  "folderId": 0
 }

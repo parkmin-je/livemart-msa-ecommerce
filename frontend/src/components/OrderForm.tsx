@@ -81,7 +81,7 @@ export function OrderForm() {
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
     try {
-      const res = await fetch(`/api/coupons/${couponCode}/preview?orderAmount=${subtotal}`);
+      const res = await fetch(`/api/coupons/${couponCode}/preview?orderAmount=${subtotal}`, { credentials: 'include' });
       if (res.ok) {
         const d = await res.json();
         setCouponDiscount(d.discountAmount || 0);
@@ -162,8 +162,8 @@ export function OrderForm() {
       {/* 왼쪽 */}
       <div className="flex-1 space-y-4">
         {/* 배송지 */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h2 className="font-bold text-gray-900 text-lg mb-4">배송 정보</h2>
+        <div className="p-5" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+          <h2 className="font-bold text-lg mb-4" style={{ color: '#0E0E0E' }}>배송 정보</h2>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -186,7 +186,8 @@ export function OrderForm() {
             <div className="flex gap-2">
               <input
                 type="text" value={address.zipCode} readOnly
-                placeholder="우편번호" className="form-input w-32 bg-gray-50 cursor-default"
+                placeholder="우편번호" className="form-input w-32 cursor-default"
+                style={{ background: '#F7F6F1' }}
               />
               <button
                 type="button" onClick={openAddressSearch}
@@ -197,7 +198,8 @@ export function OrderForm() {
               {showPostcode && (
                 <button
                   type="button" onClick={() => setShowPostcode(false)}
-                  className="px-3 text-sm text-gray-500 hover:text-gray-800 border border-gray-300 rounded"
+                  className="px-3 text-sm transition-colors"
+                  style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.55)' }}
                 >
                   닫기
                 </button>
@@ -205,11 +207,12 @@ export function OrderForm() {
             </div>
             {/* Daum 우편번호 embed 컨테이너 */}
             {showPostcode && (
-              <div id="postcode-container" className="w-full h-[360px] border border-gray-200 rounded-lg overflow-hidden" />
+              <div id="postcode-container" className="w-full h-[360px] overflow-hidden" style={{ border: '1px solid rgba(14,14,14,0.12)' }} />
             )}
             <input
               type="text" value={address.address} readOnly
-              placeholder="도로명 주소 *" className="form-input bg-gray-50 cursor-default"
+              placeholder="도로명 주소 *" className="form-input cursor-default"
+              style={{ background: '#F7F6F1' }}
               required
             />
             <input
@@ -233,45 +236,46 @@ export function OrderForm() {
         </div>
 
         {/* 주문 상품 */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h2 className="font-bold text-gray-900 text-lg mb-4">주문 상품 ({items.length})</h2>
+        <div className="p-5" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+          <h2 className="font-bold text-lg mb-4" style={{ color: '#0E0E0E' }}>주문 상품 ({items.length})</h2>
           <div className="space-y-3">
             {items.map(item => (
-              <div key={item.productId} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+              <div key={item.productId} className="flex items-center gap-3 py-2 last:border-0" style={{ borderBottom: '1px solid rgba(14,14,14,0.05)' }}>
+                <div className="w-14 h-14 overflow-hidden flex-shrink-0 flex items-center justify-center" style={{ background: '#F5F4F0' }}>
                   {item.imageUrl
                     ? <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                    : <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">NO IMG</div>
+                    : <span className="text-xs" style={{ color: 'rgba(14,14,14,0.3)' }}>NO IMG</span>
                   }
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 line-clamp-1">{item.name}</p>
-                  <p className="text-xs text-gray-500">수량: {item.quantity}개</p>
+                  <p className="text-sm font-medium line-clamp-1" style={{ color: '#0E0E0E' }}>{item.name}</p>
+                  <p className="text-xs" style={{ color: 'rgba(14,14,14,0.45)' }}>수량: {item.quantity}개</p>
                 </div>
-                <span className="text-sm font-bold text-gray-900">{(item.price * item.quantity).toLocaleString()}원</span>
+                <span className="text-sm font-bold" style={{ color: '#0E0E0E' }}>{(item.price * item.quantity).toLocaleString()}원</span>
               </div>
             ))}
             {items.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-6">장바구니가 비어있습니다</p>
+              <p className="text-sm text-center py-6" style={{ color: 'rgba(14,14,14,0.35)' }}>장바구니가 비어있습니다</p>
             )}
           </div>
         </div>
 
         {/* 결제 수단 */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h2 className="font-bold text-gray-900 text-lg mb-4">결제 수단</h2>
+        <div className="p-5" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+          <h2 className="font-bold text-lg mb-4" style={{ color: '#0E0E0E' }}>결제 수단</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {PAYMENT_METHODS.map(pm => (
               <button
                 key={pm.id} type="button" onClick={() => setPaymentMethod(pm.id)}
-                className={`relative px-4 py-3 rounded-xl border-2 transition-colors text-sm font-medium ${
-                  paymentMethod === pm.id
-                    ? 'border-red-500 bg-red-50 text-red-700'
-                    : 'border-gray-200 text-gray-700 hover:border-red-200'
-                }`}
+                className="relative px-4 py-3 transition-colors text-sm font-medium"
+                style={{
+                  border: paymentMethod === pm.id ? '2px solid #E8001D' : '1px solid rgba(14,14,14,0.14)',
+                  background: paymentMethod === pm.id ? 'rgba(232,0,29,0.05)' : 'transparent',
+                  color: paymentMethod === pm.id ? '#E8001D' : 'rgba(14,14,14,0.65)',
+                }}
               >
                 {pm.badge && (
-                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-white text-[9px] font-bold px-1.5 py-0.5 whitespace-nowrap" style={{ background: '#0A0A0A' }}>
                     {pm.badge}
                   </span>
                 )}
@@ -282,8 +286,8 @@ export function OrderForm() {
         </div>
 
         {/* 쿠폰 */}
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h2 className="font-bold text-gray-900 text-lg mb-4">쿠폰 적용</h2>
+        <div className="p-5" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+          <h2 className="font-bold text-lg mb-4" style={{ color: '#0E0E0E' }}>쿠폰 적용</h2>
           <div className="flex gap-2">
             <input
               type="text" value={couponCode}
@@ -300,37 +304,40 @@ export function OrderForm() {
 
       {/* 오른쪽: 결제 요약 */}
       <div className="w-80 flex-shrink-0 sticky top-[156px]">
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h2 className="font-bold text-gray-900 text-lg mb-4">결제 금액</h2>
+        <div className="p-5" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+          <h2 className="font-bold text-lg mb-4" style={{ color: '#0E0E0E' }}>결제 금액</h2>
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between" style={{ color: 'rgba(14,14,14,0.6)' }}>
               <span>상품금액</span>
               <span>{subtotal.toLocaleString()}원</span>
             </div>
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between" style={{ color: 'rgba(14,14,14,0.6)' }}>
               <span>배송비</span>
-              <span className={shippingFee === 0 ? 'text-green-600' : ''}>
+              <span style={shippingFee === 0 ? { color: 'rgb(21,128,61)' } : undefined}>
                 {shippingFee === 0 ? '무료' : `${shippingFee.toLocaleString()}원`}
               </span>
             </div>
             {couponDiscount > 0 && (
-              <div className="flex justify-between text-red-600">
+              <div className="flex justify-between" style={{ color: '#E8001D' }}>
                 <span>쿠폰 할인</span>
                 <span>-{couponDiscount.toLocaleString()}원</span>
               </div>
             )}
-            <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-base">
-              <span>최종 결제금액</span>
-              <span className="text-red-600 text-xl">{total.toLocaleString()}원</span>
+            <div className="pt-3 flex justify-between font-bold text-base" style={{ borderTop: '1px solid rgba(14,14,14,0.07)' }}>
+              <span style={{ color: '#0E0E0E' }}>최종 결제금액</span>
+              <span className="text-xl" style={{ color: '#E8001D' }}>{total.toLocaleString()}원</span>
             </div>
           </div>
           <button
             type="submit" disabled={loading || items.length === 0}
-            className="mt-5 w-full btn-primary py-3.5 text-base font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+            className="mt-5 w-full py-3.5 text-base font-bold text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ background: '#0A0A0A' }}
+            onMouseEnter={e => !loading && items.length > 0 && (e.currentTarget.style.background = '#E8001D')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
           >
             {loading ? '처리중...' : `${total.toLocaleString()}원 결제하기`}
           </button>
-          <p className="text-xs text-gray-400 text-center mt-3">SSL 암호화 · 안전결제 보장</p>
+          <p className="text-xs text-center mt-3" style={{ color: 'rgba(14,14,14,0.35)' }}>SSL 암호화 · 안전결제 보장</p>
         </div>
       </div>
     </form>

@@ -5,13 +5,14 @@ import { GlobalNav } from '@/components/GlobalNav';
 import { productApi } from '@/api/productApi';
 import toast from 'react-hot-toast';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE = '';
 
 interface InventoryItem {
   id: number;
   name: string;
   price: number;
   stockQuantity: number;
+  categoryName?: string;
   category?: string;
 }
 
@@ -56,19 +57,11 @@ export default function SellerInventoryPage() {
 
   const handleStockUpdate = async (productId: number, quantity: number) => {
     try {
-      const res = await fetch(`${API_BASE}/api/products/${productId}/stock`, {
+      const res = await fetch(`${API_BASE}/api/products/${productId}/stock?stockQuantity=${quantity}`, {
         method: 'PUT',
-        credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stockQuantity: quantity }),
+        credentials: 'include',
       });
-      if (!res.ok) {
-        // Try alternative endpoint
-        await fetch(`${API_BASE}/api/products/${productId}`, {
-          method: 'PUT',
-          credentials: 'include', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stockQuantity: quantity }),
-        });
-      }
+      if (!res.ok) throw new Error('재고 수정 실패');
       toast.success('재고가 수정되었습니다.');
       setEditingId(null);
       fetchProducts();
@@ -98,9 +91,9 @@ export default function SellerInventoryPage() {
   };
 
   const getStockBadge = (qty: number) => {
-    if (qty === 0) return <span className="text-[11px] font-semibold px-2 py-0.5 bg-red-50 text-red-700 border border-red-200">품절</span>;
-    if (qty <= 10) return <span className="text-[11px] font-semibold px-2 py-0.5 bg-orange-50 text-orange-700 border border-orange-200">부족</span>;
-    return <span className="text-[11px] font-semibold px-2 py-0.5 bg-green-50 text-green-700 border border-green-200">충분</span>;
+    if (qty === 0) return <span className="text-[11px] font-semibold px-2 py-0.5" style={{ background: 'rgba(232,0,29,0.07)', color: '#C8001A', border: '1px solid rgba(232,0,29,0.2)' }}>품절</span>;
+    if (qty <= 10) return <span className="text-[11px] font-semibold px-2 py-0.5" style={{ background: 'rgba(234,88,12,0.07)', color: 'rgb(194,65,12)', border: '1px solid rgba(234,88,12,0.2)' }}>부족</span>;
+    return <span className="text-[11px] font-semibold px-2 py-0.5" style={{ background: 'rgba(16,185,129,0.08)', color: 'rgb(4,120,87)', border: '1px solid rgba(16,185,129,0.2)' }}>충분</span>;
   };
 
   const FILTER_TABS: [StockFilter, string][] = [
@@ -111,35 +104,43 @@ export default function SellerInventoryPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: '#F7F6F1' }}>
       <GlobalNav />
 
       {/* Seller header bar */}
-      <div className="bg-gray-950 text-white">
+      <div className="text-white" style={{ background: '#0A0A0A' }}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-          <a href="/seller" className="text-xs font-semibold tracking-widest text-gray-400 uppercase hover:text-white transition-colors">Seller</a>
-          <span className="text-gray-700">/</span>
-          <span className="text-sm text-gray-300">재고 관리</span>
+          <a href="/seller" className="text-xs font-semibold tracking-widest uppercase transition-colors"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>Seller</a>
+          <span style={{ color: 'rgba(255,255,255,0.2)' }}>/</span>
+          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>재고 관리</span>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8 pb-14 md:pb-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">재고 관리</h1>
-            <p className="text-sm text-gray-500 mt-0.5">상품 재고 현황을 확인하고 수정하세요</p>
+            <h1 className="text-xl font-bold" style={{ color: '#0E0E0E' }}>재고 관리</h1>
+            <p className="text-sm mt-0.5" style={{ color: 'rgba(14,14,14,0.5)' }}>상품 재고 현황을 확인하고 수정하세요</p>
           </div>
           <div className="flex gap-2">
-            <a href="/seller" className="px-4 py-2 border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+            <a href="/seller"
+              className="px-4 py-2 text-sm transition-colors"
+              style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.6)', background: '#FFFFFF' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F7F6F1')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#FFFFFF')}>
               판매자 센터
             </a>
             <button
               onClick={() => setBulkMode(!bulkMode)}
-              className={`px-4 py-2 text-sm font-semibold transition-colors ${
-                bulkMode
-                  ? 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                  : 'bg-gray-900 text-white hover:bg-gray-800'
-              }`}
+              className="px-4 py-2 text-sm font-semibold transition-colors"
+              style={bulkMode
+                ? { border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.7)', background: '#FFFFFF' }
+                : { background: '#0A0A0A', color: '#FFFFFF', border: '1px solid transparent' }}
+              onMouseEnter={e => { if (!bulkMode) e.currentTarget.style.background = '#E8001D'; }}
+              onMouseLeave={e => { if (!bulkMode) e.currentTarget.style.background = '#0A0A0A'; }}
             >
               {bulkMode ? '일괄수정 취소' : '일괄 수정'}
             </button>
@@ -149,14 +150,14 @@ export default function SellerInventoryPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
-            { label: '전체 상품', value: stats.total, color: 'text-gray-900' },
-            { label: '품절', value: stats.outOfStock, color: 'text-red-600' },
-            { label: '재고 부족', value: stats.lowStock, color: 'text-orange-600' },
-            { label: '총 재고 가치', value: `${stats.totalValue.toLocaleString()}원`, color: 'text-green-600' },
+            { label: '전체 상품', value: stats.total, color: '#0E0E0E' },
+            { label: '품절', value: stats.outOfStock, color: '#E8001D' },
+            { label: '재고 부족', value: stats.lowStock, color: 'rgb(194,65,12)' },
+            { label: '총 재고 가치', value: `${stats.totalValue.toLocaleString()}원`, color: 'rgb(4,120,87)' },
           ].map(s => (
-            <div key={s.label} className="bg-white border border-gray-200 p-5">
-              <p className="text-xs text-gray-500 font-medium">{s.label}</p>
-              <p className={`text-xl font-bold mt-1 ${s.color}`}>{s.value}</p>
+            <div key={s.label} className="p-5" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+              <p className="text-xs font-medium" style={{ color: 'rgba(14,14,14,0.5)' }}>{s.label}</p>
+              <p className="text-xl font-bold mt-1" style={{ color: s.color }}>{s.value}</p>
             </div>
           ))}
         </div>
@@ -167,11 +168,12 @@ export default function SellerInventoryPage() {
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`px-3.5 py-2 text-xs font-semibold transition-colors ${
-                filter === key
-                  ? 'bg-gray-950 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-              }`}
+              className="px-3.5 py-2 text-xs font-semibold transition-colors"
+              style={filter === key
+                ? { background: '#0A0A0A', color: '#FFFFFF', border: '1px solid transparent' }
+                : { background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.12)', color: 'rgba(14,14,14,0.6)' }}
+              onMouseEnter={e => { if (filter !== key) e.currentTarget.style.background = '#F7F6F1'; }}
+              onMouseLeave={e => { if (filter !== key) e.currentTarget.style.background = '#FFFFFF'; }}
             >
               {label}
             </button>
@@ -180,19 +182,24 @@ export default function SellerInventoryPage() {
 
         {/* Bulk Action Bar */}
         {bulkMode && selected.size > 0 && (
-          <div className="bg-gray-50 border border-gray-300 p-4 mb-4 flex items-center gap-4 flex-wrap">
-            <span className="text-sm font-semibold text-gray-900">{selected.size}개 선택됨</span>
+          <div className="p-4 mb-4 flex items-center gap-4 flex-wrap"
+            style={{ background: '#F7F6F1', border: '1px solid rgba(14,14,14,0.14)' }}>
+            <span className="text-sm font-semibold" style={{ color: '#0E0E0E' }}>{selected.size}개 선택됨</span>
             <input
               type="number"
               min="0"
               placeholder="일괄 적용 수량"
               value={bulkQuantity}
               onChange={(e) => setBulkQuantity(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 text-sm focus:outline-none focus:border-gray-500 w-32"
+              className="px-3 py-1.5 text-sm focus:outline-none w-32"
+              style={{ border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E', background: '#FFFFFF' }}
             />
             <button
               onClick={handleBulkUpdate}
-              className="px-4 py-1.5 bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+              className="px-4 py-1.5 text-sm font-semibold transition-colors"
+              style={{ background: '#0A0A0A', color: '#FFFFFF' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#E8001D')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
             >
               일괄 적용
             </button>
@@ -200,32 +207,35 @@ export default function SellerInventoryPage() {
         )}
 
         {/* Product Table */}
-        <div className="bg-white border border-gray-200 overflow-hidden">
+        <div className="overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
           {loading ? (
             <div className="p-12 text-center">
-              <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full mx-auto" />
+              <div className="animate-spin w-6 h-6 rounded-full mx-auto"
+                style={{ border: '2px solid rgba(14,14,14,0.1)', borderTopColor: '#E8001D' }} />
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="p-12 text-center text-gray-500 text-sm">상품이 없습니다.</div>
+            <div className="p-12 text-center text-sm" style={{ color: 'rgba(14,14,14,0.5)' }}>상품이 없습니다.</div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
+                <tr style={{ background: '#F7F6F1', borderBottom: '1px solid rgba(14,14,14,0.08)' }}>
                   {bulkMode && <th className="px-4 py-3 w-10" />}
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">상품명</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">카테고리</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">가격</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">재고</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">상태</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">재고 가치</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">수정</th>
+                  {['상품명','카테고리','가격','재고','상태','재고 가치','수정'].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide"
+                      style={{ color: 'rgba(14,14,14,0.5)' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody>
                 {filteredProducts.map((product) => (
                   <tr
                     key={product.id}
-                    className={`hover:bg-gray-50 transition-colors ${product.stockQuantity === 0 ? 'bg-red-50/40' : ''}`}
+                    style={{
+                      borderBottom: '1px solid rgba(14,14,14,0.05)',
+                      background: product.stockQuantity === 0 ? 'rgba(232,0,29,0.025)' : 'transparent',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#F7F6F1')}
+                    onMouseLeave={e => (e.currentTarget.style.background = product.stockQuantity === 0 ? 'rgba(232,0,29,0.025)' : 'transparent')}
                   >
                     {bulkMode && (
                       <td className="px-4 py-3">
@@ -237,11 +247,14 @@ export default function SellerInventoryPage() {
                         />
                       </td>
                     )}
-                    <td className="px-5 py-3 text-sm font-medium text-gray-900">{product.name}</td>
+                    <td className="px-5 py-3 text-sm font-medium" style={{ color: '#0E0E0E' }}>{product.name}</td>
                     <td className="px-5 py-3">
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs border border-gray-200">{product.category || '-'}</span>
+                      <span className="px-2 py-0.5 text-xs"
+                        style={{ background: 'rgba(14,14,14,0.06)', color: 'rgba(14,14,14,0.6)', border: '1px solid rgba(14,14,14,0.1)' }}>
+                        {product.categoryName || product.category || '-'}
+                      </span>
                     </td>
-                    <td className="px-5 py-3 text-sm text-gray-700">{product.price?.toLocaleString()}원</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: 'rgba(14,14,14,0.7)' }}>{product.price?.toLocaleString()}원</td>
                     <td className="px-5 py-3">
                       {editingId === product.id ? (
                         <div className="flex gap-2 items-center">
@@ -250,38 +263,44 @@ export default function SellerInventoryPage() {
                             min="0"
                             value={editQuantity}
                             onChange={(e) => setEditQuantity(e.target.value)}
-                            className="w-20 px-2 py-1 border border-gray-300 text-sm focus:outline-none focus:border-gray-500"
+                            className="w-20 px-2 py-1 text-sm focus:outline-none"
+                            style={{ border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E', background: '#FFFFFF' }}
                             autoFocus
                           />
                           <button
                             onClick={() => handleStockUpdate(product.id, parseInt(editQuantity))}
-                            className="px-2.5 py-1 bg-gray-900 text-white text-xs font-medium"
+                            className="px-2.5 py-1 text-xs font-medium"
+                            style={{ background: '#0A0A0A', color: '#FFFFFF' }}
                           >
                             확인
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="px-2.5 py-1 border border-gray-300 text-gray-600 text-xs"
+                            className="px-2.5 py-1 text-xs"
+                            style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.6)' }}
                           >
                             취소
                           </button>
                         </div>
                       ) : (
-                        <span className={`text-sm font-semibold ${
-                          product.stockQuantity === 0 ? 'text-red-600'
-                          : product.stockQuantity <= 10 ? 'text-orange-600'
-                          : 'text-gray-900'
-                        }`}>
+                        <span className="text-sm font-semibold" style={{
+                          color: product.stockQuantity === 0 ? '#E8001D'
+                            : product.stockQuantity <= 10 ? 'rgb(194,65,12)'
+                            : '#0E0E0E',
+                        }}>
                           {product.stockQuantity}개
                         </span>
                       )}
                     </td>
                     <td className="px-5 py-3">{getStockBadge(product.stockQuantity)}</td>
-                    <td className="px-5 py-3 text-sm text-gray-600">{(product.price * product.stockQuantity).toLocaleString()}원</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: 'rgba(14,14,14,0.6)' }}>{(product.price * product.stockQuantity).toLocaleString()}원</td>
                     <td className="px-5 py-3">
                       <button
                         onClick={() => { setEditingId(product.id); setEditQuantity(product.stockQuantity.toString()); }}
-                        className="px-2.5 py-1 border border-gray-300 text-gray-600 text-xs hover:bg-gray-100 transition-colors"
+                        className="px-2.5 py-1 text-xs transition-colors"
+                        style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.6)', background: 'transparent' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#F7F6F1')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
                         수정
                       </button>

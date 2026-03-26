@@ -1,21 +1,22 @@
+// ai-service — WebFlux 기반 AI 챗봇/추천 서비스
+// Note: Spring AI 1.0.0은 별도 인증 저장소 필요 (repo.spring.io/release)
+// → 현재 빌드는 OpenAI REST 직접 호출 방식으로 동작
+//   (OPENAI_API_KEY 환경변수 설정 시 GPT-4o-mini, 미설정 시 데모 모드 자동 전환)
 dependencies {
     implementation project(':common')
-    // WebFlux 단독 사용 (Reactor Netty) — spring-boot-starter-web 제거로 MVC/WebFlux 충돌 방지
+
+    // WebFlux 단독 사용 (Reactor Netty) — MVC/WebFlux 충돌 방지
     // Flux<String> SSE 스트리밍이 Netty에서 올바르게 동작
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'  // RedisTemplate (동기 캐시용)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.kafka:spring-kafka'
-    // WebFlux 기반 OpenAPI (webmvc-ui → webflux-ui)
-    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.7.0'
-
-    // OpenAI 직접 REST 호출 (SDK 불필요 — Spring Boot 3.x RestClient 사용)
-    // Spring AI BOM 제거 후 순수 HTTP 클라이언트로 대체
+    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.2'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     runtimeOnly 'org.postgresql:postgresql'
     testImplementation 'org.testcontainers:postgresql'
-    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+    implementation 'net.logstash.logback:logstash-logback-encoder:9.0'
 }

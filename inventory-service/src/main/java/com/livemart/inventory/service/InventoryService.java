@@ -132,6 +132,44 @@ public class InventoryService {
                 .orElse(false);
     }
 
+    /**
+     * 원자적 재고 차감 — Redisson 분산 락으로 Race Condition 방어
+     * order-service에서 직접 재고 감소 시 사용 (reserveStock과 달리 즉시 차감)
+     */
+    @Transactional
+    public boolean decrementStock(Long productId, int quantity) {
+        String lockKey = "inventory:lock:" + productId;
+        RLock lock = redissonClient.getLock(lockKey);
+        try {
+            if (!lock.tryLock(3, 10, TimeUnit.SECONDS)) {
+                throw new RuntimeException("재고 락 획득 실패: 상품 ID " + productId);
+            }
+
+            Inventory inventory = inventoryRepository.findByProductId(productId)
+                    .orElseThrow(() -> new EntityNotFoundException("재고 정보 없음: 상품 ID " + productId));
+
+            if (!inventory.canFulfill(quantity)) {
+                return false; // 재고 부족
+            }
+
+            int prev = inventory.getAvailableQuantity();
+            inventory.reserve(quantity); // availableQuantity 감소
+            inventory = inventoryRepository.save(inventory);
+
+            recordMovement(productId, StockMovement.MovementType.RESERVATION,
+                    quantity, prev, inventory.getAvailableQuantity(), null, "Direct decrement");
+
+            publishStockEvent(inventory, "STOCK_DECREMENTED");
+            lowStockAlertService.checkAndAlertIfLow(inventory);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("재고 락 대기 중 인터럽트 발생", e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) lock.unlock();
+        }
+    }
+
     private Inventory getInventoryByProductId(Long productId) {
         return inventoryRepository.findByProductId(productId)
                 .orElseThrow(() -> new EntityNotFoundException("Inventory not found for product: " + productId));

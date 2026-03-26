@@ -19,8 +19,16 @@ out/
 
 # Environment
 .env
-.env.*
+.env.local
+.env.*.local
+!.env.example
 *.log
+
+# Kubernetes secrets (실제 값이 들어간 로컬 파일)
+secrets.local.yml
+secrets.local.yaml
+**/secrets.local.yml
+**/secrets.local.yaml
 
 # Node
 node_modules/
@@ -39,9 +47,17 @@ application-local.yml
 *secret*.yaml
 *secret*.yml
 
-# Temp / AI
+# Temp / AI tools
 .ai/
 .claude/
 *.tmp
+
+# Personal dev scripts (OAuth setup, etc.)
 scripts/
+
+# Lock files (managed by CI)
 package-lock.json
+
+# Windows bat scripts (local convenience only)
+*.bat
+!gradlew.bat

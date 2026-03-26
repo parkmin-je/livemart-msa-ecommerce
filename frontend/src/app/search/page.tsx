@@ -28,7 +28,7 @@ const CATS = [
   { id: '6', label: '스포츠' },
 ];
 
-type Sort = 'relevance' | 'price_asc' | 'price_desc' | 'rating';
+type Sort = 'relevance' | 'price_asc' | 'price_desc';
 
 const POPULAR_KEYWORDS = [
   '갤럭시 버즈', '나이키 운동화', '다이슨 청소기', '에어팟', '아이패드',
@@ -44,13 +44,20 @@ const PRICE_RANGES = [
 
 function ProductSkeleton() {
   return (
-    <div className="bg-white border border-gray-100 overflow-hidden animate-pulse">
-      <div className="aspect-square bg-gray-100" />
+    <div className="overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+      <div
+        className="aspect-square"
+        style={{
+          background: 'linear-gradient(90deg, #F0EEE7 0%, #E8E5DB 45%, #F0EEE7 100%)',
+          backgroundSize: '600px 100%',
+          animation: 'shimmer 1.8s ease-in-out infinite',
+        }}
+      />
       <div className="p-3.5 space-y-2.5">
-        <div className="h-2.5 bg-gray-100 rounded-sm w-1/4" />
-        <div className="h-3.5 bg-gray-100 rounded-sm" />
-        <div className="h-3.5 bg-gray-100 rounded-sm w-2/3" />
-        <div className="h-9 bg-gray-100 rounded-sm mt-4" />
+        <div className="h-2.5 animate-pulse" style={{ background: '#EDEBE4', width: '25%' }} />
+        <div className="h-3.5 animate-pulse" style={{ background: '#EDEBE4' }} />
+        <div className="h-3.5 animate-pulse" style={{ background: '#EDEBE4', width: '65%' }} />
+        <div className="h-9 animate-pulse mt-4" style={{ background: '#EDEBE4' }} />
       </div>
     </div>
   );
@@ -58,27 +65,34 @@ function ProductSkeleton() {
 
 function EmptyState({ query, onKeyword }: { query: string; onKeyword: (kw: string) => void }) {
   return (
-    <div className="bg-white border border-gray-100 py-16 px-8">
+    <div className="py-16 px-8" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
       <div className="text-center mb-10">
-        <div className="w-14 h-14 bg-gray-100 flex items-center justify-center mx-auto mb-5">
-          <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div
+          className="w-14 h-14 flex items-center justify-center mx-auto mb-5"
+          style={{ background: '#F0EEE7' }}
+        >
+          <svg className="w-7 h-7" style={{ color: 'rgba(14,14,14,0.3)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
-        <h2 className="text-lg font-bold text-gray-900 mb-2 tracking-tight">
+        <h2 className="text-lg font-bold mb-2 tracking-tight" style={{ color: '#0E0E0E' }}>
           {query ? `"${query}" 검색 결과가 없습니다` : '상품을 찾지 못했습니다'}
         </h2>
-        <p className="text-sm text-gray-500 mb-6">다른 키워드나 카테고리로 검색해보세요</p>
+        <p className="text-sm mb-6" style={{ color: 'rgba(14,14,14,0.4)' }}>다른 키워드나 카테고리로 검색해보세요</p>
         <a
           href="/products"
-          className="inline-block bg-gray-950 text-white text-sm font-semibold px-6 py-2.5 hover:bg-gray-800 transition-colors"
+          className="inline-block text-white text-sm font-semibold px-6 py-2.5 transition-colors"
+          style={{ background: '#0A0A0A' }}
         >
           전체 상품 보기
         </a>
       </div>
-      <div className="border-t border-gray-100 pt-8">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4 text-center">
+      <div className="pt-8" style={{ borderTop: '1px solid rgba(14,14,14,0.06)' }}>
+        <p
+          className="text-xs font-semibold uppercase tracking-widest mb-4 text-center"
+          style={{ color: 'rgba(14,14,14,0.35)' }}
+        >
           추천 검색어
         </p>
         <div className="flex flex-wrap justify-center gap-2">
@@ -86,7 +100,16 @@ function EmptyState({ query, onKeyword }: { query: string; onKeyword: (kw: strin
             <button
               key={kw}
               onClick={() => onKeyword(kw)}
-              className="px-4 py-2 bg-white border border-gray-200 text-sm text-gray-700 hover:border-gray-900 hover:text-gray-900 transition-colors"
+              className="px-4 py-2 text-sm transition-colors"
+              style={{ border: '1px solid rgba(14,14,14,0.14)', color: 'rgba(14,14,14,0.65)' }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = '#0E0E0E';
+                (e.currentTarget as HTMLElement).style.color = '#0E0E0E';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,14,14,0.14)';
+                (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.65)';
+              }}
             >
               {kw}
             </button>
@@ -118,10 +141,18 @@ function SearchContent() {
     try {
       let items: Product[] = [];
       if (q.trim()) {
-        const res = await productApi.searchProducts(q);
-        items = res.content || res || [];
+        try {
+          const res = await productApi.searchProducts(q);
+          items = res.content || res || [];
+        } catch {
+          const res = await productApi.getProducts({ page: 0, size: 50, search: q });
+          items = (res.content || res || []).filter((p: Product) =>
+            p.name?.toLowerCase().includes(q.toLowerCase()) ||
+            p.description?.toLowerCase().includes(q.toLowerCase())
+          );
+        }
       } else if (catId) {
-        const res = await fetch(`/api/products/category/${catId}?page=0&size=30`).then(r => r.json());
+        const res = await fetch(`/api/products/category/${catId}?page=0&size=30`, { credentials: 'include' }).then(r => r.json());
         items = res.content || [];
       } else {
         const res = await productApi.getProducts({ page: 0, size: 30 });
@@ -140,8 +171,8 @@ function SearchContent() {
     setLoading(false);
   };
 
-  useEffect(() => { doSearch(initialQ, initialCat); }, [initialQ, initialCat]);
-  useEffect(() => { if (products.length > 0 || loading) doSearch(query, cat); }, [sort, priceMin, priceMax]);
+  useEffect(() => { doSearch(initialQ, initialCat); }, [initialQ, initialCat]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { doSearch(query, cat); }, [sort, priceMin, priceMax]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,26 +208,36 @@ function SearchContent() {
   const isFiltered = cat || priceMin || priceMax;
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-14 md:pb-0">
+    <main className="min-h-screen pb-14 md:pb-0" style={{ background: '#F7F6F1' }}>
       <GlobalNav />
 
       {/* Page header */}
-      <div className="bg-white border-b border-gray-100">
+      <div style={{ background: '#FFFFFF', borderBottom: '1px solid rgba(14,14,14,0.07)' }}>
         <div className="max-w-[1280px] mx-auto px-4 py-5">
           {initialQ ? (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Search</p>
-              <h1 className="text-2xl font-black text-gray-950 tracking-tight">
+              <p className="uppercase tracking-widest mb-1" style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(14,14,14,0.35)' }}>
+                Search
+              </p>
+              <h1
+                className="font-bebas tracking-wide leading-none"
+                style={{ fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', color: '#0E0E0E', letterSpacing: '0.04em' }}
+              >
                 &ldquo;{initialQ}&rdquo;
               </h1>
               {!loading && (
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm mt-1" style={{ color: 'rgba(14,14,14,0.38)' }}>
                   {total.toLocaleString()}개 결과
                 </p>
               )}
             </div>
           ) : (
-            <h1 className="text-2xl font-black text-gray-950 tracking-tight">검색</h1>
+            <h1
+              className="font-bebas tracking-wide leading-none"
+              style={{ fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', color: '#0E0E0E', letterSpacing: '0.04em' }}
+            >
+              검색
+            </h1>
           )}
         </div>
       </div>
@@ -204,16 +245,27 @@ function SearchContent() {
       <div className="max-w-[1280px] mx-auto px-4 py-6">
         {/* Popular keywords — shown when no query */}
         {!initialQ && !initialCat && (
-          <div className="bg-white border border-gray-100 p-6 mb-6">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">인기 검색어</p>
+          <div className="p-6 mb-6" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+            <p className="uppercase tracking-widest mb-4" style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(14,14,14,0.35)' }}>
+              인기 검색어
+            </p>
             <div className="flex flex-wrap gap-2">
               {POPULAR_KEYWORDS.map((kw, i) => (
                 <button
                   key={kw}
                   onClick={() => handlePopularKeyword(kw)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 text-sm text-gray-700 hover:border-gray-900 hover:text-gray-900 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+                  style={{ background: '#F7F6F1', border: '1px solid rgba(14,14,14,0.1)', color: 'rgba(14,14,14,0.65)' }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = '#0E0E0E';
+                    (e.currentTarget as HTMLElement).style.color = '#0E0E0E';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,14,14,0.1)';
+                    (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.65)';
+                  }}
                 >
-                  <span className="text-red-500 font-black text-xs w-3.5 text-right tabular-nums">{i + 1}</span>
+                  <span className="font-black text-xs w-3.5 text-right tabular-nums" style={{ color: '#E8001D' }}>{i + 1}</span>
                   {kw}
                 </button>
               ))}
@@ -223,16 +275,17 @@ function SearchContent() {
 
         {/* Price quick filter — shown when searching */}
         {(initialQ || initialCat) && (
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
             {PRICE_RANGES.map((range, i) => (
               <button
                 key={i}
                 onClick={() => handlePriceRange(i)}
-                className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium border transition-colors ${
-                  activePriceRange === i
-                    ? 'bg-gray-950 text-white border-gray-950'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                }`}
+                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium transition-colors"
+                style={{
+                  background: activePriceRange === i ? '#0A0A0A' : '#FFFFFF',
+                  color: activePriceRange === i ? '#FFFFFF' : 'rgba(14,14,14,0.55)',
+                  border: activePriceRange === i ? '1px solid #0A0A0A' : '1px solid rgba(14,14,14,0.14)',
+                }}
               >
                 {range.label}
               </button>
@@ -242,10 +295,15 @@ function SearchContent() {
 
         <div className="flex gap-7">
           {/* Filter sidebar — desktop */}
-          <aside className="w-52 flex-shrink-0 hidden lg:block">
-            <div className="bg-white border border-gray-100 p-5 sticky top-[148px]">
+          <aside className="w-48 flex-shrink-0 hidden lg:block">
+            <div
+              className="p-5 sticky top-[148px]"
+              style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}
+            >
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">필터</h3>
+                <h3 className="uppercase tracking-widest" style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(14,14,14,0.35)' }}>
+                  필터
+                </h3>
                 {isFiltered && (
                   <button
                     onClick={() => {
@@ -255,7 +313,10 @@ function SearchContent() {
                       setActivePriceRange(null);
                       router.push('/search');
                     }}
-                    className="text-[10px] text-gray-400 hover:text-red-500 transition-colors"
+                    className="text-[10px] transition-colors"
+                    style={{ color: 'rgba(14,14,14,0.35)' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#E8001D')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(14,14,14,0.35)')}
                   >
                     초기화
                   </button>
@@ -265,17 +326,30 @@ function SearchContent() {
               <div className="space-y-6">
                 {/* Category */}
                 <div>
-                  <p className="text-[11px] font-semibold text-gray-700 mb-2.5">카테고리</p>
+                  <p className="text-[11px] font-semibold mb-2.5" style={{ color: 'rgba(14,14,14,0.55)' }}>카테고리</p>
                   <div className="space-y-0.5">
                     {CATS.map(c => (
                       <button
                         key={c.id}
                         onClick={() => handleCat(c.id)}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                          cat === c.id
-                            ? 'bg-gray-950 text-white font-semibold'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
+                        className="w-full text-left px-3 py-2 text-sm transition-colors"
+                        style={{
+                          background: cat === c.id ? '#0A0A0A' : 'transparent',
+                          color: cat === c.id ? '#FFFFFF' : 'rgba(14,14,14,0.55)',
+                          fontWeight: cat === c.id ? 600 : 400,
+                        }}
+                        onMouseEnter={e => {
+                          if (cat !== c.id) {
+                            (e.currentTarget as HTMLElement).style.background = 'rgba(14,14,14,0.04)';
+                            (e.currentTarget as HTMLElement).style.color = '#0E0E0E';
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (cat !== c.id) {
+                            (e.currentTarget as HTMLElement).style.background = 'transparent';
+                            (e.currentTarget as HTMLElement).style.color = 'rgba(14,14,14,0.55)';
+                          }
+                        }}
                       >
                         {c.label}
                       </button>
@@ -284,18 +358,29 @@ function SearchContent() {
                 </div>
 
                 {/* Price range */}
-                <div className="border-t border-gray-100 pt-5">
-                  <p className="text-[11px] font-semibold text-gray-700 mb-2.5">가격 범위</p>
+                <div className="pt-5" style={{ borderTop: '1px solid rgba(14,14,14,0.06)' }}>
+                  <p className="text-[11px] font-semibold mb-2.5" style={{ color: 'rgba(14,14,14,0.55)' }}>가격 범위</p>
                   <div className="space-y-0.5 mb-4">
                     {PRICE_RANGES.map((range, i) => (
                       <button
                         key={i}
                         onClick={() => handlePriceRange(i)}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                          activePriceRange === i
-                            ? 'bg-gray-950 text-white font-semibold'
-                            : 'text-gray-600 hover:bg-gray-50'
-                        }`}
+                        className="w-full text-left px-3 py-2 text-sm transition-colors"
+                        style={{
+                          background: activePriceRange === i ? '#0A0A0A' : 'transparent',
+                          color: activePriceRange === i ? '#FFFFFF' : 'rgba(14,14,14,0.55)',
+                          fontWeight: activePriceRange === i ? 600 : 400,
+                        }}
+                        onMouseEnter={e => {
+                          if (activePriceRange !== i) {
+                            (e.currentTarget as HTMLElement).style.background = 'rgba(14,14,14,0.04)';
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (activePriceRange !== i) {
+                            (e.currentTarget as HTMLElement).style.background = 'transparent';
+                          }
+                        }}
                       >
                         {range.label}
                       </button>
@@ -307,20 +392,25 @@ function SearchContent() {
                       placeholder="최소"
                       value={priceMin}
                       onChange={e => { setPriceMin(e.target.value); setActivePriceRange(null); }}
-                      className="w-full px-2.5 py-2 text-xs border border-gray-200 focus:outline-none focus:border-gray-900 transition-colors bg-white"
+                      className="w-full px-2.5 py-2 text-xs focus:outline-none transition-colors"
+                      style={{ border: '1px solid rgba(14,14,14,0.14)', background: '#FFFFFF', color: '#0E0E0E' }}
                     />
-                    <span className="text-gray-300 flex-shrink-0 text-sm">—</span>
+                    <span className="flex-shrink-0 text-sm" style={{ color: 'rgba(14,14,14,0.2)' }}>—</span>
                     <input
                       type="number"
                       placeholder="최대"
                       value={priceMax}
                       onChange={e => { setPriceMax(e.target.value); setActivePriceRange(null); }}
-                      className="w-full px-2.5 py-2 text-xs border border-gray-200 focus:outline-none focus:border-gray-900 transition-colors bg-white"
+                      className="w-full px-2.5 py-2 text-xs focus:outline-none transition-colors"
+                      style={{ border: '1px solid rgba(14,14,14,0.14)', background: '#FFFFFF', color: '#0E0E0E' }}
                     />
                   </div>
                   <button
                     onClick={() => doSearch(query, cat)}
-                    className="mt-3 w-full bg-gray-950 text-white text-xs font-semibold py-2.5 hover:bg-gray-800 transition-colors"
+                    className="mt-3 w-full text-white text-xs font-semibold py-2.5 transition-colors"
+                    style={{ background: '#0A0A0A' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#E8001D')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#0A0A0A')}
                   >
                     적용
                   </button>
@@ -333,16 +423,17 @@ function SearchContent() {
           <div className="flex-1 min-w-0">
             {/* Sort bar + category chips */}
             <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-              <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
+              <div className="flex gap-2 overflow-x-auto pb-1 flex-1 no-scrollbar">
                 {CATS.map(c => (
                   <button
                     key={c.id}
                     onClick={() => handleCat(c.id)}
-                    className={`flex-shrink-0 px-3.5 py-1.5 text-xs font-medium border transition-colors ${
-                      cat === c.id
-                        ? 'bg-gray-950 text-white border-gray-950'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'
-                    }`}
+                    className="flex-shrink-0 px-3.5 py-1.5 text-xs font-medium transition-colors"
+                    style={{
+                      background: cat === c.id ? '#0A0A0A' : '#FFFFFF',
+                      color: cat === c.id ? '#FFFFFF' : 'rgba(14,14,14,0.55)',
+                      border: cat === c.id ? '1px solid #0A0A0A' : '1px solid rgba(14,14,14,0.14)',
+                    }}
                   >
                     {c.label}
                   </button>
@@ -351,12 +442,12 @@ function SearchContent() {
               <select
                 value={sort}
                 onChange={e => setSort(e.target.value as Sort)}
-                className="text-xs border border-gray-200 px-3 py-2 bg-white focus:outline-none focus:border-gray-900 transition-colors cursor-pointer text-gray-700 flex-shrink-0"
+                className="text-xs px-3 py-2 focus:outline-none cursor-pointer flex-shrink-0"
+                style={{ border: '1px solid rgba(14,14,14,0.14)', background: '#FFFFFF', color: 'rgba(14,14,14,0.65)' }}
               >
                 <option value="relevance">관련도순</option>
                 <option value="price_asc">낮은 가격순</option>
                 <option value="price_desc">높은 가격순</option>
-                <option value="rating">평점 높은순</option>
               </select>
             </div>
 
@@ -381,7 +472,11 @@ function SearchContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50"><GlobalNav /></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen" style={{ background: '#F7F6F1' }}>
+        <GlobalNav />
+      </div>
+    }>
       <SearchContent />
     </Suspense>
   );
