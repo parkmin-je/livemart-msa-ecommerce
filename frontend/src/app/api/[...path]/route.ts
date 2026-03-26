@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const DEMO_PRODUCTS = [
   { id: 1, name: '무선 블루투스 이어폰 ANC Pro', price: 89000, stockQuantity: 42, categoryName: '전자기기', category: '전자기기', description: '액티브 노이즈 캔슬링으로 완벽한 몰입감. 30시간 배터리, IPX5 방수, 멀티포인트 연결 지원.', imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop', sellerId: 1 },
-  { id: 2, name: '프리미엄 요가 매트 8mm', price: 35000, stockQuantity: 28, categoryName: '스포츠', category: '스포츠', description: '천연 TPE 소재, 미끄럼 방지 텍스처, 친환경 인증 제품.', imageUrl: 'https://images.unsplash.com/photo-1601925228506-7bd27b6e4e6c?w=400&h=400&fit=crop', sellerId: 1 },
+  { id: 2, name: '프리미엄 요가 매트 8mm', price: 35000, stockQuantity: 28, categoryName: '스포츠', category: '스포츠', description: '천연 TPE 소재, 미끄럼 방지 텍스처, 친환경 인증 제품.', imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop', sellerId: 1 },
   { id: 3, name: '한방 갈비탕 밀키트 2인분', price: 18500, stockQuantity: 65, categoryName: '식품', category: '식품', description: '15시간 우린 진한 사골 육수, 손질된 갈비 400g 포함. 냉장 배송.', imageUrl: 'https://images.unsplash.com/photo-1547592180-85f173990554?w=400&h=400&fit=crop', sellerId: 1 },
   { id: 4, name: '스마트 체중계 블루투스', price: 45000, stockQuantity: 19, categoryName: '건강', category: '건강', description: 'BMI·체지방·근육량·수분 8가지 지표 측정, 앱 연동.', imageUrl: 'https://images.unsplash.com/photo-1576678927484-cc907957088c?w=400&h=400&fit=crop', sellerId: 1 },
   { id: 5, name: '럭셔리 코튼 침구 세트 퀸', price: 128000, stockQuantity: 11, categoryName: '홈/인테리어', category: '홈/인테리어', description: '이집트면 400수 장섬유, 호텔급 부드러움, 사계절 사용 가능.', imageUrl: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&h=400&fit=crop', sellerId: 1 },
