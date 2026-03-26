@@ -94,36 +94,41 @@ export default function AdminUsersPage() {
   };
 
   const getRoleBadge = (role: string) => {
-    const config: Record<string, string> = {
-      ADMIN: 'bg-red-50 text-red-700 border border-red-200',
-      SELLER: 'bg-purple-50 text-purple-700 border border-purple-200',
-      CUSTOMER: 'bg-blue-50 text-blue-700 border border-blue-200',
-      USER: 'bg-blue-50 text-blue-700 border border-blue-200',
+    const styleMap: Record<string, React.CSSProperties> = {
+      ADMIN:    { background: 'rgba(232,0,29,0.07)',  color: '#C8001A',       border: '1px solid rgba(232,0,29,0.2)' },
+      SELLER:   { background: 'rgba(147,51,234,0.07)', color: 'rgb(109,40,217)', border: '1px solid rgba(147,51,234,0.2)' },
+      CUSTOMER: { background: 'rgba(37,99,235,0.07)', color: 'rgb(29,78,216)',  border: '1px solid rgba(37,99,235,0.2)' },
+      USER:     { background: 'rgba(37,99,235,0.07)', color: 'rgb(29,78,216)',  border: '1px solid rgba(37,99,235,0.2)' },
     };
+    const s = styleMap[role] || { background: 'rgba(14,14,14,0.06)', color: 'rgba(14,14,14,0.6)', border: '1px solid rgba(14,14,14,0.12)' };
     return (
-      <span className={`px-2 py-0.5 text-[11px] font-semibold rounded ${config[role] || 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
-        {role}
-      </span>
+      <span className="px-2 py-0.5 text-[11px] font-semibold" style={s}>{role}</span>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: '#F7F6F1' }}>
       <GlobalNav />
 
       {/* Admin header bar */}
-      <div className="bg-gray-950 text-white">
+      <div className="text-white" style={{ background: '#0A0A0A' }}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-          <a href="/admin" className="text-xs font-semibold tracking-widest text-gray-400 uppercase hover:text-white transition-colors">Admin</a>
-          <span className="text-gray-700">/</span>
-          <span className="text-sm text-gray-300">사용자 관리</span>
+          <a href="/admin" className="text-xs font-semibold tracking-widest uppercase transition-colors"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>Admin</a>
+          <span style={{ color: 'rgba(255,255,255,0.2)' }}>/</span>
+          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>사용자 관리</span>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8 pb-14 md:pb-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <h1 className="text-xl font-bold text-gray-900">사용자 관리</h1>
-          <a href="/admin" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors">
+          <h1 className="text-xl font-bold" style={{ color: '#0E0E0E' }}>사용자 관리</h1>
+          <a href="/admin" className="text-sm flex items-center gap-1 transition-colors"
+            style={{ color: 'rgba(14,14,14,0.5)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#0E0E0E')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(14,14,14,0.5)')}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -134,14 +139,14 @@ export default function AdminUsersPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
-            { label: '전체 사용자', value: stats.total, color: 'text-gray-900' },
-            { label: '관리자', value: stats.admins, color: 'text-red-600' },
-            { label: '판매자', value: stats.sellers, color: 'text-purple-600' },
-            { label: '일반 회원', value: stats.customers, color: 'text-blue-600' },
+            { label: '전체 사용자', value: stats.total,     color: '#0E0E0E' },
+            { label: '관리자',     value: stats.admins,    color: '#E8001D' },
+            { label: '판매자',     value: stats.sellers,   color: 'rgb(109,40,217)' },
+            { label: '일반 회원',  value: stats.customers, color: 'rgb(29,78,216)' },
           ].map(s => (
-            <div key={s.label} className="bg-white border border-gray-200 p-5">
-              <p className="text-xs text-gray-500 font-medium">{s.label}</p>
-              <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
+            <div key={s.label} className="p-5" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+              <p className="text-xs font-medium" style={{ color: 'rgba(14,14,14,0.5)' }}>{s.label}</p>
+              <p className="text-2xl font-bold mt-1" style={{ color: s.color }}>{s.value}</p>
             </div>
           ))}
         </div>
@@ -149,7 +154,7 @@ export default function AdminUsersPage() {
         {/* Search & Filter */}
         <div className="flex flex-col md:flex-row gap-3 mb-5">
           <div className="relative flex-1">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(14,14,14,0.4)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -157,13 +162,15 @@ export default function AdminUsersPage() {
               placeholder="이름 또는 이메일로 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 text-sm focus:outline-none focus:border-gray-500"
+              className="w-full pl-9 pr-3 py-2 text-sm focus:outline-none"
+              style={{ border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E', background: '#FFFFFF' }}
             />
           </div>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 text-sm focus:outline-none focus:border-gray-500 bg-white"
+            className="px-3 py-2 text-sm focus:outline-none"
+            style={{ border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E', background: '#FFFFFF' }}
           >
             <option value="">전체 역할</option>
             <option value="ADMIN">관리자</option>
@@ -173,45 +180,43 @@ export default function AdminUsersPage() {
         </div>
 
         {/* User Table */}
-        <div className="bg-white border border-gray-200 overflow-hidden">
+        <div className="overflow-hidden" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
           {loading ? (
             <div className="p-12 text-center">
-              <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full mx-auto" />
+              <div className="animate-spin w-6 h-6 rounded-full mx-auto" style={{ border: '2px solid rgba(14,14,14,0.1)', borderTopColor: '#E8001D' }} />
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="p-12 text-center text-gray-500 text-sm">사용자가 없습니다.</div>
+            <div className="p-12 text-center text-sm" style={{ color: 'rgba(14,14,14,0.5)' }}>사용자가 없습니다.</div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">ID</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">이름</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">이메일</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">전화번호</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">역할</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">가입일</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">상태</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">액션</th>
+                <tr style={{ background: '#F7F6F1', borderBottom: '1px solid rgba(14,14,14,0.08)' }}>
+                  {['ID','이름','이메일','전화번호','역할','가입일','상태','액션'].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(14,14,14,0.5)' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody>
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3 text-xs text-gray-400 font-mono">#{user.id}</td>
-                    <td className="px-5 py-3 text-sm font-semibold text-gray-900">{user.name}</td>
-                    <td className="px-5 py-3 text-sm text-gray-600">{user.email}</td>
-                    <td className="px-5 py-3 text-xs text-gray-500">{user.phoneNumber || '-'}</td>
+                  <tr key={user.id} className="transition-colors" style={{ borderBottom: '1px solid rgba(14,14,14,0.05)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#F7F6F1')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <td className="px-5 py-3 text-xs font-mono" style={{ color: 'rgba(14,14,14,0.4)' }}>#{user.id}</td>
+                    <td className="px-5 py-3 text-sm font-semibold" style={{ color: '#0E0E0E' }}>{user.name}</td>
+                    <td className="px-5 py-3 text-sm" style={{ color: 'rgba(14,14,14,0.6)' }}>{user.email}</td>
+                    <td className="px-5 py-3 text-xs" style={{ color: 'rgba(14,14,14,0.5)' }}>{user.phoneNumber || '-'}</td>
                     <td className="px-5 py-3">{getRoleBadge(user.role)}</td>
-                    <td className="px-5 py-3 text-xs text-gray-500">{new Date(user.createdAt).toLocaleDateString('ko-KR')}</td>
+                    <td className="px-5 py-3 text-xs" style={{ color: 'rgba(14,14,14,0.5)' }}>{new Date(user.createdAt).toLocaleDateString('ko-KR')}</td>
                     <td className="px-5 py-3">
-                      <span className="px-2 py-0.5 text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200">활성</span>
+                      <span className="px-2 py-0.5 text-[11px] font-semibold" style={{ background: 'rgba(16,185,129,0.08)', color: 'rgb(4,120,87)', border: '1px solid rgba(16,185,129,0.2)' }}>활성</span>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex gap-2 items-center">
                         <select
                           value={user.role}
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                          className="px-2 py-1 border border-gray-300 text-xs focus:outline-none focus:border-gray-500 bg-white"
+                          className="px-2 py-1 text-xs focus:outline-none"
+                          style={{ border: '1px solid rgba(14,14,14,0.14)', color: '#0E0E0E', background: '#FFFFFF' }}
                         >
                           <option value="USER">일반</option>
                           <option value="SELLER">판매자</option>
@@ -219,7 +224,10 @@ export default function AdminUsersPage() {
                         </select>
                         <button
                           onClick={() => handleDeactivate(user.id)}
-                          className="px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 text-xs font-medium hover:bg-red-100 transition-colors"
+                          className="px-2.5 py-1 text-xs font-medium transition-colors"
+                          style={{ background: 'rgba(232,0,29,0.06)', color: '#C8001A', border: '1px solid rgba(232,0,29,0.2)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(232,0,29,0.12)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(232,0,29,0.06)')}
                         >
                           비활성화
                         </button>

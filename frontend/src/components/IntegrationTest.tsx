@@ -57,7 +57,7 @@ export function IntegrationTest() {
         duration,
         message: error.response?.data?.message || error.message || '실패',
       });
-      throw error; // Re-throw to stop test execution
+      throw error;
     }
   };
 
@@ -68,7 +68,6 @@ export function IntegrationTest() {
     const testPassword = 'testpass1234';
 
     try {
-      // Test 1: User Signup
       await runTest(0, async () => {
         const response = await authApi.signup({
           email: testEmail,
@@ -79,10 +78,8 @@ export function IntegrationTest() {
         console.log('[Test 1] Signup response:', response);
       });
 
-      // Wait between tests
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Test 2: User Login
       await runTest(1, async () => {
         const response = await authApi.login(testEmail, testPassword);
         testToken = response.accessToken;
@@ -93,7 +90,6 @@ export function IntegrationTest() {
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Test 3: Get My Profile
       await runTest(2, async () => {
         const response = await authApi.getMyProfile();
         testUserId = response.id;
@@ -103,7 +99,6 @@ export function IntegrationTest() {
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Test 4: Get Products
       await runTest(3, async () => {
         const response = await productApi.getProducts({ page: 0, size: 12 });
         if (response.content && response.content.length > 0) {
@@ -114,7 +109,6 @@ export function IntegrationTest() {
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Test 5: Search Products
       await runTest(4, async () => {
         const response = await productApi.searchProducts('테스트');
         console.log('[Test 5] Search response:', response);
@@ -122,24 +116,18 @@ export function IntegrationTest() {
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Test 6: Get Product Detail
       await runTest(5, async () => {
-        if (!testProductId) {
-          testProductId = 1; // Fallback
-        }
+        if (!testProductId) testProductId = 1;
         const response = await productApi.getProduct(testProductId);
         console.log('[Test 6] Product detail response:', response);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Test 7: Create Order (Saga Pattern)
       await runTest(6, async () => {
         const response = await orderApi.createOrder({
           userId: testUserId || 1,
-          items: [
-            { productId: testProductId || 1, quantity: 2 },
-          ],
+          items: [{ productId: testProductId || 1, quantity: 2 }],
           deliveryAddress: '서울시 강남구 테헤란로 123 테스트빌딩 456호',
           phoneNumber: '010-1234-5678',
           orderNote: 'Integration Test - 테스트 주문입니다',
@@ -152,7 +140,6 @@ export function IntegrationTest() {
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Test 8: Process Payment
       await runTest(7, async () => {
         const response = await paymentApi.processPayment({
           orderNumber: testOrderNumber,
@@ -166,7 +153,6 @@ export function IntegrationTest() {
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Test 9: Get Order Detail
       await runTest(8, async () => {
         const response = await orderApi.getOrder(testOrderId);
         console.log('[Test 9] Order detail response:', response);
@@ -174,7 +160,6 @@ export function IntegrationTest() {
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Test 10: Cancel Order (Compensation)
       await runTest(9, async () => {
         const response = await orderApi.cancelOrder(testOrderId, 'Integration Test - 테스트 취소');
         console.log('[Test 10] Order cancellation response:', response);
@@ -192,39 +177,28 @@ export function IntegrationTest() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending':
-        return '—';
-      case 'running':
-        return '···';
-      case 'success':
-        return '✓';
-      case 'error':
-        return '✗';
-      default:
-        return '—';
+      case 'pending': return '—';
+      case 'running': return '···';
+      case 'success': return '✓';
+      case 'error': return '✗';
+      default: return '—';
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'pending':
-        return 'text-gray-500';
-      case 'running':
-        return 'text-blue-600 animate-pulse';
-      case 'success':
-        return 'text-green-600';
-      case 'error':
-        return 'text-red-600';
-      default:
-        return 'text-gray-500';
+      case 'running': return '#2563EB';
+      case 'success': return '#059669';
+      case 'error': return '#DC2626';
+      default: return 'rgba(14,14,14,0.5)';
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold mb-2">MSA 통합 테스트</h1>
-        <p className="text-gray-600 mb-6">
+      <div className="p-8" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+        <h1 className="text-3xl font-bold mb-2" style={{ color: '#0E0E0E' }}>MSA 통합 테스트</h1>
+        <p className="mb-6" style={{ color: 'rgba(14,14,14,0.6)' }}>
           모든 마이크로서비스의 기능을 자동으로 테스트합니다.
         </p>
 
@@ -233,11 +207,10 @@ export function IntegrationTest() {
           <button
             onClick={runAllTests}
             disabled={running}
-            className={`w-full py-3 rounded-lg font-semibold text-white transition-colors ${
-              running
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className="w-full py-3 font-semibold text-white transition-colors disabled:cursor-not-allowed"
+            style={{ background: running ? 'rgba(14,14,14,0.3)' : '#2563EB' }}
+            onMouseEnter={e => { if (!running) e.currentTarget.style.background = '#1D4ED8'; }}
+            onMouseLeave={e => { if (!running) e.currentTarget.style.background = '#2563EB'; }}
           >
             {running ? '테스트 실행 중...' : '전체 테스트 실행'}
           </button>
@@ -248,24 +221,28 @@ export function IntegrationTest() {
           {tests.map((test, index) => (
             <div
               key={index}
-              className={`p-4 border rounded-lg transition-all ${
-                currentTest === index ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-              }`}
+              className="p-4 transition-all"
+              style={{
+                border: currentTest === index
+                  ? '1px solid rgba(37,99,235,0.4)'
+                  : '1px solid rgba(14,14,14,0.08)',
+                background: currentTest === index ? 'rgba(37,99,235,0.04)' : 'transparent',
+              }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">{getStatusIcon(test.status)}</span>
                   <div>
-                    <h3 className={`font-medium ${getStatusColor(test.status)}`}>
+                    <h3 className="font-medium" style={{ color: getStatusColor(test.status) }}>
                       {test.name}
                     </h3>
                     {test.message && (
-                      <p className="text-sm text-gray-600 mt-1">{test.message}</p>
+                      <p className="text-sm mt-1" style={{ color: 'rgba(14,14,14,0.6)' }}>{test.message}</p>
                     )}
                   </div>
                 </div>
                 {test.duration && (
-                  <span className="text-sm text-gray-500">{test.duration}ms</span>
+                  <span className="text-sm" style={{ color: 'rgba(14,14,14,0.5)' }}>{test.duration}ms</span>
                 )}
               </div>
             </div>
@@ -273,12 +250,12 @@ export function IntegrationTest() {
         </div>
 
         {/* Architecture Info */}
-        <div className="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">테스트하는 MSA 아키텍처</h3>
+        <div className="mt-8 rounded-lg p-6" style={{ background: 'linear-gradient(to right, rgba(37,99,235,0.05), rgba(147,51,234,0.05))' }}>
+          <h3 className="font-semibold mb-4" style={{ color: '#0E0E0E' }}>테스트하는 MSA 아키텍처</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <h4 className="font-semibold text-blue-900 mb-2">마이크로서비스</h4>
-              <ul className="space-y-1 text-gray-700">
+              <h4 className="font-semibold mb-2" style={{ color: 'rgb(30,64,175)' }}>마이크로서비스</h4>
+              <ul className="space-y-1" style={{ color: 'rgba(14,14,14,0.7)' }}>
                 <li>• User Service (인증/인가)</li>
                 <li>• Product Service (상품관리)</li>
                 <li>• Order Service (주문관리)</li>
@@ -287,8 +264,8 @@ export function IntegrationTest() {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-purple-900 mb-2">패턴 & 기술</h4>
-              <ul className="space-y-1 text-gray-700">
+              <h4 className="font-semibold mb-2" style={{ color: 'rgb(88,28,135)' }}>패턴 & 기술</h4>
+              <ul className="space-y-1" style={{ color: 'rgba(14,14,14,0.7)' }}>
                 <li>• Saga Pattern (분산 트랜잭션)</li>
                 <li>• CQRS (Command Query Separation)</li>
                 <li>• Event Sourcing (Kafka)</li>
@@ -301,23 +278,23 @@ export function IntegrationTest() {
 
         {/* Stats */}
         <div className="mt-6 grid grid-cols-3 gap-4">
-          <div className="bg-green-50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
+          <div className="rounded-lg p-4 text-center" style={{ background: 'rgba(16,185,129,0.07)' }}>
+            <div className="text-2xl font-bold" style={{ color: 'rgb(4,120,87)' }}>
               {tests.filter((t) => t.status === 'success').length}
             </div>
-            <div className="text-sm text-green-700">성공</div>
+            <div className="text-sm" style={{ color: 'rgb(6,95,70)' }}>성공</div>
           </div>
-          <div className="bg-red-50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-red-600">
+          <div className="rounded-lg p-4 text-center" style={{ background: 'rgba(232,0,29,0.06)' }}>
+            <div className="text-2xl font-bold" style={{ color: '#E8001D' }}>
               {tests.filter((t) => t.status === 'error').length}
             </div>
-            <div className="text-sm text-red-700">실패</div>
+            <div className="text-sm" style={{ color: '#C8001A' }}>실패</div>
           </div>
-          <div className="bg-gray-50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-gray-600">
+          <div className="rounded-lg p-4 text-center" style={{ background: 'rgba(14,14,14,0.04)' }}>
+            <div className="text-2xl font-bold" style={{ color: 'rgba(14,14,14,0.6)' }}>
               {tests.filter((t) => t.status === 'pending').length}
             </div>
-            <div className="text-sm text-gray-700">대기</div>
+            <div className="text-sm" style={{ color: 'rgba(14,14,14,0.5)' }}>대기</div>
           </div>
         </div>
       </div>

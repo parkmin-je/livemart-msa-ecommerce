@@ -164,7 +164,10 @@ export function AiChatbot() {
       {/* ── 플로팅 버튼 ── */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95"
+        style={{ background: '#E8001D' }}
+        onMouseEnter={e => (e.currentTarget.style.background = '#C8001A')}
+        onMouseLeave={e => (e.currentTarget.style.background = '#E8001D')}
         aria-label="AI 상담원 열기"
       >
         {open ? (
@@ -184,14 +187,14 @@ export function AiChatbot() {
 
       {/* ── 챗봇 패널 ── */}
       <div
-        className={`fixed bottom-24 right-6 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col transition-all duration-300 ${
+        className={`fixed bottom-24 right-6 z-50 w-80 sm:w-96 flex flex-col transition-all duration-300 ${
           open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
-        style={{ height: '480px' }}
+        style={{ height: '480px', background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.12)', boxShadow: '0 8px 32px rgba(14,14,14,0.14)' }}
       >
         {/* 헤더 */}
-        <div className="bg-gray-950 text-white px-4 py-3 rounded-t-2xl flex items-center gap-3 flex-shrink-0">
-          <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0">
+        <div className="text-white px-4 py-3 flex items-center gap-3 flex-shrink-0" style={{ background: '#0A0A0A' }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#E8001D' }}>
             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
             </svg>
@@ -206,28 +209,30 @@ export function AiChatbot() {
         </div>
 
         {/* 메시지 영역 */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50">
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3" style={{ background: '#F7F6F1' }}>
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'assistant' && (
-                <div className="w-6 h-6 bg-gray-950 rounded-full flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mr-2 mt-0.5" style={{ background: '#0A0A0A' }}>
                   <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
                   </svg>
                 </div>
               )}
               <div
-                className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-                  msg.role === 'user'
-                    ? 'bg-red-600 text-white rounded-br-md'
-                    : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
+                className={`max-w-[75%] px-3 py-2 text-sm leading-relaxed ${
+                  msg.role === 'user' ? 'text-white' : ''
                 }`}
+                style={msg.role === 'user'
+                  ? { background: '#E8001D', borderRadius: '12px 12px 2px 12px', color: '#FFFFFF' }
+                  : { background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.08)', borderRadius: '12px 12px 12px 2px', color: '#0E0E0E', boxShadow: '0 1px 3px rgba(14,14,14,0.06)' }
+                }
               >
                 {msg.content || (
                   <span className="inline-flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'rgba(14,14,14,0.35)', animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'rgba(14,14,14,0.35)', animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'rgba(14,14,14,0.35)', animationDelay: '300ms' }} />
                   </span>
                 )}
               </div>
@@ -237,7 +242,7 @@ export function AiChatbot() {
         </div>
 
         {/* 입력 영역 */}
-        <div className="px-3 py-3 border-t border-gray-100 flex gap-2 flex-shrink-0 bg-white rounded-b-2xl">
+        <div className="px-3 py-3 flex gap-2 flex-shrink-0" style={{ borderTop: '1px solid rgba(14,14,14,0.08)', background: '#FFFFFF' }}>
           <input
             ref={inputRef}
             type="text"
@@ -246,12 +251,16 @@ export function AiChatbot() {
             onKeyDown={handleKeyDown}
             placeholder="메시지를 입력하세요..."
             disabled={loading}
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
+            className="flex-1 px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+            style={{ background: '#F7F6F1', border: '1px solid rgba(14,14,14,0.1)', color: '#0E0E0E' }}
           />
           <button
             onClick={sendMessage}
             disabled={loading || !input.trim()}
-            className="w-9 h-9 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
+            className="w-9 h-9 text-white flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40"
+            style={{ background: '#E8001D' }}
+            onMouseEnter={e => !loading && (e.currentTarget.style.background = '#C8001A')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#E8001D')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />

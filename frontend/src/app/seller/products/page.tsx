@@ -13,10 +13,10 @@ export default function SellerProductsPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen" style={{ background: '#F7F6F1' }}>
       <GlobalNav />
       <div className="max-w-[1280px] mx-auto px-4 py-6">
-        <p className="text-gray-500 text-sm">리다이렉트 중...</p>
+        <p className="text-sm" style={{ color: 'rgba(14,14,14,0.5)' }}>리다이렉트 중...</p>
       </div>
     </main>
   );

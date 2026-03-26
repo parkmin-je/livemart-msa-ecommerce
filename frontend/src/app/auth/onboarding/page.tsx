@@ -85,7 +85,7 @@ export default function OnboardingPage() {
           <a href="/" className="inline-block mb-4">
             <span className="text-3xl font-black tracking-tight">
               <span className="text-red-600">Live</span>
-              <span className="text-gray-900">Mart</span>
+              <span style={{ color: '#0E0E0E' }}>Mart</span>
             </span>
           </a>
           {/* 진행 단계 표시 */}

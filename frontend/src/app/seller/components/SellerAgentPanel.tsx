@@ -41,25 +41,43 @@ const CATEGORIES = [
 
 function DemandScoreBar({ score }: { score: number }) {
   const pct = Math.round(score * 100);
-  const color =
-    pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-400';
+  const barColor =
+    pct >= 70 ? '#10B981' : pct >= 40 ? '#F59E0B' : '#EF4444';
+  const textColor =
+    pct >= 70 ? 'rgb(4,120,87)' : pct >= 40 ? 'rgb(161,98,7)' : '#DC2626';
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm font-medium">
-        <span className="text-gray-600 dark:text-gray-400">수요 점수</span>
-        <span className={pct >= 70 ? 'text-emerald-600' : pct >= 40 ? 'text-amber-600' : 'text-red-500'}>
-          {pct}%
-        </span>
+        <span style={{ color: 'rgba(14,14,14,0.6)' }}>수요 점수</span>
+        <span style={{ color: textColor }}>{pct}%</span>
       </div>
-      <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(14,14,14,0.1)' }}>
         <div
-          className={`h-full rounded-full transition-all duration-700 ${color}`}
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, background: barColor }}
         />
       </div>
     </div>
   );
 }
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 12px',
+  fontSize: '14px',
+  border: '1px solid rgba(14,14,14,0.14)',
+  color: '#0E0E0E',
+  background: '#FFFFFF',
+  outline: 'none',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '14px',
+  fontWeight: 500,
+  color: 'rgba(14,14,14,0.7)',
+  marginBottom: '4px',
+};
 
 export default function SellerAgentPanel() {
   const [form, setForm] = useState<SellerAgentRequest>({
@@ -99,7 +117,6 @@ export default function SellerAgentPanel() {
     setResult(null);
     setCurrentStep(0);
 
-    // UI 애니메이션과 실제 API 호출을 병렬로
     const stepAnimation = simulateSteps();
 
     try {
@@ -147,14 +164,15 @@ export default function SellerAgentPanel() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-xl">
+        <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-xl"
+          style={{ background: 'rgba(99,102,241,0.1)', borderRadius: '10px' }}>
           🤖
         </div>
         <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+          <h2 className="text-lg font-bold" style={{ color: '#0E0E0E' }}>
             셀러 AI 에이전트
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <p className="text-sm mt-0.5" style={{ color: 'rgba(14,14,14,0.5)' }}>
             Hunter Alpha (MiMo-V2-Pro) 기반 · 상품명 입력만으로 가격/재고/설명 자동 완성
           </p>
         </div>
@@ -166,8 +184,8 @@ export default function SellerAgentPanel() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* 상품명 */}
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                상품명 <span className="text-red-500">*</span>
+              <label style={labelStyle}>
+                상품명 <span style={{ color: '#E8001D' }}>*</span>
               </label>
               <input
                 type="text"
@@ -176,21 +194,21 @@ export default function SellerAgentPanel() {
                 onChange={handleChange}
                 placeholder="예: 무선 블루투스 이어폰 ANC"
                 disabled={loading}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                style={{ ...inputStyle, opacity: loading ? 0.5 : 1 }}
               />
             </div>
 
             {/* 카테고리 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                카테고리 <span className="text-red-500">*</span>
+              <label style={labelStyle}>
+                카테고리 <span style={{ color: '#E8001D' }}>*</span>
               </label>
               <select
                 name="category"
                 value={form.category}
                 onChange={handleChange}
                 disabled={loading}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                style={{ ...inputStyle, opacity: loading ? 0.5 : 1 }}
               >
                 <option value="">카테고리 선택</option>
                 {CATEGORIES.map((cat) => (
@@ -201,9 +219,7 @@ export default function SellerAgentPanel() {
 
             {/* 희망 가격대 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                희망 가격대 (선택)
-              </label>
+              <label style={labelStyle}>희망 가격대 (선택)</label>
               <input
                 type="text"
                 name="priceRange"
@@ -211,15 +227,13 @@ export default function SellerAgentPanel() {
                 onChange={handleChange}
                 placeholder="예: 20000-50000"
                 disabled={loading}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                style={{ ...inputStyle, opacity: loading ? 0.5 : 1 }}
               />
             </div>
 
             {/* 키워드 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                핵심 키워드 (선택)
-              </label>
+              <label style={labelStyle}>핵심 키워드 (선택)</label>
               <input
                 type="text"
                 name="keywords"
@@ -227,15 +241,13 @@ export default function SellerAgentPanel() {
                 onChange={handleChange}
                 placeholder="예: 노이즈캔슬링, 30시간 배터리"
                 disabled={loading}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                style={{ ...inputStyle, opacity: loading ? 0.5 : 1 }}
               />
             </div>
 
             {/* 타겟 고객 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                타겟 고객 (선택)
-              </label>
+              <label style={labelStyle}>타겟 고객 (선택)</label>
               <input
                 type="text"
                 name="targetAudience"
@@ -243,19 +255,22 @@ export default function SellerAgentPanel() {
                 onChange={handleChange}
                 placeholder="예: 20-30대 직장인"
                 disabled={loading}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                style={{ ...inputStyle, opacity: loading ? 0.5 : 1 }}
               />
             </div>
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-sm" style={{ color: '#E8001D' }}>{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            style={{ background: 'rgb(79,70,229)' }}
+            onMouseEnter={e => { if (!loading) e.currentTarget.style.background = 'rgb(67,56,202)'; }}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgb(79,70,229)')}
           >
             {loading ? (
               <>
@@ -274,8 +289,8 @@ export default function SellerAgentPanel() {
 
       {/* Step Progress */}
       {loading && (
-        <div className="border border-indigo-100 dark:border-indigo-900/30 rounded-xl p-4 bg-indigo-50/50 dark:bg-indigo-950/20">
-          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-3">
+        <div className="p-4" style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'rgb(79,70,229)' }}>
             에이전트 실행 단계
           </p>
           <div className="space-y-2">
@@ -285,21 +300,20 @@ export default function SellerAgentPanel() {
               return (
                 <div
                   key={idx}
-                  className={`flex items-center gap-2.5 text-sm transition-all duration-300 ${
-                    isDone
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : isActive
-                      ? 'text-indigo-700 dark:text-indigo-300 font-medium'
-                      : 'text-gray-400 dark:text-gray-600'
-                  }`}
+                  className="flex items-center gap-2.5 text-sm transition-all duration-300"
+                  style={{
+                    color: isDone ? 'rgb(4,120,87)'
+                      : isActive ? 'rgb(67,56,202)'
+                      : 'rgba(14,14,14,0.35)',
+                    fontWeight: isActive ? 500 : 400,
+                  }}
                 >
                   <span className="text-base">{isDone ? '✅' : isActive ? step.icon : '⏳'}</span>
-                  <span>
-                    STEP {idx + 1}: {step.label}
-                  </span>
+                  <span>STEP {idx + 1}: {step.label}</span>
                   {isActive && (
                     <span className="ml-auto">
-                      <span className="inline-block w-3 h-3 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="inline-block w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
+                        style={{ borderColor: 'rgb(79,70,229)', borderTopColor: 'transparent' }} />
                     </span>
                   )}
                 </div>
@@ -315,18 +329,20 @@ export default function SellerAgentPanel() {
           {/* Mode Badge */}
           <div className="flex items-center justify-between">
             <span
-              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
-                result.demoMode
-                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-              }`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1"
+              style={result.demoMode
+                ? { background: 'rgba(234,179,8,0.08)', color: 'rgb(161,98,7)', border: '1px solid rgba(234,179,8,0.2)' }
+                : { background: 'rgba(16,185,129,0.08)', color: 'rgb(4,120,87)', border: '1px solid rgba(16,185,129,0.2)' }}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-current" />
               {result.demoMode ? '데모 모드' : 'Hunter Alpha 분석 완료'}
             </span>
             <button
               onClick={handleReset}
-              className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 underline"
+              className="text-xs underline transition-colors"
+              style={{ color: 'rgba(14,14,14,0.5)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#0E0E0E')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(14,14,14,0.5)')}
             >
               다시 분석
             </button>
@@ -334,86 +350,87 @@ export default function SellerAgentPanel() {
 
           {/* Price & Stock */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">추천 판매가</p>
-              <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+            <div className="p-3 text-center" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+              <p className="text-xs mb-1" style={{ color: 'rgba(14,14,14,0.5)' }}>추천 판매가</p>
+              <p className="text-lg font-bold" style={{ color: 'rgb(79,70,229)' }}>
                 {result.recommendedPrice.toLocaleString()}원
               </p>
             </div>
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">권장 초기 재고</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">
+            <div className="p-3 text-center" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+              <p className="text-xs mb-1" style={{ color: 'rgba(14,14,14,0.5)' }}>권장 초기 재고</p>
+              <p className="text-lg font-bold" style={{ color: '#0E0E0E' }}>
                 {result.recommendedStock}개
               </p>
             </div>
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">재주문 임계값</p>
-              <p className="text-lg font-bold text-orange-500 dark:text-orange-400">
+            <div className="p-3 text-center" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
+              <p className="text-xs mb-1" style={{ color: 'rgba(14,14,14,0.5)' }}>재주문 임계값</p>
+              <p className="text-lg font-bold" style={{ color: 'rgb(194,65,12)' }}>
                 {result.lowStockThreshold}개
               </p>
             </div>
           </div>
 
           {/* Demand Score */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+          <div className="p-4" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
             <DemandScoreBar score={result.demandScore} />
           </div>
 
           {/* Descriptions */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+          <div className="p-4 space-y-3" style={{ background: '#FFFFFF', border: '1px solid rgba(14,14,14,0.07)' }}>
             <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(14,14,14,0.5)' }}>
                 한 줄 설명
               </p>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">{result.shortDescription}</p>
+              <p className="text-sm font-medium" style={{ color: '#0E0E0E' }}>{result.shortDescription}</p>
             </div>
-            <hr className="border-gray-100 dark:border-gray-700" />
+            <hr style={{ borderColor: 'rgba(14,14,14,0.07)' }} />
             <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(14,14,14,0.5)' }}>
                 상세 설명
               </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{result.fullDescription}</p>
+              <p className="text-sm leading-relaxed" style={{ color: 'rgba(14,14,14,0.7)' }}>{result.fullDescription}</p>
             </div>
-            <hr className="border-gray-100 dark:border-gray-700" />
+            <hr style={{ borderColor: 'rgba(14,14,14,0.07)' }} />
             <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(14,14,14,0.5)' }}>
                 핵심 판매 포인트
               </p>
-              <p className="text-sm text-indigo-700 dark:text-indigo-300 font-medium">{result.sellingPoint}</p>
+              <p className="text-sm font-medium" style={{ color: 'rgb(67,56,202)' }}>{result.sellingPoint}</p>
             </div>
           </div>
 
           {/* Price Strategy */}
           {result.priceStrategy && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-4">
-              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">
+            <div className="p-4" style={{ background: 'rgba(234,179,8,0.05)', border: '1px solid rgba(234,179,8,0.2)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgb(161,98,7)' }}>
                 가격 전략
               </p>
-              <p className="text-sm text-amber-800 dark:text-amber-300">{result.priceStrategy}</p>
+              <p className="text-sm" style={{ color: 'rgb(120,73,5)' }}>{result.priceStrategy}</p>
             </div>
           )}
 
           {/* Market Insight */}
           {result.marketInsight && (
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-900/40 rounded-xl p-4">
-              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-1">
+            <div className="p-4" style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgb(4,120,87)' }}>
                 시장 진입 인사이트
               </p>
-              <p className="text-sm text-emerald-800 dark:text-emerald-300">{result.marketInsight}</p>
+              <p className="text-sm" style={{ color: 'rgb(6,95,70)' }}>{result.marketInsight}</p>
             </div>
           )}
 
           {/* SEO Tags */}
           {result.seoTags && result.seoTags.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'rgba(14,14,14,0.5)' }}>
                 SEO 태그
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {result.seoTags.map((tag, i) => (
                   <span
                     key={i}
-                    className="inline-block text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium"
+                    className="inline-block text-xs px-2.5 py-1 font-medium"
+                    style={{ background: 'rgba(14,14,14,0.06)', color: 'rgba(14,14,14,0.6)', border: '1px solid rgba(14,14,14,0.1)' }}
                   >
                     #{tag}
                   </span>
@@ -425,12 +442,17 @@ export default function SellerAgentPanel() {
           {/* Agent Log (collapsible) */}
           {result.agentLog && (
             <details className="group">
-              <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 select-none list-none flex items-center gap-1">
+              <summary
+                className="cursor-pointer text-xs select-none list-none flex items-center gap-1 transition-colors"
+                style={{ color: 'rgba(14,14,14,0.4)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(14,14,14,0.7)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(14,14,14,0.4)')}
+              >
                 <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
                 에이전트 실행 로그 보기
               </summary>
-              <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-mono leading-relaxed whitespace-pre-wrap">
+              <div className="mt-2 p-3" style={{ background: '#F7F6F1', border: '1px solid rgba(14,14,14,0.08)' }}>
+                <p className="text-xs font-mono leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(14,14,14,0.5)' }}>
                   {result.agentLog.split(' | ').join('\n')}
                 </p>
               </div>

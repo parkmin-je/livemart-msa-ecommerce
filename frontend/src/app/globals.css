@@ -200,7 +200,7 @@
   .badge-new   { background: #00A854; color: #fff; }
   .badge-hot   { background: #FF8C00; color: #fff; }
   .badge-best  { background: #0055FF; color: #fff; }
-  .badge-gray  { @apply badge bg-gray-100 text-gray-600; }
+  .badge-gray  { @apply badge; background: rgba(14,14,14,0.06); color: rgba(14,14,14,0.6); border: 1px solid rgba(14,14,14,0.1); }
   .badge-dark  { background: var(--bg-dark); color: #fff; }
   .badge-cream { background: var(--bg-warm); color: var(--text-2); border: 1px solid var(--border); }
 
