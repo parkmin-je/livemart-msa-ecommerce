@@ -587,8 +587,8 @@ export default function ProductDetailPage() {
                 {summary && summary.totalCount > 0 && (
                   <div className="p-5 flex items-start gap-8" style={{ background: '#F7F6F1' }}>
                     <div className="text-center">
-                      <div className="text-5xl font-black" style={{ color: '#0E0E0E' }}>{displayRating.toFixed(1)}</div>
-                      <Stars rating={Math.round(displayRating)} size="md"/>
+                      <div className="text-5xl font-black" style={{ color: '#0E0E0E' }}>{(displayRating ?? 0).toFixed(1)}</div>
+                      <Stars rating={Math.round(displayRating ?? 0)} size="md"/>
                       <div className="text-sm mt-1" style={{ color: 'rgba(14,14,14,0.5)' }}>{reviewCount}개</div>
                     </div>
                     <div className="flex-1 space-y-1.5">
