@@ -7,4 +7,4 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/order-service/build/libs/order-service-2.0.0.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java","--enable-preview","-jar","app.jar","--spring.profiles.active=render"]
+ENTRYPOINT ["/bin/sh", "-c", "java --enable-preview -jar app.jar --spring.profiles.active=render 2>&1"]
