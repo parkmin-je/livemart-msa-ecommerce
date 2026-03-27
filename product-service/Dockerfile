@@ -1,7 +1,10 @@
 FROM gradle:8.11-jdk21-alpine AS build
 WORKDIR /app
 COPY . .
-RUN chmod +x ./gradlew && ./gradlew :product-service:bootJar -x test --no-daemon -q
+RUN chmod +x ./gradlew && \
+    ./gradlew :product-service:dependencies --no-daemon -q 2>/dev/null || true && \
+    find /home/gradle/.gradle -name "protoc-gen-grpc-java-*.exe" -exec chmod +x {} \; 2>/dev/null || true && \
+    ./gradlew :product-service:bootJar -x test --no-daemon -q
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
