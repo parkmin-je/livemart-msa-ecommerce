@@ -162,8 +162,8 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
             .onErrorResume(ex -> {
                 log.error("Rate Limit 필터 오류 (Fail Closed): {}", ex.getMessage());
                 // 결제/주문 엔드포인트는 Fail-Closed (Redis 없으면 차단)
-                String path = exchange.getRequest().getPath().value();
-                if (path.startsWith("/api/payments") || path.startsWith("/api/orders")) {
+                String errorPath = exchange.getRequest().getPath().value();
+                if (errorPath.startsWith("/api/payments") || errorPath.startsWith("/api/orders")) {
                     exchange.getResponse().setStatusCode(HttpStatus.SERVICE_UNAVAILABLE);
                     return exchange.getResponse().setComplete();
                 }

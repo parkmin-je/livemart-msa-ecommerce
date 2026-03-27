@@ -196,11 +196,11 @@ public class LivemartSpanDecorator {
      * @param tags          추가 태그 (nullable)
      */
     public <T> T withSpan(String operationName, Map<String, String> tags, Supplier<T> action) {
-        Span.Builder builder = tracer.nextSpan().name(operationName);
+        Span span = tracer.nextSpan().name(operationName);
         if (tags != null) {
-            tags.forEach(builder::tag);
+            tags.forEach(span::tag);
         }
-        Span span = builder.start();
+        span.start();
 
         try (Tracer.SpanInScope ws = tracer.withSpan(span)) {
             return action.get();

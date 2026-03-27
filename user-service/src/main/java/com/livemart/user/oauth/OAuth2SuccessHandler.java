@@ -68,40 +68,51 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getEmail(), user.getRole().name());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
-        // 토큰을 httpOnly 쿠키로 설정 (URL 노출 금지)
-        ResponseCookie accessCookie = ResponseCookie.from("access_token", accessToken)
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofMillis(jwtTokenProvider.getAccessTokenExpiration()))
-                .build();
-
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .sameSite("Lax")
-                .path("/api/users/refresh")
-                .maxAge(Duration.ofMillis(jwtTokenProvider.getRefreshTokenExpiration()))
-                .build();
-
-        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-
         // 휴대폰 번호가 없으면 온보딩 필요
         boolean needOnboarding = user.getPhoneNumber() == null || user.getPhoneNumber().isBlank();
 
         log.info("OAuth2 login success: userId={}, email={}, needOnboarding={}", user.getId(), email, needOnboarding);
 
-        // 비민감 정보만 URL 파라미터로 전달 (토큰 제외)
-        // .encode() 를 명시해야 queryParam 값이 정확히 한 번만 인코딩됨
-        String redirectUrl = UriComponentsBuilder.fromUriString(redirectUri)
+        // redirectUri가 /auth/oauth2/callback 경로를 포함하면 크로스 도메인 배포 모드:
+        // 토큰을 URL 파라미터로 전달하여 프론트엔드 라우트 핸들러가 올바른 도메인에 쿠키를 설정하도록 함.
+        // 동일 도메인(로컬 개발) 에서는 기존 httpOnly 쿠키 방식도 병행 설정.
+        boolean crossDomainMode = redirectUri.contains("/auth/oauth2/callback");
+
+        if (!crossDomainMode) {
+            // 로컬 개발: 동일 도메인이므로 httpOnly 쿠키 직접 설정
+            ResponseCookie accessCookie = ResponseCookie.from("access_token", accessToken)
+                    .httpOnly(true)
+                    .secure(cookieSecure)
+                    .sameSite("Lax")
+                    .path("/")
+                    .maxAge(Duration.ofMillis(jwtTokenProvider.getAccessTokenExpiration()))
+                    .build();
+
+            ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+                    .httpOnly(true)
+                    .secure(cookieSecure)
+                    .sameSite("Lax")
+                    .path("/api/users/refresh")
+                    .maxAge(Duration.ofMillis(jwtTokenProvider.getRefreshTokenExpiration()))
+                    .build();
+
+            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+        }
+
+        // URL 파라미터 구성
+        // crossDomainMode: 토큰도 포함하여 프론트엔드 라우트 핸들러가 올바른 도메인에 쿠키 설정
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(redirectUri)
                 .queryParam("userId", user.getId())
                 .queryParam("name", user.getName())
                 .queryParam("role", user.getRole().name())
-                .queryParam("needOnboarding", needOnboarding)
-                .build().encode().toUriString();
+                .queryParam("needOnboarding", needOnboarding);
 
-        response.sendRedirect(redirectUrl);
+        if (crossDomainMode) {
+            builder.queryParam("token", accessToken)
+                   .queryParam("refreshToken", refreshToken);
+        }
+
+        response.sendRedirect(builder.build().encode().toUriString());
     }
 }

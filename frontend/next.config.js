@@ -70,11 +70,12 @@ const nextConfig = {
 
   // ── API 프록시 리라이트 ───────────────────────────────────
   async rewrites() {
-    // Vercel 배포 환경에서는 리라이트 비활성화 — 모든 /api/* 요청은 내부 라우트 핸들러가 처리
-    if (process.env.VERCEL) return [];
+    // API_GATEWAY_URL이 설정된 경우 실제 백엔드로 프록시 (로컬·Vercel 공통)
+    // 설정되지 않은 경우 내부 route.ts 데모 핸들러로 처리
+    const apiBase = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL;
+    if (!apiBase) return [];
 
-    const apiBase = process.env.API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888';
-    // SSE 스트리밍은 kubectl port-forward가 연결을 끊으므로 notification-service 직접 연결
+    // SSE 스트리밍은 notification-service 직접 연결 (API Gateway kubectl port-forward 연결 끊김 방지)
     const notifBase = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:8086';
     return [
       { source: '/oauth2/:path*', destination: `${apiBase}/oauth2/:path*` },
