@@ -7,4 +7,4 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/product-service/build/libs/product-service-2.0.0.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java","-Xms256m","-Xmx400m","-jar","app.jar","--spring.profiles.active=render"]
+ENTRYPOINT ["java","--enable-preview","-Xms256m","-Xmx400m","-jar","app.jar","--spring.profiles.active=render"]
