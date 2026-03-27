@@ -476,6 +476,7 @@ export async function GET(
       return ok({
         recommendations: DEMO_PRODUCTS.slice(0, 4).map(p => ({
           productId: p.id, productName: p.name,
+          category: p.categoryName,
           reason: '구매 이력 기반 추천 상품입니다.',
           imageUrl: p.imageUrl, price: p.price,
         })),
@@ -521,6 +522,7 @@ export async function POST(
       accessToken: token,
       refreshToken: `demo-refresh-${Date.now()}`,
       userId: 1,
+      name: '데모 관리자',
       role: 'ADMIN',
       _demo: true,
     });
@@ -744,6 +746,25 @@ export async function DELETE(
   // /api/products/{id}/reviews/{reviewId}
   if (seg[0] === 'products' && seg[2] === 'reviews' && seg[3]) {
     return ok({ message: '리뷰가 삭제되었습니다. (데모)', _demo: true });
+  }
+
+  return ok({ _demo: true });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PATCH
+// ─────────────────────────────────────────────────────────────────
+
+export async function PATCH(
+  _request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  const { path } = await params;
+  const seg = path;
+
+  // /api/users/me (프로필 수정)
+  if (seg[0] === 'users' && seg[1] === 'me') {
+    return ok({ message: '프로필이 수정되었습니다. (데모)', _demo: true });
   }
 
   return ok({ _demo: true });
