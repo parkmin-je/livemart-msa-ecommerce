@@ -93,7 +93,7 @@ public class OpenAiClient {
                 new OpenAiRequest.Message("system", systemPrompt),
                 new OpenAiRequest.Message("user", userPrompt)
             ),
-            null, false
+            null, null, false, null
         );
 
         try {

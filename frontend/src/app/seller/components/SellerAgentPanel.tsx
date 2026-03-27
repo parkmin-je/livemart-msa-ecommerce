@@ -129,7 +129,7 @@ export default function SellerAgentPanel() {
       if (form.priceRange?.trim()) payload.priceRange = form.priceRange;
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'}/api/ai/seller/agent`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'}/api/ai/seller/agent`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

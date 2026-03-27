@@ -15,7 +15,7 @@ const PAYMENT_METHODS = [
   { id: 'VIRTUAL_ACCOUNT', label: '가상계좌',     badge: '' },
 ];
 
-const TOSS_CLIENT_KEY = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
+const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
 
 export function OrderForm() {
   const router = useRouter();

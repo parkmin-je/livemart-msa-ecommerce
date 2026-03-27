@@ -74,7 +74,7 @@ public class CreateOrderCommandHandler {
             OrderItem item = OrderItem.builder()
                 .productId(itemCmd.productId())
                 .quantity(itemCmd.quantity())
-                .unitPrice(BigDecimal.valueOf(itemCmd.requestedPrice() != null ? itemCmd.requestedPrice() : 0L))
+                .productPrice(BigDecimal.valueOf(itemCmd.requestedPrice() != null ? itemCmd.requestedPrice() : 0L))
                 .totalPrice(BigDecimal.valueOf(
                     (itemCmd.requestedPrice() != null ? itemCmd.requestedPrice() : 0L) * itemCmd.quantity()
                 ))
