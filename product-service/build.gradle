@@ -47,28 +47,17 @@ protobuf {
     }
     plugins {
         grpc {
-            artifact = 'io.grpc:protoc-gen-grpc-java:1.80.0'
+            def systemPlugin = new File('/usr/local/bin/protoc-gen-grpc-java')
+            if (systemPlugin.exists()) {
+                path = systemPlugin.absolutePath
+            } else {
+                artifact = 'io.grpc:protoc-gen-grpc-java:1.80.0'
+            }
         }
     }
     generateProtoTasks {
         all()*.plugins {
             grpc {}
-        }
-    }
-}
-
-// protoc-gen-grpc-java 바이너리 실행 권한 자동 부여 (Linux Docker 환경)
-tasks.whenTaskAdded { task ->
-    if (task.name.toLowerCase().contains('proto')) {
-        task.doFirst {
-            def grpcDir = new File("${gradle.gradleUserHomeDir}/caches/modules-2/files-2.1/io.grpc")
-            if (grpcDir.exists()) {
-                grpcDir.eachFileRecurse { f ->
-                    if (f.name.contains('protoc-gen-grpc-java') && f.name.endsWith('.exe')) {
-                        f.setExecutable(true)
-                    }
-                }
-            }
         }
     }
 }
