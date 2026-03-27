@@ -150,11 +150,25 @@ export function AuthForm() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || '회원가입 실패');
       }
-      toast.success('회원가입이 완료되었습니다. 로그인해주세요.');
-      setMode('login');
-      setCodeSent(false);
-      setCodeVerified(false);
-      setForm(f => ({ ...f, password: '', confirmPassword: '', verifyCode: '' }));
+      toast.success('회원가입이 완료되었습니다. 로그인 중...', { duration: 2000 });
+      // 자동 로그인
+      const loginRes = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
+      if (loginRes.ok) {
+        const loginData = await loginRes.json();
+        localStorage.setItem('userId', String(loginData.userId || ''));
+        localStorage.setItem('userName', loginData.name || loginData.username || form.email.split('@')[0]);
+        localStorage.setItem('userRole', loginData.role || 'USER');
+        window.location.href = '/';
+      } else {
+        setMode('login');
+        setCodeSent(false);
+        setCodeVerified(false);
+        setForm(f => ({ ...f, password: '', confirmPassword: '', verifyCode: '' }));
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : '오류가 발생했습니다');
     }
