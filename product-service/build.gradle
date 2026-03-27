@@ -56,3 +56,19 @@ protobuf {
         }
     }
 }
+
+// protoc-gen-grpc-java 바이너리 실행 권한 자동 부여 (Linux Docker 환경)
+tasks.whenTaskAdded { task ->
+    if (task.name.toLowerCase().contains('proto')) {
+        task.doFirst {
+            def grpcDir = new File("${gradle.gradleUserHomeDir}/caches/modules-2/files-2.1/io.grpc")
+            if (grpcDir.exists()) {
+                grpcDir.eachFileRecurse { f ->
+                    if (f.name.contains('protoc-gen-grpc-java') && f.name.endsWith('.exe')) {
+                        f.setExecutable(true)
+                    }
+                }
+            }
+        }
+    }
+}
