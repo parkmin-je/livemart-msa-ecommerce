@@ -1,16 +1,13 @@
-# render.yaml — Render Blueprint
-# 사용법: Render 대시보드 → New → Blueprint → 이 레포 선택
-# 모든 서비스가 한번에 생성됨 (환경변수는 대시보드에서 추가 입력 필요)
-
 services:
-  # ─────────────────────────────────────────────
-  # API Gateway (유일하게 공개 URL 필요)
-  # ─────────────────────────────────────────────
+  # API Gateway — 외부 공개 URL (Vercel이 이 URL로 연결)
   - type: web
     name: livemart-api-gateway
-    runtime: java
-    buildCommand: ./gradlew :api-gateway:bootJar -x test
-    startCommand: java -Xms256m -Xmx400m -jar api-gateway/build/libs/api-gateway-2.0.0.jar --spring.profiles.active=render
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_NAME: api-gateway
+      SERVICE_VERSION: "2.0.0"
     plan: free
     healthCheckPath: /actuator/health
     envVars:
@@ -18,36 +15,38 @@ services:
         value: render
       - key: CORS_ALLOWED_ORIGINS
         value: https://livemart-parkmin-jes-projects.vercel.app
-      # 아래 변수들은 대시보드에서 직접 입력 필요
+      - key: JAVA_TOOL_OPTIONS
+        value: "--spring.profiles.active=render"
       - key: REDIS_URL
-        sync: false   # Upstash Redis URL
+        sync: false
       - key: USER_SERVICE_URL
-        sync: false   # https://livemart-user-service.onrender.com
+        sync: false
       - key: PRODUCT_SERVICE_URL
-        sync: false   # https://livemart-product-service.onrender.com
+        sync: false
       - key: ORDER_SERVICE_URL
-        sync: false   # https://livemart-order-service.onrender.com
+        sync: false
       - key: PAYMENT_SERVICE_URL
-        sync: false   # https://livemart-payment-service.onrender.com
+        sync: false
       - key: AI_SERVICE_URL
-        sync: false   # https://livemart-ai-service.onrender.com
+        sync: false
       - key: INVENTORY_SERVICE_URL
-        sync: false   # https://livemart-inventory-service.onrender.com
+        sync: false
 
-  # ─────────────────────────────────────────────
-  # User Service (회원가입 / 로그인 / OAuth2)
-  # ─────────────────────────────────────────────
+  # User Service
   - type: worker
     name: livemart-user-service
-    runtime: java
-    buildCommand: ./gradlew :user-service:bootJar -x test
-    startCommand: java -Xms256m -Xmx400m -jar user-service/build/libs/user-service-2.0.0.jar --spring.profiles.active=render
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_NAME: user-service
+      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: render
       - key: DATABASE_URL
-        sync: false   # Neon PostgreSQL JDBC URL
+        sync: false
       - key: DB_USERNAME
         sync: false
       - key: DB_PASSWORD
@@ -75,16 +74,17 @@ services:
       - key: OAUTH2_REDIRECT_URI
         value: https://livemart-parkmin-jes-projects.vercel.app/auth/oauth2/callback
       - key: OAUTH2_BASE_URL
-        sync: false   # https://livemart-api-gateway.onrender.com
+        sync: false
 
-  # ─────────────────────────────────────────────
-  # Product Service (상품 목록 / 검색 / 카테고리)
-  # ─────────────────────────────────────────────
+  # Product Service
   - type: worker
     name: livemart-product-service
-    runtime: java
-    buildCommand: ./gradlew :product-service:bootJar -x test
-    startCommand: java -Xms256m -Xmx400m -jar product-service/build/libs/product-service-2.0.0.jar --spring.profiles.active=render
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_NAME: product-service
+      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
       - key: SPRING_PROFILES_ACTIVE
@@ -98,14 +98,15 @@ services:
       - key: REDIS_URL
         sync: false
 
-  # ─────────────────────────────────────────────
-  # Order Service (주문 / 쿠폰 / 반품)
-  # ─────────────────────────────────────────────
+  # Order Service
   - type: worker
     name: livemart-order-service
-    runtime: java
-    buildCommand: ./gradlew :order-service:bootJar -x test
-    startCommand: java -Xms256m -Xmx400m -jar order-service/build/libs/order-service-2.0.0.jar --spring.profiles.active=render
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_NAME: order-service
+      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
       - key: SPRING_PROFILES_ACTIVE
@@ -119,16 +120,17 @@ services:
       - key: REDIS_URL
         sync: false
       - key: JWT_SECRET
-        sync: false   # user-service와 동일한 값
+        sync: false
 
-  # ─────────────────────────────────────────────
-  # Payment Service (토스 결제)
-  # ─────────────────────────────────────────────
+  # Payment Service
   - type: worker
     name: livemart-payment-service
-    runtime: java
-    buildCommand: ./gradlew :payment-service:bootJar -x test
-    startCommand: java -Xms256m -Xmx400m -jar payment-service/build/libs/payment-service-2.0.0.jar --spring.profiles.active=render
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_NAME: payment-service
+      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
       - key: SPRING_PROFILES_ACTIVE
@@ -143,17 +145,16 @@ services:
         value: test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq
       - key: TOSS_SECRET_KEY
         sync: false
-      - key: DB_PASSWORD
-        sync: false
 
-  # ─────────────────────────────────────────────
-  # AI Service (추천 / 챗봇 — OpenAI 없으면 fallback)
-  # ─────────────────────────────────────────────
+  # AI Service
   - type: worker
     name: livemart-ai-service
-    runtime: java
-    buildCommand: ./gradlew :ai-service:bootJar -x test
-    startCommand: java -Xms256m -Xmx400m -jar ai-service/build/libs/ai-service-2.0.0.jar --spring.profiles.active=render
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_NAME: ai-service
+      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
       - key: SPRING_PROFILES_ACTIVE
@@ -161,16 +162,17 @@ services:
       - key: REDIS_URL
         sync: false
       - key: OPENAI_API_KEY
-        sync: false   # 없으면 빈칸 (fallback 응답 반환)
+        sync: false
 
-  # ─────────────────────────────────────────────
-  # Inventory Service (재고 관리)
-  # ─────────────────────────────────────────────
+  # Inventory Service
   - type: worker
     name: livemart-inventory-service
-    runtime: java
-    buildCommand: ./gradlew :inventory-service:bootJar -x test
-    startCommand: java -Xms256m -Xmx400m -jar inventory-service/build/libs/inventory-service-2.0.0.jar --spring.profiles.active=render
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE_NAME: inventory-service
+      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
       - key: SPRING_PROFILES_ACTIVE

@@ -1,0 +1,13 @@
+# 빌드 산출물 제외 (Docker 컨텍스트 크기 축소)
+**/build/
+**/.gradle/
+**/.idea/
+**/*.png
+**/*.jpeg
+**/*.jpg
+**/*.txt
+**/*.py
+.git/
+.playwright-mcp/
+frontend/node_modules/
+frontend/.next/
