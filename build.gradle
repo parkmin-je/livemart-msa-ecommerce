@@ -12,7 +12,7 @@ allprojects {
 }
 
 ext {
-    set('springCloudVersion', "2024.0.0")
+    set('springCloudVersion', "2024.0.3")
     set('springCloudContractVersion', "4.1.4")
     set('opentelemetryVersion', "1.44.1")
     set('testcontainersVersion', "1.20.4")
@@ -41,6 +41,19 @@ subprojects {
             mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
             mavenBom "io.opentelemetry:opentelemetry-bom:${opentelemetryVersion}"
             mavenBom "org.testcontainers:testcontainers-bom:${testcontainersVersion}"
+        }
+        // Spring Boot 모든 모듈을 plugin 버전(3.4.1)으로 강제 통일
+        dependencies {
+            dependencySet(group: 'org.springframework.boot', version: '3.4.1') {
+                entry 'spring-boot'
+                entry 'spring-boot-autoconfigure'
+                entry 'spring-boot-starter'
+                entry 'spring-boot-starter-web'
+                entry 'spring-boot-starter-webflux'
+                entry 'spring-boot-starter-actuator'
+                entry 'spring-boot-actuator'
+                entry 'spring-boot-actuator-autoconfigure'
+            }
         }
     }
 
