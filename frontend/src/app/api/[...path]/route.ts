@@ -48,7 +48,7 @@ const DEMO_ORDERS = [
     orderNote: '',
     paymentMethod: 'CARD',
     createdAt: '2024-03-15T10:00:00',
-    items: [{ productId: 1, productName: '무선 블루투스 이어폰 ANC Pro', quantity: 1, price: 89000 }],
+    items: [{ productId: 1, productName: '무선 블루투스 이어폰 ANC Pro', quantity: 1, price: 89000, productPrice: 89000, totalPrice: 89000 }],
   },
   {
     id: 2,
@@ -62,8 +62,8 @@ const DEMO_ORDERS = [
     paymentMethod: 'CARD',
     createdAt: '2024-03-20T14:30:00',
     items: [
-      { productId: 2, productName: '프리미엄 요가 매트 8mm', quantity: 1, price: 35000 },
-      { productId: 3, productName: '한방 갈비탕 밀키트 2인분', quantity: 1, price: 18500 },
+      { productId: 2, productName: '프리미엄 요가 매트 8mm', quantity: 1, price: 35000, productPrice: 35000, totalPrice: 35000 },
+      { productId: 3, productName: '한방 갈비탕 밀키트 2인분', quantity: 1, price: 18500, productPrice: 18500, totalPrice: 18500 },
     ],
   },
   {
@@ -77,7 +77,7 @@ const DEMO_ORDERS = [
     orderNote: '빠른 배송 부탁드립니다',
     paymentMethod: 'CARD',
     createdAt: '2024-03-25T09:15:00',
-    items: [{ productId: 4, productName: '스마트 체중계 블루투스', quantity: 1, price: 45000 }],
+    items: [{ productId: 4, productName: '스마트 체중계 블루투스', quantity: 1, price: 45000, productPrice: 45000, totalPrice: 45000 }],
   },
 ];
 
