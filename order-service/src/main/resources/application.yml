@@ -199,3 +199,33 @@ logging:
   level:
     com.netflix.discovery: ERROR
     com.netflix.eureka: ERROR
+
+---
+# ── Render 무료 클라우드 프로파일 ─────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: "render"
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      url: ${REDIS_URL}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+server:
+  port: ${PORT:8083}
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+logging:
+  level:
+    com.netflix.discovery: ERROR
+    com.netflix.eureka: ERROR
