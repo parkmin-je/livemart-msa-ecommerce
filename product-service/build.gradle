@@ -47,12 +47,7 @@ protobuf {
     }
     plugins {
         grpc {
-            def systemPlugin = new File('/usr/local/bin/protoc-gen-grpc-java')
-            if (systemPlugin.exists()) {
-                path = systemPlugin.absolutePath
-            } else {
-                artifact = 'io.grpc:protoc-gen-grpc-java:1.80.0'
-            }
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.80.0'
         }
     }
     generateProtoTasks {
