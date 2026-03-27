@@ -7,4 +7,4 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/api-gateway/build/libs/api-gateway-2.0.0.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java","--enable-preview","-Xms64m","-Xmx256m","-XX:MaxMetaspaceSize=128m","-jar","app.jar","--spring.profiles.active=render"]
+ENTRYPOINT ["java","--enable-preview","-jar","app.jar","--spring.profiles.active=render"]
