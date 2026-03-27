@@ -1,22 +1,14 @@
 services:
-  # API Gateway — 외부 공개 URL (Vercel이 이 URL로 연결)
   - type: web
     name: livemart-api-gateway
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    env: docker
+    dockerfilePath: ./api-gateway/Dockerfile
     dockerContext: .
-    dockerBuildArgs:
-      SERVICE_NAME: api-gateway
-      SERVICE_VERSION: "2.0.0"
     plan: free
     healthCheckPath: /actuator/health
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: render
       - key: CORS_ALLOWED_ORIGINS
         value: https://livemart-parkmin-jes-projects.vercel.app
-      - key: JAVA_TOOL_OPTIONS
-        value: "--spring.profiles.active=render"
       - key: REDIS_URL
         sync: false
       - key: USER_SERVICE_URL
@@ -32,19 +24,13 @@ services:
       - key: INVENTORY_SERVICE_URL
         sync: false
 
-  # User Service
   - type: worker
     name: livemart-user-service
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    env: docker
+    dockerfilePath: ./user-service/Dockerfile
     dockerContext: .
-    dockerBuildArgs:
-      SERVICE_NAME: user-service
-      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: render
       - key: DATABASE_URL
         sync: false
       - key: DB_USERNAME
@@ -76,19 +62,13 @@ services:
       - key: OAUTH2_BASE_URL
         sync: false
 
-  # Product Service
   - type: worker
     name: livemart-product-service
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    env: docker
+    dockerfilePath: ./product-service/Dockerfile
     dockerContext: .
-    dockerBuildArgs:
-      SERVICE_NAME: product-service
-      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: render
       - key: DATABASE_URL
         sync: false
       - key: DB_USERNAME
@@ -98,19 +78,13 @@ services:
       - key: REDIS_URL
         sync: false
 
-  # Order Service
   - type: worker
     name: livemart-order-service
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    env: docker
+    dockerfilePath: ./order-service/Dockerfile
     dockerContext: .
-    dockerBuildArgs:
-      SERVICE_NAME: order-service
-      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: render
       - key: DATABASE_URL
         sync: false
       - key: DB_USERNAME
@@ -122,19 +96,13 @@ services:
       - key: JWT_SECRET
         sync: false
 
-  # Payment Service
   - type: worker
     name: livemart-payment-service
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    env: docker
+    dockerfilePath: ./payment-service/Dockerfile
     dockerContext: .
-    dockerBuildArgs:
-      SERVICE_NAME: payment-service
-      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: render
       - key: DATABASE_URL
         sync: false
       - key: DB_USERNAME
@@ -146,37 +114,25 @@ services:
       - key: TOSS_SECRET_KEY
         sync: false
 
-  # AI Service
   - type: worker
     name: livemart-ai-service
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    env: docker
+    dockerfilePath: ./ai-service/Dockerfile
     dockerContext: .
-    dockerBuildArgs:
-      SERVICE_NAME: ai-service
-      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: render
       - key: REDIS_URL
         sync: false
       - key: OPENAI_API_KEY
         sync: false
 
-  # Inventory Service
   - type: worker
     name: livemart-inventory-service
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    env: docker
+    dockerfilePath: ./inventory-service/Dockerfile
     dockerContext: .
-    dockerBuildArgs:
-      SERVICE_NAME: inventory-service
-      SERVICE_VERSION: "2.0.0"
     plan: free
     envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: render
       - key: DATABASE_URL
         sync: false
       - key: DB_USERNAME
