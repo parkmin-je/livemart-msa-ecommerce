@@ -65,7 +65,7 @@ export function AuthForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || '전송 실패');
-      toast.success(`${form.email}로 인증 코드를 발송했습니다`);
+      toast.success(data._demo ? `데모 인증 코드: 123456` : `${form.email}로 인증 코드를 발송했습니다`, { duration: 6000 });
       setCodeSent(true);
       setCountdown(300);
       clearInterval(timerRef.current);

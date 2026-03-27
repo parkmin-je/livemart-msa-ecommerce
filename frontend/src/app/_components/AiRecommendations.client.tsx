@@ -105,9 +105,9 @@ export function AiRecommendations() {
 
       if (!res.ok) return;
       const data: RecommendationResponse = await res.json();
-      setRecommendations(data.recommendations);
-      setReasoning(data.reasoning);
-      setCached(data.cached);
+      setRecommendations(data.recommendations ?? []);
+      setReasoning(data.reasoning ?? '');
+      setCached(data.cached ?? false);
     } catch {
       // 서비스 불가 시 섹션 숨김 (정상 폴백)
     } finally {

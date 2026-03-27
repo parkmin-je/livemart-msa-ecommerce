@@ -472,6 +472,20 @@ export async function GET(
 
   // ── ai ────────────────────────────────────────────────────────
   if (seg[0] === 'ai') {
+    if (seg[1] === 'recommend') {
+      return ok({
+        recommendations: DEMO_PRODUCTS.slice(0, 4).map(p => ({
+          productId: p.id, productName: p.name,
+          reason: '구매 이력 기반 추천 상품입니다.',
+          imageUrl: p.imageUrl, price: p.price,
+        })),
+        reasoning: '최근 조회 및 구매 패턴 분석 기반',
+        cached: false, _demo: true,
+      });
+    }
+    if (seg[1] === 'chat' || seg[1] === 'chat' && seg[2] === 'stream') {
+      return ok({ message: 'AI 채팅은 백엔드 연동 환경에서 사용 가능합니다. (데모)', _demo: true });
+    }
     return ok({ message: '데모 모드에서는 AI 기능이 제한됩니다.', _demo: true });
   }
 
@@ -541,6 +555,16 @@ export async function POST(
       maxAge: 60 * 60 * 24 * 30, path: '/',
     });
     return response;
+  }
+
+  // ── users/email/send & verify (회원가입 이메일 인증) ─────────
+  if (seg[0] === 'users' && seg[1] === 'email') {
+    if (seg[2] === 'send') {
+      return ok({ message: '인증 코드를 발송했습니다. 데모 코드: 123456', sent: true, _demo: true });
+    }
+    if (seg[2] === 'verify') {
+      return ok({ verified: true, message: '인증 완료 (데모)', _demo: true });
+    }
   }
 
   // ── users/{id}/cart ───────────────────────────────────────────
