@@ -252,7 +252,7 @@ jobs:
       pull-requests: write
     steps:
       - name: 결과 다운로드
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: k6-product-load-results
           path: k6/results/
