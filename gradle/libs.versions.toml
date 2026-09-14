@@ -20,7 +20,7 @@ testcontainers         = "1.20.4"
 archunit               = "1.4.2"
 
 # ── API Documentation ─────────────────────────────────────────
-springdoc              = "3.0.2"
+springdoc              = "3.1.1"
 
 # ── Data / Cache ──────────────────────────────────────────────
 redisson               = "3.40.2"
